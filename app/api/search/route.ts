@@ -19,6 +19,8 @@ const chineseTokenizer = {
   normalizationCache: new Map<string, string>(),
   tokenize: (text: string): string[] => {
     if (!text) return [];
+    // 限制输入长度，防止超长搜索请求消耗过多资源
+    if (text.length > 30) text = text.slice(0, 30);
 
     const tokens = new Set<string>();
 
