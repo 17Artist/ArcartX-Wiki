@@ -1,0 +1,81 @@
+---
+title: 导论
+description: Shimmer脚本系统
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+  Shimmer脚本系统————轻量级的UI和动画脚本解决方案
+</Callout>
+
+## Shimmer是什么？
+
+<Steps>
+  <Step title="探索历程">
+    我在开发UI和动作控制器的过程中，曾尝试过很多方案，比如JS、Jython(Python解释器嵌入JAVA)、Molang等。
+    
+    然而，以上方案更像是将"运算"嵌入到我们的整体运行中，或许是我钻研不精，没发掘到以上方式的最优方案来完成类似"嵌入"的操作。
+  </Step>
+
+  <Step title="设计初衷">
+    其次，并不是每个服主都精通JS等脚本语言，有时候一两行表达式就能实现的功能，没必要为此去专门学习一门语言。所以我希望能做出一个半天内就能上手的方案。
+    
+    同时，考虑到有些服主已经具备脚本编程基础，我们的语法设计也照顾到了这点，让有基础的使用者能更快上手。
+  </Step>
+
+  <Step title="项目诞生">
+    最后，Shimmer这个项目诞生了，它翻译为"微光"，就像微光一样，不需要太强烈的光源，但能够恰到好处地完成任务。
+  </Step>
+</Steps>
+
+## 设计理念
+
+<Cards>
+  <Card title="语法平衡" icon="✨">
+    参考了js、kotlin、python的优点，努力实现"刚刚好"的语法平衡
+  </Card>
+  <Card title="易用性" icon="🎯">
+    * 够用的语法糖：该简化的地方适度简化
+    * 直观的表达：避免过度语法糖带来的理解负担
+    * 保持精简：遵循"KISS"原则，减少学习压力
+  </Card>
+  <Card title="定位明确" icon="🎮">
+    Shimmer从设计之初就定位为"为载体服务"的嵌入式脚本语言(针对特定场景优化的领域特定语言(DSL))，而非独立运行的通用语言
+  </Card>
+</Cards>
+
+## "载体"的概念
+
+<Callout type="info">
+  Shimmer的核心设计围绕着"载体"概念展开，这是理解整个系统的关键
+</Callout>
+
+- 在UI或动画这些场景里，很多东西都是有层级关系的。
+- 比如一个UI界面（载体），里面有几个面板（子载体），面板里又有一些按钮（孙载体）。
+- Shimmer上下文的设计是围绕这种层级关系，在上下关系中，可以相互访问、调用。
+
+### 载体能力
+
+<Cards>
+  <Card title="属性定义" icon="🔧">
+    可以定义载体的各种属性，如组件标题、动作节点速度等
+  </Card>
+  <Card title="行为控制" icon="🎮">
+    支持定义外部行为（如点击事件）和内部行为
+  </Card>
+  <Card title="动画系统" icon="✨">
+    内置14+种动画曲线，包括：
+    * 线性插值
+    * 贝塞尔曲线
+    * 圆周运动
+    * ...
+  </Card>
+</Cards>
+
+---
+
+<Callout type="warn">
+  Shimmer将持续更新完善，欢迎在使用过程中提供建议和反馈
+</Callout>

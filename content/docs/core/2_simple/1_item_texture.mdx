@@ -1,0 +1,74 @@
+---
+title: 自定义物品贴图
+description: 自定义物品贴图指南
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## 自定义物品贴图
+
+ArcartX 可以通过 NBT 将物品渲染为指定的贴图样式。
+
+## 使用方法
+<Steps>
+    <Step>
+        准备好物品贴图资源文件，放入客户端资源目录的 `resource/item_icon` 中。如果该文件夹不存在，手动创建即可。
+        <img src="/simple/item-icon-1.png" alt="物品贴图文件夹" />
+    </Step>
+    <Step>
+        将物品贴图放入文件夹，支持三种格式：
+        1. 直接放入 — 渲染为原始贴图，以物品形式手持
+        2. 文件名添加 `_handheld` 后缀（如 `xxx_handheld.png`）— 以工具形式手持
+        3. 序列帧贴图 — 需要同时放入对应的 `.mcmeta` 文件
+
+        注意：该文件夹只识别 PNG 格式，GIF 等其他格式不会被加载。
+
+        三种格式放入后的目录结构：
+        <img src="/simple/item-icon-2.png" alt="物品贴图文件夹" />
+    </Step>
+    <Step>
+        启动客户端后，使用指令设置物品贴图。手持一个物品，执行：
+
+        `/a item setIcon item`
+
+        <img src="/simple/item-icon-3.png" alt="物品贴图" />
+        <img src="/simple/item-icon-4.png" alt="物品贴图" />
+    </Step>
+    <Step>
+        其他格式的效果：
+
+        `/a item setIcon icon`
+        <img src="/simple/item-icon-5.png" alt="物品贴图" />
+
+        `/a item setIcon sword_handheld`
+        <img src="/simple/item-icon-6.png" alt="物品贴图" />
+    </Step>
+    <Step>
+        如果贴图文件在子文件夹中，路径格式为 `xxx/xxx`。
+
+        ArcartX 通过读取物品的 `icon` NBT 来判断贴图，因此也可以通过其他支持 NBT 编辑的插件来设置。
+
+        MythicMobs 配置示例：
+        ```yaml
+        # MythicMobs 物品库配置
+        TestItem:
+          Id: DIAMOND_SWORD
+          Data: 0
+          Display: '&3测试物品'
+          Lore:
+          - ''
+          Options:
+            HideFlags: true
+            Unbreakable: true
+          NBT:
+            icon: 'item'
+        ```
+    </Step>
+
+</Steps>
+
+## 原版 GUI 中的物品图标
+
+如果你不想将箱子 UI 替换为 AX UI，但需要自定义箱子 UI 中的物品图标，可以为物品添加 `url` NBT 标签。存在该标签时，GUI 中会渲染 `url` 指定的文件路径。
+
+该方式支持 GIF 和网络链接，但仅在 GUI 中有效，手持等场景无效。可能需要使用支持自定义 NBT 的箱子菜单插件。

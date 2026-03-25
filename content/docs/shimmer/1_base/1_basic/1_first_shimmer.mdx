@@ -1,0 +1,61 @@
+---
+title: 你好，世界
+description: Shimmer的魔法咒语
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { AlertBox } from '@/components/AlertBox';
+
+## 1.Hello World！
+
+<Callout type="info">
+这一篇中,<strong>只需了解即可</strong>，后续内容将会由浅至深继续讲解。
+</Callout>
+
+<Callout type="info">
+在代码世界里，打印"Hello World"就像是给新世界说声"你好"一样，这是代码学习的第一课！
+</Callout>
+
+- 在代码编辑器中输入：
+
+```Shimmer
+Shimmer.println('你好世界')
+```
+
+## 2. 理解代码结构
+
+<Steps>
+  <Step>
+    ### 工具集 (Shimmer)
+    就像一个工具箱，里面装着各种的工具。
+    ```Shimmer
+    Shimmer.println("你好，世界！")  // Shimmer是工具箱的名字
+    ↑↑↑↑↑↑↑
+    ```
+  </Step>
+
+  <Step>
+    ### 工具 (println)
+    工具箱里的具体工具，这里的println是用来显示文字的工具。
+    ```Shimmer
+    // 从工具箱里取出工具
+    Shimmer.println("你好，世界！")
+            ↑↑↑↑↑↑↑
+    ```
+  </Step>
+
+  <Step>
+    ### 参数 ("你好，世界！")
+    告诉工具具体要做什么，就像告诉微波炉要加热什么食物。
+    ```Shimmer
+    // 括号里的内容就是参数
+    Shimmer.println("你好，世界！")
+                   ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+    ```
+  </Step>
+</Steps>
+
+<Callout type="warn">
+ 在后文中，这种调用方式我们<strong>统称为"工具集"调用</strong>，而括号里面的内容则称为参数。
+</Callout>

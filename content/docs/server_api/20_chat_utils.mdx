@@ -1,0 +1,29 @@
+---
+title: ChatUtils:聊天工具
+description: 聊天文本处理工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ChatUtils
+
+- 聊天工具集提供了字符串的颜色代码处理。
+- 位于 `priv.seventeen.artist.arcartx.util.ChatUtils`。
+
+## `String.replaceColorChar(){:java}`
+- 将字符串中的 `&` 颜色代码替换为 Minecraft 的 `§` 颜色代码
+
+<Callout type="info">
+- **参数**：无（扩展函数，作用于字符串自身）
+- **返回值**：String — 替换后的字符串
+- **调用示例**
+```java
+// Kotlin
+val colored = "&a绿色文本&b蓝色文本".replaceColorChar()
+// 结果: "§a绿色文本§b蓝色文本"
+
+// Java
+String colored = ChatUtils.replaceColorChar("&a绿色文本&b蓝色文本");
+```
+</Callout>

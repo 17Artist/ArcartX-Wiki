@@ -1,0 +1,42 @@
+---
+title: Name:名称获取
+description: Name命名工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Name.getEntityName(uuid){:Shimmer}`
+- 根据UUID获取实体名称
+
+<Callout type="info">
+- **参数**：`uuid`: 字符串类型(实体的UUID)
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Name.getEntityName("550e8400-e29b-41d4-a716-446655440000")
+```
+- **示例返回值**
+```Shimmer
+"Steve"
+```
+</Callout>
+
+## `Name.getBlockName(x, y, z){:Shimmer}`
+- 获取指定坐标方块的名称
+
+<Callout type="info">
+- **参数**：
+    - `x`: 整数类型(X坐标)
+    - `y`: 整数类型(Y坐标)
+    - `z`: 整数类型(Z坐标)
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Name.getBlockName(0, 64, 0)
+```
+- **示例返回值**
+```Shimmer
+"Stone"
+```
+</Callout>

@@ -1,0 +1,47 @@
+---
+title: 基础设定
+description: 相机基本设定指南
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+ArcartX 提供了全面的自定义相机系统，包括自定义相机位置、八向移动相机、场景相机等功能。
+
+## 相机基础设定
+
+相机的默认设置位于服务端 `plugins/ArcartX/camera/setting.yml`：
+
+```yaml
+# 相机功能总开关
+enable: true
+
+# 强制第三人称视角
+forceMode: 0 # 0-关闭，1-强制第一人称，2-强制第三人称
+
+# 默认使用的预设 ID
+default: "idle"
+```
+
+如果总开关不开启或者不存在默认预设，相机功能不会正常加载。预设的配置方式请看下一章。
+
+## 第一人称相机控制
+
+ArcartX 支持在第一人称视角下通过模型动画控制相机参数，可控制的参数包括：
+
+- `yaw` — 偏航角
+- `pitch` — 俯仰角
+- `roll` — 翻滚角
+- `x` / `y` / `z` — 相机位置偏移
+- `fov` — 视场角
+
+这些参数可以通过 Shimmer 脚本的 Camera 函数进行控制。
+
+## 兼容性说明
+
+<Callout type="info">
+    Forge 1.20.1 版本支持与 Shoulder Surfing Reloaded 兼容。使用时需要在 ArcartX 中关闭自定义相机功能（`enable: false`），让 Shoulder Surfing Reloaded 接管第三人称视角。
+</Callout>
+
+<Callout type="info">
+    自由相机模式下的车辆类型操作体验已优化，包括 ArcartX 内置的自定义坐骑功能。
+</Callout>

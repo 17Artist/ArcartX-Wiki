@@ -1,0 +1,35 @@
+---
+title: adyeshach:Adyeshach集成
+description: Adyeshach NPC模型设置指令
+---
+
+## Adyeshach指令
+
+- 用于为Adyeshach创建的NPC实体设置ArcartX模型和碰撞体积。
+- 需要服务端安装Adyeshach插件。
+
+### `arcartx adyeshach setModel`
+
+- 为就近的Adyeshach单位设置模型
+
+| 属性  | 值                                              |
+|-----|------------------------------------------------|
+| 用法  | `arcartx adyeshach setModel <modelID> <scale>` |
+| 权限  | `arcartx.command.admin.adyeshach`              |
+| 执行者 | 仅玩家                                            |
+
+- `modelID`：模型ID
+- `scale`：模型缩放比例
+
+### `arcartx adyeshach setBox`
+
+- 为就近的Adyeshach单位设置碰撞体积
+
+| 属性  | 值                                           |
+|-----|---------------------------------------------|
+| 用法  | `arcartx adyeshach setBox <width> <height>` |
+| 权限  | `arcartx.command.admin.adyeshach`           |
+| 执行者 | 仅玩家                                         |
+
+- `width`：碰撞箱宽度
+- `height`：碰撞箱高度

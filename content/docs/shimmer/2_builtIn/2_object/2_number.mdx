@@ -1,0 +1,31 @@
+---
+title: 数字类型函数
+description: 数字类型函数表
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `round(x){:Shimmer}`
+- 对目标数字进行小数位数限制
+
+<Callout type="info">
+- **参数**：`x`：整数类型（可选，表示要保留的小数位数）
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+123.456.round()
+```
+- **示例返回值**
+```Shimmer
+123
+```
+- **调用示例**
+```Shimmer
+123.456.round(2)
+```
+- **示例返回值**
+```Shimmer
+123.46
+```
+</Callout>

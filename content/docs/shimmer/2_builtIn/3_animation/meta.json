@@ -1,0 +1,29 @@
+{
+    "title": "内置动画对象",
+    "defaultOpen": false,
+    "pages": [
+        "1_lerp",
+        "2_back",
+        "3_bezier",
+        "4_bounce",
+        "5_circ",
+        "6_elastic",
+        "7_expo",
+        "8_q2",
+        "9_q3",
+        "10_q4",
+        "11_q5",
+        "12_sine",
+        "13_smooth",
+        "14_spring",
+        "15_fade",
+        "16_twolerp",
+        "17_blink",
+        "18_breathe",
+        "19_pulse",
+        "20_shake",
+        "21_swing",
+        "22_wave",
+        "23_slide"
+    ]
+}

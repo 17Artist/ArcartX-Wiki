@@ -1,0 +1,406 @@
+---
+title: Player:玩家对象
+description: Player:玩家对象
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `isDeath(){:Shimmer}`
+- 判断玩家是否死亡
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isDeath()
+    ```
+</Callout>
+
+## `isJumping(){:Shimmer}`
+- 判断玩家是否正在跳跃
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isJumping()
+    ```
+</Callout>
+
+## `isRunning(){:Shimmer}`
+- 判断玩家是否正在奔跑
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isRunning()
+    ```
+</Callout>
+
+## `isWalking(){:Shimmer}`
+- 判断玩家是否正在行走
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isWalking()
+    ```
+</Callout>
+
+## `isSneaking(){:Shimmer}`
+- 判断玩家是否正在潜行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isSneaking()
+    ```
+</Callout>
+
+## `getHealth(){:Shimmer}`
+- 获取玩家生命值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getHealth()
+    ```
+</Callout>
+
+## `getMaxHealth(){:Shimmer}`
+- 获取玩家最大生命值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getMaxHealth()
+    ```
+</Callout>
+
+## `getPosX(){:Shimmer}`
+- 获取玩家X坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getPosX()
+    ```
+</Callout>
+
+## `getPosY(){:Shimmer}`
+- 获取玩家Y坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getPosY()
+    ```
+</Callout>
+
+## `getPosZ(){:Shimmer}`
+- 获取玩家Z坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getPosZ()
+    ```
+</Callout>
+
+## `getYaw(){:Shimmer}`
+- 获取玩家水平旋转角度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getYaw()
+    ```
+</Callout>
+
+## `getPitch(){:Shimmer}`
+- 获取玩家垂直旋转角度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getPitch()
+    ```
+</Callout>
+
+## `isFlying(){:Shimmer}`
+- 判断玩家是否在飞行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isFlying()
+    ```
+</Callout>
+
+## `getFood(){:Shimmer}`
+- 获取玩家饱食度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getFood()
+    ```
+</Callout>
+
+## `getAir(){:Shimmer}`
+- 获取玩家氧气值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getAir()
+    ```
+</Callout>
+
+## `getArmor(){:Shimmer}`
+- 获取玩家护甲值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getArmor()
+    ```
+
+</Callout>
+
+## `getCurrentItem(){:Shimmer}`
+- 获取玩家当前手持物品
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：物品对象
+    - **调用示例**
+    ```Shimmer
+    玩家对象.getCurrentItem()
+    ```
+</Callout>
+
+## `isInWater(){:Shimmer}`
+- 判断玩家是否在水中
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isInWater()
+    ```
+</Callout>
+
+## `isOnGround(){:Shimmer}`
+- 判断玩家是否在地面上
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isOnGround()
+    ```
+</Callout>
+
+## `isSprinting(){:Shimmer}`
+- 判断玩家是否在奔跑
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isSprinting()
+    ```
+</Callout>
+
+## `isFallFlying(){:Shimmer}`
+- 判断玩家是否在滑翔
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isFallFlying()
+    ```
+</Callout>
+
+## `isSwimming(){:Shimmer}`
+- 判断玩家是否在游泳
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isSwimming()
+    ```
+</Callout>
+
+## `isUnderWater(){:Shimmer}`
+- 判断玩家是否在水下
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isUnderWater()
+    ```
+</Callout>
+
+## `isInLava(){:Shimmer}`
+- 判断玩家是否在岩浆中
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isInLava()
+    ```
+</Callout>
+
+## `isSleeping(){:Shimmer}`
+- 判断玩家是否在睡觉
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isSleeping()
+    ```
+</Callout>
+
+## `isRidePig(){:Shimmer}`
+- 判断玩家是否骑在猪上
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isRidePig()
+    ```
+</Callout>
+
+## `inBoat(){:Shimmer}`
+- 判断玩家是否骑在船上
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.inBoat()
+    ```
+</Callout>
+
+## `isRide(){:Shimmer}`
+- 判断玩家是否骑乘生物
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isRide()
+    ```
+</Callout>
+
+## `isCrawl(){:Shimmer}`
+- 判断玩家是否在爬行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isCrawl()
+    ```
+</Callout>
+
+## `isLadderUp(){:Shimmer}`
+- 判断玩家是否在向上攀爬梯子
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isLadderUp()
+    ```
+</Callout>
+
+## `isLadderDown(){:Shimmer}`
+- 判断玩家是否在向下攀爬梯子
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isLadderDown()
+    ```
+</Callout>
+
+## `isLadderIdle(){:Shimmer}`
+- 判断玩家是否在梯子上静止不动
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isLadderIdle()
+    ```
+</Callout>
+
+## `isLeftSwing(){:Shimmer}`
+- 判断玩家是否正在左手挥舞
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isLeftSwing()
+    ```
+</Callout>
+
+## `isRightSwing(){:Shimmer}`
+- 判断玩家是否正在右手挥舞
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isRightSwing()
+    ```
+</Callout>
+
+## `isLeftEating(){:Shimmer}`
+- 判断玩家是否正在左手吃东西
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isLeftEating()
+    ```
+</Callout>
+
+## `isRightEating(){:Shimmer}`
+- 判断玩家是否正在右手吃东西
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    玩家对象.isRightEating()
+    ```
+</Callout>
+

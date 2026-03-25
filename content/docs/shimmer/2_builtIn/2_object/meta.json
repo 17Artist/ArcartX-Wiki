@@ -1,0 +1,11 @@
+{
+    "title": "内置对象及用法",
+    "defaultOpen": false,
+    "pages": [
+        "1_text",
+        "2_number",
+        "3_list",
+        "4_dict",
+        "5_uuid"
+    ]
+}

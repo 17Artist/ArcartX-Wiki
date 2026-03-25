@@ -1,0 +1,34 @@
+---
+title: skybox:天空盒
+description: 天空盒调试指令
+---
+
+## 天空盒指令
+
+- 用于为玩家设置或清除自定义天空盒贴图。
+
+### `arcartx skybox setup`
+
+- 为玩家设置天空盒贴图
+
+| 属性  | 值                                                       |
+|-----|---------------------------------------------------------|
+| 用法  | `arcartx skybox setup <player> <path> <force-no-cloud>` |
+| 权限  | `arcartx.command.admin.skybox`                          |
+| 执行者 | 仅OP                                                     |
+
+- `player`：目标玩家名
+- `path`：天空盒贴图资源路径
+- `force-no-cloud`：是否强制隐藏云层（布尔值）
+
+### `arcartx skybox clear`
+
+- 为玩家清除天空盒贴图，恢复默认天空
+
+| 属性  | 值                               |
+|-----|---------------------------------|
+| 用法  | `arcartx skybox clear <player>` |
+| 权限  | `arcartx.command.admin.skybox`  |
+| 执行者 | 仅OP                             |
+
+- `player`：目标玩家名

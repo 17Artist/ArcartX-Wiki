@@ -1,0 +1,22 @@
+{
+    "title": "指令",
+    "defaultOpen": false,
+    "pages": [
+        "1_reload",
+        "2_model",
+        "3_camera",
+        "4_bedrockparticle",
+        "5_damagedisplay",
+        "6_sound",
+        "7_shader",
+        "8_skybox",
+        "9_screen",
+        "10_item",
+        "11_area",
+        "12_waypoint",
+        "13_parser",
+        "14_crc64",
+        "15_resourcesync",
+        "16_adyeshach"
+    ]
+}

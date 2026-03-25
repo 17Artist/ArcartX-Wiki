@@ -1,0 +1,49 @@
+---
+title: waypoint:路标
+description: 路标管理指令
+---
+
+## 路标指令
+
+- 用于为玩家添加、删除和清除路标。
+
+### `arcartx waypoint add`
+
+- 为玩家添加一个路标
+
+| 属性  | 值                                                                    |
+|-----|----------------------------------------------------------------------|
+| 用法  | `arcartx waypoint add <id> <title> <configId> <x> <y> <z> [?player]` |
+| 权限  | `arcartx.command.admin.waypoint`                                     |
+| 执行者 | 仅OP                                                                  |
+
+- `id`：路标唯一标识
+- `title`：路标显示标题
+- `configId`：路标配置ID
+- `x` `y` `z`：路标坐标
+- `player`：可选，指定目标玩家，不填则为自己
+
+### `arcartx waypoint delete`
+
+- 删除玩家的指定路标
+
+| 属性  | 值                                        |
+|-----|------------------------------------------|
+| 用法  | `arcartx waypoint delete <id> [?player]` |
+| 权限  | `arcartx.command.admin.waypoint`         |
+| 执行者 | 仅OP                                      |
+
+- `id`：路标唯一标识
+- `player`：可选，指定目标玩家，不填则为自己
+
+### `arcartx waypoint clear`
+
+- 清除玩家的所有路标
+
+| 属性  | 值                                  |
+|-----|------------------------------------|
+| 用法  | `arcartx waypoint clear [?player]` |
+| 权限  | `arcartx.command.admin.waypoint`   |
+| 执行者 | 仅OP                                |
+
+- `player`：可选，指定目标玩家，不填则为自己

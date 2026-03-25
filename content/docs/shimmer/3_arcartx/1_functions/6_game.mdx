@@ -1,0 +1,95 @@
+---
+title: Game:游戏控制
+description: Game游戏控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Game.options(){:Shimmer}`
+- 打开游戏选项界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.options()
+```
+</Callout>
+
+## `Game.quit(){:Shimmer}`
+- 退出当前游戏
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.quit()
+```
+</Callout>
+
+## `Game.shutdown(){:Shimmer}`
+- 关闭游戏客户端
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.shutdown()
+```
+</Callout>
+
+## `Game.advancements(){:Shimmer}`
+- 打开成就界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.advancements()
+```
+</Callout>
+
+## `Game.stat(){:Shimmer}`
+- 打开统计信息界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.stat()
+```
+</Callout>
+
+## `Game.setScale(scale){:Shimmer}`
+- 设置游戏界面缩放比例
+
+<Callout type="info">
+- **参数**：`scale`: 整数类型(>=1)
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Game.setScale(2)
+```
+</Callout>
+
+## `Game.getFPS(){:Shimmer}`
+- 获取当前游戏帧率
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Game.getFPS()
+```
+- **示例返回值**
+```Shimmer
+"60 fps"
+```
+</Callout>

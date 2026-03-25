@@ -1,0 +1,16 @@
+{
+    "title": "[动作引擎]Chronos",
+    "defaultOpen": false,
+    "pages": [
+        "1_start",
+        "2_setup",
+        "3_config",
+        "4_command",
+        "5_setting",
+        "6_key",
+        "7_controller",
+        "8_glimmer",
+        "9_api",
+        "10_best_practice"
+    ]
+}

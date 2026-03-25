@@ -1,0 +1,86 @@
+---
+title: Pulse-脉搏效果
+description: 脉搏效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Pulse是一个用于创建心跳、闪烁等脉搏效果的对象。它支持可调节的脉搏频率和强度，可选择平滑或锐利的脉搏波形。
+</Callout>
+
+## 实例化方式
+
+### `Pulse`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个脉搏动画实例。
+    - **参数**：
+    - `minValue`：数值类型，最小值
+    - `maxValue`：数值类型，最大值
+    - `pulseDuration`：长整型，单次脉搏持续时间（毫秒，最小50ms）
+    - `intensity`：数值类型，脉搏强度（0.0-1.0）
+    - `smooth`：布尔值，是否使用平滑过渡（可选）
+    - **调用示例**：
+    ```Shimmer
+    Pulse(0.5, 1.0, 800, 0.8) // 心跳效果，800ms一次
+    Pulse(0, 255, 500, 1.0, true) // 平滑脉搏，用于颜色变化
+    Pulse(1.0, 1.5, 600, 0.6, false) // 锐利脉搏，用于缩放效果
+    ```
+</Callout>
+
+## 函数
+
+### `get(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前脉搏值，在最小值和最大值之间周期性变化。
+</Callout>
+
+### `phase(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（0.0-1.0）
+    - **说明**：获取当前脉搏相位，表示在一个脉搏周期中的位置。
+</Callout>
+
+### `sync(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：同步脉搏节拍，重置时间以便与外部节拍同步。
+</Callout>
+
+### `reset(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置脉搏状态，重新开始效果。
+</Callout>
+
+### `reverse(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转脉搏方向。
+</Callout>
+
+## 类型转换
+
+Pulse对象支持以下类型转换：
+- **数值**：返回当前脉搏值
+- **布尔值**：当前值超过中点（minValue + maxValue）/ 2 时返回true，否则返回false
+- **字符串**：返回当前值的字符串表示
+
+<Callout type="info">
+    Pulse对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

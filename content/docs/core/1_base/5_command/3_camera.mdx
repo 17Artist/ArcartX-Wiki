@@ -1,0 +1,58 @@
+---
+title: camera:相机
+description: 相机相关调试指令
+---
+
+## 相机指令
+
+- 用于调试和控制相机功能，包括场景相机和相机预设。
+
+### `arcartx camera scene`
+
+- 为玩家开启一个场景相机
+
+| 属性  | 值                                       |
+|-----|-----------------------------------------|
+| 用法  | `arcartx camera scene <player> <scene>` |
+| 权限  | `arcartx.command.admin.camera`          |
+| 执行者 | 仅OP                                     |
+
+- `player`：目标玩家名
+- `scene`：场景相机配置ID
+
+### `arcartx camera stop`
+
+- 停止玩家的场景相机
+
+| 属性  | 值                              |
+|-----|--------------------------------|
+| 用法  | `arcartx camera stop <player>` |
+| 权限  | `arcartx.command.admin.camera` |
+| 执行者 | 仅OP                            |
+
+- `player`：目标玩家名
+
+### `arcartx camera createSceneAbs`
+
+- 进入场景相机编辑模式，创建一个绝对坐标场景相机
+- 执行后进入编辑模式，按住ALT键点击位置来添加相机路径点
+- 在聊天栏输入 `end <名称>` 保存场景相机，输入其他内容退出编辑
+
+| 属性  | 值                               |
+|-----|---------------------------------|
+| 用法  | `arcartx camera createSceneAbs` |
+| 权限  | `arcartx.command.admin.camera`  |
+| 执行者 | 仅玩家                             |
+
+### `arcartx camera preset`
+
+- 为玩家设置一个相机预设
+
+| 属性  | 值                                         |
+|-----|-------------------------------------------|
+| 用法  | `arcartx camera preset <player> <preset>` |
+| 权限  | `arcartx.command.admin.camera`            |
+| 执行者 | 仅OP                                       |
+
+- `player`：目标玩家名
+- `preset`：相机预设配置ID

@@ -1,0 +1,94 @@
+---
+title: Wave-波浪效果
+description: 波浪效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Wave是一个用于创建波浪起伏效果的对象。它基于正弦函数生成平滑的周期性变化，可用于位置、大小等属性的周期性动画，支持阻尼衰减效果。
+</Callout>
+
+## 实例化方式
+
+### `Wave`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个波浪动画实例。
+    - **参数**：
+    - `centerValue`：数值类型，中心值（波浪围绕的基准值）
+    - `amplitude`：数值类型，振幅（波浪的最大偏移）
+    - `period`：长整型，周期（一个完整波浪的时间，毫秒，最小100ms）
+    - `phaseOffset`：数值类型，相位偏移（用于多个波浪的同步）
+    - `damping`：布尔值，是否启用阻尼（可选）
+    - `dampingFactor`：数值类型，阻尼系数（可选，默认0.95）
+    - **调用示例**：
+    ```Shimmer
+    Wave(0, 50, 2000, 0) // 以0为中心，振幅50，2秒一个周期
+    Wave(100, 30, 1000, 0, true, 0.9) // 启用阻尼效果，逐渐衰减
+    ```
+</Callout>
+
+## 函数
+
+### `get(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前波浪效果的值，返回 centerValue + amplitude * sin(angle)。
+</Callout>
+
+### `normalized(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（-1.0 到 1.0）
+    - **说明**：获取归一化的波浪值，不受中心值和振幅影响。
+</Callout>
+
+### `phase(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（0.0-1.0）
+    - **说明**：获取当前相位，表示在一个完整周期中的位置。
+</Callout>
+
+### `cosine(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取余弦波变体（相位差90度），可用于创建与正弦波正交的运动。
+</Callout>
+
+### `reset(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置波浪状态，重新开始效果，同时清除反向状态。
+</Callout>
+
+### `reverse(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转波浪方向，并重置开始时间。
+</Callout>
+
+## 类型转换
+
+Wave对象支持以下类型转换：
+- **数值**：返回当前波浪值
+- **布尔值**：当前值偏离中心值时返回true，否则返回false
+- **字符串**：返回当前值的字符串表示
+
+<Callout type="info">
+    Wave对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

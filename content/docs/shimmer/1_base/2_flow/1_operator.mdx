@@ -1,0 +1,178 @@
+---
+title: 运算符
+description: 学习Shimmer中的各类运算符
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+  运算符是编程中的"计算工具"，帮助我们对数据进行各种操作和判断
+</Callout>
+
+## 运算符类型
+
+<Callout icon="🔢">
+### 算术运算符
+  ```Shimmer
+  // 基本运算
+  var.加法 = 5 + 3      // 8
+  var.减法 = 10 - 4     // 6
+  var.乘法 = 2 * 6      // 12
+  var.除法 = 15 / 3     // 5
+  var.取模 = 10 % 3     // 1（除法的余数）
+  
+  // 自增自减
+  var.数字 = 1
+  var.数字++      // 后置自增，先使用再加1
+  ++var.数字      // 前置自增，先加1再使用
+  var.数字--      // 后置自减
+  --var.数字      // 前置自减
+  ```
+</Callout>
+
+<Callout icon="⚖️">
+### 比较运算符
+  ```Shimmer
+  // 数值比较
+  var.大于 = 5 > 3      // true
+  var.小于 = 2 < 4      // true
+  var.大于等于 = 5 >= 5 // true
+  var.小于等于 = 3 <= 4 // true
+  var.等于 = 5 == 5     // true
+  
+  // 范围判断
+  var.在范围内 = 5 ~~ range(1,10) // true
+  ```
+</Callout>
+
+<Callout icon="🔄">
+### 逻辑运算符
+  ```Shimmer
+  // 与运算 -> 只有全部条件都是true才会返回true 否则返回false
+  var.都为真 = true && true    // true
+  var.有假为假 = true && false // false
+  
+  // 或运算 -> 全部条件只要有一个返回true就会返回true
+  var.有真为真 = true || false // true
+  var.都为假 = false || false  // false
+  
+  // 取反
+  var.取反 = !true            // false
+  
+  // 且和或属于短路运算
+  // 且：一旦有条件返回为false，立刻停止运算返回false
+  // 或：一旦有条件返回为true，立刻停止运算返回true
+  false && Shimmer.println("不会执行")
+  true || Shimmer.println("不会执行")
+  ```
+</Callout>
+
+<Callout icon="🔀">
+### 三元运算符
+  ```Shimmer
+  // 条件 ? 达成条件的返回值 : 没达成条件的返回值
+  var.结果 = 分数 >= 60 ? "及格" : "不及格"
+  
+  // 二元简写（条件为真时才有值 否则返回none）
+  var.结果 = 分数 >= 60 ? "及格"  // 不及格时为none
+  
+  // 反向二元（条件为假时才有值 否则返回none）
+  var.结果 = 分数 < 60 ?: "不及格" // 及格时为none
+  ```
+</Callout>
+
+<Callout icon="✍️">
+### 赋值运算符
+  ```Shimmer
+  // 基本赋值
+  var.数字 = 10  // 返回10
+  
+  // 复合赋值
+  数字 += 5      // 等同于: 数字 = 数字 + 5
+  数字 -= 3      // 减法赋值
+  数字 *= 2      // 乘法赋值
+  数字 /= 4      // 除法赋值
+  数字 %= 3      // 取模赋值
+  
+  // 初始化或取值
+  var.变量 ~= 10  // 如果变量未定义则赋值10，已定义则返回原值
+  ```
+</Callout>
+
+<Callout icon="📊">
+### 运算符优先级
+  优先级从高到低：
+  1. `()` `.` `[]` 后缀
+  2. `!` 取反
+  3. `++` `--` 自增自减
+  4. `*` `/` `%` 乘除模
+  5. `+` `-` 加减
+  6. `>` `>=` `<` `<=` 比较
+  7. `==` `~~` 相等和范围
+  8. `&&` 与
+  9. `||` 或
+  10. `? :` 条件
+  11. `=` `+=` `-=` `*=` `/=` `%=` `~=` 赋值
+</Callout>
+
+## 实际应用示例
+
+<Callout title="成绩计算" icon="📝">
+  ```Shimmer
+  var.语文 = 85
+  var.数学 = 92
+  var.英语 = 88
+  
+  var.总分 = 语文 + 数学 + 英语
+  var.平均分 = 总分 / 3
+  
+  var.是否优秀 = 平均分 >= 90
+  var.评级 = 是否优秀 ? "优秀" : "良好"
+  
+  Shimmer.println("总分：{var.总分}")
+  Shimmer.println("平均分：{var.平均分}")
+  Shimmer.println("评级：{var.评级}")
+  ```
+</Callout>
+
+<Callout title="游戏状态判断" icon="🎮">
+  ```Shimmer
+  var.生命值 = 100
+  var.魔法值 = 50
+  var.是否中毒 = true
+  
+  // 状态计算
+  var.生命值 -= var.是否中毒 ? 10 : 0
+  
+  var.能否释放技能 = var.魔法值 >= 30 && var.生命值 > 0
+  var.状态提示 = var.能否释放技能 ? "可以释放技能" : "魔法不足"
+  
+  Shimmer.println(var.状态提示)
+  ```
+</Callout>
+
+## 练习题
+
+<Cards>
+  <Card title="练习1：购物计算" icon="🛒">
+    编写代码计算：
+    * 商品总价（多件商品的价格计算）
+    * 折扣后价格（打8折）
+    * 是否满足免运费条件（满200免运费）
+    * 最终需要支付的金额
+  </Card>
+
+  <Card title="练习2：分数评级" icon="📊">
+    使用运算符实现：
+    * 90分以上为"优秀"
+    * 80-89分为"良好"
+    * 60-79分为"及格"
+    * 60分以下为"不及格"
+  </Card>
+</Cards>
+
+<Callout type="info">
+  运算符的熟练运用可以让代码更简洁高效。建议多加练习，特别是组合使用不同类型的运算符。
+</Callout>

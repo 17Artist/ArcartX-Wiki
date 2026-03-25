@@ -1,0 +1,245 @@
+---
+title: 玩家模型控制器
+description: 基于状态机的玩家动画控制器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 什么是控制器
+
+控制器是一套动画状态机，用来自动管理玩家模型的动画切换。简单来说：你定义好"什么情况播什么动画"，控制器会在每个游戏刻自动判断玩家当前行为，切换到对应的动画。
+
+举个例子：玩家站着播待机动画，走路播行走动画，跑步播跑步动画——这些切换逻辑就是控制器在做的事。
+
+## 注册方式
+
+<Callout type="warn">
+控制器只能通过服务端 API 注册，ArcartX 不再内置配置文件管理。这是因为控制器通常由上层插件（如克洛诺斯）动态管理，内置配置反而不灵活。
+</Callout>
+
+## 快速上手
+
+下面是一个最简单的控制器配置，只有三个状态：待机、行走、跑步。
+
+```yaml
+main:
+  initial_state: idle
+  states:
+    run:
+      animation: 跑步
+    walk:
+      animation: 走路
+    idle:
+      animation: 待机
+```
+
+这段配置的含义：
+
+1. `main` 是子控制器的名称，你可以随意命名
+2. `initial_state: idle` 表示玩家初始处于 `idle` 状态
+3. `states` 下定义了三个状态，每个状态绑定一个动画
+
+控制器每个游戏刻会从上到下检查状态条件：先看玩家是否在跑步 → 再看是否在走路 → 都不是就落到 `idle`。`idle` 的条件永远成立，所以它是兜底状态。
+
+<Callout type="info">
+状态的判断顺序就是你在配置中写的顺序（从上到下）。把优先级高的状态写在前面。
+</Callout>
+
+## 状态名的两种类型
+
+状态名分为两种：
+
+- 保留名：如 `idle`、`walk`、`run`、`swim` 等，控制器会自动判断玩家行为来触发。完整列表见[状态保留名](/docs/core/10_controller/2_state_name)
+- 自定义名：任何非保留名的状态（如 `attack1`、`attack2`），不会被自动触发，只能通过服务端 API 或指令手动切换。适用于连招、技能等需要外部控制的场景
+
+## 状态属性
+
+每个状态支持以下配置项：
+
+| 配置键        |   类型    |  默认值  | 说明                                     |
+|:-----------|:-------:|:-----:|:---------------------------------------|
+| animation  | string  |  ""   | 播放的动画名称                                |
+| speed      | double  |  1.0  | 动画播放速度                                 |
+| weight     | double  |  1.0  | 动画权重（多控制器混合时使用）                        |
+| inTick     |   int   |   5   | 进入该状态时的动画过渡时长（tick）                    |
+| outTick    |   int   |  -1   | 离开该状态时的过渡时长（tick），-1 表示使用下一个状态的 inTick |
+| in         |   map   |  {}   | 过渡入动画映射，key 为来源状态名，value 为过渡动画名        |
+| to         |   map   |  {}   | 过渡出动画映射，key 为目标状态名，value 为过渡动画名        |
+| exclusive  | boolean | false | 独占模式，动画播放完成前不会切换到其它状态                  |
+| moveLimit  | double  |  1.0  | 移动速度限制倍率，多个状态叠加时相乘                     |
+| onStart    | string  |  ""   | 进入状态时执行的 Shimmer 脚本                    |
+| onEnd      | string  |  ""   | 离开状态时执行的 Shimmer 脚本                    |
+| clientLock | object  |  {}   | 客户端输入锁定配置                              |
+
+<Callout type="info">
+clientLock、onStart 和 onEnd 仅在控制器作用于客户端当前玩家自身时生效。
+</Callout>
+
+下面逐个解释关键属性的用法。
+
+### 过渡时长（inTick / outTick）
+
+动画切换不是瞬间跳变的，而是有一个平滑过渡。`inTick` 控制进入时的过渡帧数，`outTick` 控制离开时的过渡帧数。
+
+- `inTick: 0` 表示瞬间切换，没有过渡（适合攻击动画这种需要立即响应的场景）
+- `outTick: -1`（默认）表示离开时的过渡时长由下一个状态的 `inTick` 决定
+
+### 过渡动画（in / to）
+
+有时候两个状态之间需要一段专门的过渡动画，而不是简单的混合过渡。
+
+```yaml
+states:
+  run:
+    animation: 长剑-跑步-跑步中
+    to:
+      idle: 长剑-跑步-结束
+```
+
+这段配置的意思是：当从 `run` 切换到 `idle` 时，先播放 `长剑-跑步-结束` 这个过渡动画，播完后再进入 `idle` 的待机动画。
+
+`in` 是反过来的——指定从某个状态进入当前状态时的过渡动画。
+
+### 独占模式（exclusive）
+
+开启 `exclusive: true` 后，该状态的动画必须播放完毕才会切换到下一个状态。典型用途是攻击动画——你不希望挥刀到一半就被打断。
+
+### 移动限制（moveLimit）
+
+`moveLimit` 可以在某个状态下限制玩家的移动速度。值为 0~1 的倍率，`0.5` 表示移动速度减半，`0` 表示完全不能移动。多个子控制器的 moveLimit 会相乘。
+
+### 客户端输入锁定（clientLock）
+
+```yaml
+clientLock:
+  input:
+    - LOCK
+    - DIRECTION
+  action:
+    - JUMP
+    - SNEAK
+```
+
+`input` 支持以下值：
+- `LOCK` — 禁用自由相机锁定（通常用于近战吸附的相机解耦）
+- `DIRECTION` — 锁定移动方向输入
+
+`action` 支持以下值：
+- `SNEAK` — 禁止下蹲
+- `JUMP` — 禁止跳跃
+- `MOVE` — 禁止所有方向的移动输入
+
+## 实战示例：长剑武器控制器
+
+下面是一个完整的长剑武器控制器配置，包含待机、行走、跑步和三段连击：
+
+```yaml
+main:
+  initial_state: idle
+  states:
+    run:
+      speed: 1
+      animation: 长剑-跑步-跑步中
+      to:
+        idle: 长剑-跑步-结束
+      clientLock:
+        input:
+          - LOCK
+    walk:
+      animation: 长剑-行走-走路中
+      clientLock:
+        input:
+          - LOCK
+    idle:
+      animation: 长剑-待机
+      clientLock:
+        input:
+          - LOCK
+    attack1:
+      animation: 长剑-普攻-2
+      inTick: 0
+      outTick: 0
+      exclusive: true
+      moveLimit: 0.5
+      clientLock:
+        input:
+          - LOCK
+          - DIRECTION
+    attack2:
+      animation: 长剑-普攻-3
+      inTick: 0
+      outTick: 0
+      exclusive: true
+      moveLimit: 0.5
+      clientLock:
+        input:
+          - LOCK
+          - DIRECTION
+    attack3:
+      animation: 长剑-普攻-4
+      inTick: 0
+      outTick: 0
+      exclusive: true
+      moveLimit: 0.5
+      clientLock:
+        input:
+          - LOCK
+          - DIRECTION
+```
+
+逐段解读：
+
+- `run`、`walk`、`idle` 是保留名状态，控制器自动判断切换。跑步状态结束时会播放 `长剑-跑步-结束` 过渡动画再回到待机
+- 三个状态都锁定了视角输入（`LOCK`），玩家在这些状态下，如果相机为自定义预设相机且开启了自由相机，左右键输入不会被切换到锁定模式。
+- `attack1`、`attack2`、`attack3` 是自定义状态，不会被自动触发，需要服务端插件在玩家攻击时依次切换（实现三段连击）
+- 攻击状态设置了 `exclusive: true`，动画播完才能切换；`inTick: 0` 和 `outTick: 0` 让攻击动画瞬间切入切出，手感更利落
+- 攻击时 `moveLimit: 0.5` 让玩家移动速度减半，同时锁定视角和移动方向，防止攻击时乱跑
+
+## 多控制器混合
+
+- 一个控制器配置中可以包含多个子控制器，它们并行运行。
+- 你可以通过权重设置，实现特定的混合效果。
+
+典型用法：主控制器（`main`）控制全身动作，副控制器（`secondary`）控制上半身动作（攻击、使用物品等）。
+
+```yaml
+main:
+  initial_state: idle
+  states:
+    idle:
+      animation: 待机
+    walk:
+      animation: 走路
+    run:
+      animation: 跑步
+
+secondary:
+  initial_state: empty
+  states:
+    empty:
+      animation: empty
+      inTick: 1
+    right_eat:
+      animation: eat_mainhand
+    left_eat:
+      animation: eat_offhand
+    attack1:
+      animation: 挥剑1
+      exclusive: true
+    attack2:
+      animation: 挥剑2
+      exclusive: true
+    attack3:
+      animation: 挥剑3
+      exclusive: true
+```
+
+这个配置中：
+- `main` 负责全身的移动动画
+- `secondary` 负责上半身的手部动画。`empty` 是一个不包含任何骨骼动画的空动作，作为副控制器的默认状态——当玩家没有使用物品或攻击时，副控制器不干预任何骨骼
+- `right_eat`、`left_eat` 是保留名，玩家进食时自动触发
+- `attack1`~`attack3` 是自定义连招状态，由服务端插件控制切换
+
+<Callout type="info">
+副控制器的默认状态（如 `empty`）需要对应一个实际存在但不包含任何骨骼动画的空动作，这样它才不会覆盖主控制器的动画。
+</Callout>

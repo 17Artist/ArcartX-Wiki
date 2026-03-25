@@ -1,0 +1,87 @@
+---
+title: ArcartXAreaManager:区域管理器
+description: 区域管理器API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXAreaManager
+
+- 区域管理器负责管理ArcartX的自定义区域，支持区域的增删查操作。
+- 通过 `ArcartXAPI.getAreaManager()` 获取。
+- 内部使用Chunk索引优化查询性能，支持区域优先级。
+
+## `getArea(location){:java}`
+- 获取指定位置所在的区域，如果有多个重叠区域则返回优先级最高的
+
+<Callout type="info">
+- **参数**：`location`: Location — Bukkit位置对象
+- **返回值**：`Area?` — 区域对象，可能为null
+- **调用示例**
+```java
+Area area = ArcartXAPI.getAreaManager().getArea(player.getLocation());
+if (area != null) {
+    // 玩家在某个区域内
+}
+```
+</Callout>
+
+## `getArea(name){:java}`
+- 按名称获取区域
+
+<Callout type="info">
+- **参数**：`name`: String — 区域名称
+- **返回值**：`Area?` — 区域对象，可能为null
+- **调用示例**
+```java
+Area area = ArcartXAPI.getAreaManager().getArea("spawn_area");
+```
+</Callout>
+
+## `addArea(name, loc1, loc2){:java}`
+- 添加一个新区域，两个位置必须在同一个世界
+
+<Callout type="info">
+- **参数**：
+    - `name`: String — 区域名称
+    - `loc1`: Location — 对角位置1
+    - `loc2`: Location — 对角位置2
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getAreaManager().addArea("my_area", loc1, loc2);
+```
+</Callout>
+
+<Callout type="warn">
+如果两个位置不在同一个世界，或者已存在同名区域，会抛出 `IllegalArgumentException`。
+</Callout>
+
+## `addArea(player, name, loc1, loc2){:java}`
+- 添加一个新区域，带玩家消息反馈
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 接收反馈消息的玩家
+    - `name`: String — 区域名称
+    - `loc1`: Location — 对角位置1
+    - `loc2`: Location — 对角位置2
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getAreaManager().addArea(player, "my_area", loc1, loc2);
+```
+</Callout>
+
+## `removeArea(name){:java}`
+- 移除指定名称的区域，同时删除对应的配置文件
+
+<Callout type="info">
+- **参数**：`name`: String — 区域名称
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getAreaManager().removeArea("my_area");
+```
+</Callout>

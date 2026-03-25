@@ -1,0 +1,206 @@
+---
+title: ArcartXUIRegistry:UI注册器
+description: UI注册管理API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXUIRegistry
+
+- UI注册器负责管理ArcartX的自定义UI界面的注册、打开、关闭和数据通信。
+- 通过 `ArcartXAPI.getUIRegistry()` 获取。
+- 提供安全版本和Unsafe版本两套方法。
+
+<Callout type="info">
+**安全版本 vs Unsafe版本**：
+- **安全版本**（`open`、`close`、`sendPacket`、`run`）— 会检查UI是否已注册，通过注册的UI对象操作
+- **Unsafe版本**（`openUnsafe`、`closeUnsafe` 等）— 直接发送网络包，不检查注册状态，适用于动态UI或特殊场景
+</Callout>
+
+## 注册与注销
+
+### `register(id, src){:java}`
+- 注册一个UI界面，支持三种数据源
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — UI唯一标识
+    - `src`: YamlConfiguration / String / File — UI配置数据源
+- **返回值**：`ArcartXUI` — UI对象
+- **调用示例**
+```java
+// 从文件注册
+ArcartXUI ui = ArcartXAPI.getUIRegistry().register("my_ui", new File("ui/my_ui.yml"));
+
+// 从YAML字符串注册
+ArcartXUI ui = ArcartXAPI.getUIRegistry().register("my_ui", yamlString);
+
+// 从YamlConfiguration注册
+ArcartXUI ui = ArcartXAPI.getUIRegistry().register("my_ui", yamlConfig);
+```
+</Callout>
+
+### `unregister(id){:java}`
+- 注销一个UI界面
+
+<Callout type="info">
+- **参数**：`id`: String — UI唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().unregister("my_ui");
+```
+</Callout>
+
+### `reload(id, src){:java}`
+- 热重载一个UI界面，会保留已注册的回调，并自动同步到所有在线玩家
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — UI唯一标识
+    - `src`: YamlConfiguration / String / File — 新的UI配置数据源
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().reload("my_ui", new File("ui/my_ui.yml"));
+```
+</Callout>
+
+## 安全操作
+
+### `open(player, id){:java}`
+- 为玩家打开一个已注册的UI
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().open(player, "my_ui");
+```
+</Callout>
+
+### `open(player, id, callBack){:java}`
+- 为玩家打开UI，并注册一个打开回调
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI唯一标识
+    - `callBack`: CallBack — 打开回调
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().open(player, "my_ui", () -> {
+    // UI打开后执行
+});
+```
+</Callout>
+
+### `close(player, id){:java}`
+- 为玩家关闭一个已注册的UI
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().close(player, "my_ui");
+```
+</Callout>
+
+### `sendPacket(player, id, handlerName, packet){:java}`
+- 向玩家客户端的UI发送数据包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI唯一标识
+    - `handlerName`: String — 处理器名称
+    - `packet`: Object — 数据包内容
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().sendPacket(player, "my_ui", "update_data", dataMap);
+```
+</Callout>
+
+### `run(player, id, code){:java}`
+- 在玩家客户端的UI中执行Shimmer脚本
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI唯一标识
+    - `code`: String — Shimmer脚本代码
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getUIRegistry().run(player, "my_ui", "updateTitle(\"新标题\")");
+```
+</Callout>
+
+## Unsafe操作
+
+<Callout type="warn">
+Unsafe方法直接发送网络包，不检查UI是否已注册。适用于动态创建的UI或需要绕过注册检查的特殊场景。
+</Callout>
+
+### `openUnsafe(player, id){:java}`
+- 直接发送打开UI的网络包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI标识
+- **返回值**：无
+</Callout>
+
+### `openUnsafe(player, id, callBack){:java}`
+- 直接发送打开UI的网络包，并注册回调
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI标识
+    - `callBack`: CallBack — 打开回调
+- **返回值**：无
+</Callout>
+
+### `closeUnsafe(player, id){:java}`
+- 直接发送关闭UI的网络包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI标识
+- **返回值**：无
+</Callout>
+
+### `sendPacketUnsafe(player, id, handlerName, packet){:java}`
+- 直接发送UI数据包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI标识
+    - `handlerName`: String — 处理器名称
+    - `packet`: Object — 数据包内容
+- **返回值**：无
+</Callout>
+
+### `runUnsafe(player, id, code){:java}`
+- 直接在UI中执行脚本
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — UI标识
+    - `code`: String — Shimmer脚本代码
+- **返回值**：无
+</Callout>

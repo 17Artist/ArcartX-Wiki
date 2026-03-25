@@ -1,0 +1,104 @@
+---
+title: SchedulerUtils:调度工具
+description: 线程调度扩展工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## SchedulerUtils
+
+- 调度工具集提供了 `Plugin` 的Kotlin扩展函数，简化Bukkit调度器的使用。
+- 位于 `priv.seventeen.artist.arcartx.util.SchedulerUtils`。
+
+## `Plugin.run(runnable){:java}`
+- 在主线程执行任务
+
+<Callout type="info">
+- **参数**：`runnable`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+plugin.run { player.sendMessage("Hello") }
+
+// Java
+SchedulerUtils.run(plugin, () -> player.sendMessage("Hello"));
+```
+</Callout>
+
+## `Plugin.runAsync(runnable){:java}`
+- 在异步线程执行任务
+
+<Callout type="info">
+- **参数**：`runnable`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+SchedulerUtils.runAsync(plugin, () -> {
+    // 异步操作，如数据库查询
+});
+```
+</Callout>
+
+## `Plugin.runLater(runnable, tick){:java}`
+- 在主线程延迟执行任务
+
+<Callout type="info">
+- **参数**：
+    - `runnable`: Runnable — 要执行的任务
+    - `tick`: int — 延迟tick数（20tick = 1秒）
+- **返回值**：无
+- **调用示例**
+```java
+SchedulerUtils.runLater(plugin, () -> {
+    // 1秒后执行
+}, 20);
+```
+</Callout>
+
+## `Plugin.runLaterAsync(runnable, tick){:java}`
+- 在异步线程延迟执行任务
+
+<Callout type="info">
+- **参数**：
+    - `runnable`: Runnable — 要执行的任务
+    - `tick`: int — 延迟tick数
+- **返回值**：无
+- **调用示例**
+```java
+SchedulerUtils.runLaterAsync(plugin, () -> {
+    // 异步延迟执行
+}, 40);
+```
+</Callout>
+
+## `Plugin.ensureMainThread(runnable){:java}`
+- 确保任务在主线程执行。如果当前已在主线程则直接执行，否则调度到主线程
+
+<Callout type="info">
+- **参数**：`runnable`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+SchedulerUtils.ensureMainThread(plugin, () -> {
+    // 保证在主线程执行，适合操作Bukkit API
+    entity.teleport(location);
+});
+```
+</Callout>
+
+## `Plugin.ensureAsyncThread(runnable){:java}`
+- 确保任务在异步线程执行。如果当前已在异步线程则直接执行，否则调度到异步线程
+
+<Callout type="info">
+- **参数**：`runnable`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+SchedulerUtils.ensureAsyncThread(plugin, () -> {
+    // 保证在异步线程执行，适合IO操作
+    saveToDatabase();
+});
+```
+</Callout>

@@ -1,0 +1,196 @@
+---
+title: 数据类型 
+description: 认识Shimmer中的基本数据类型
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { AlertBox } from '@/components/AlertBox';
+
+<Callout type="info">
+  在编程中，不同的信息需要用不同的方式来表示。就像现实生活中，我们用数字表示年龄，用文字表示姓名一样。
+</Callout>
+
+## 基本数据类型
+
+### 数字类型
+
+<Steps>
+  <Step title="整数">
+    不带小数点的数字:
+    ```Shimmer
+    age = 18
+    count = 100
+    neg = -10
+    ```
+  </Step>
+
+  <Step title="小数">
+    带小数点的数字:
+    ```Shimmer
+    height = 1.75
+    weight = 65.5
+    ```
+  </Step>
+
+  <Step title="数字运算">
+    ```Shimmer
+    totalScore = 12.5 + 24.8
+    averageScore = (85 + 92 + 78) / 3
+    ```
+  </Step>
+</Steps>
+
+### 字符串类型
+
+<Callout title="普通字符串" icon="📝">
+  使用单引号的文本:
+  ```Shimmer
+  name = '小明'
+  message = '你好啊!'
+  ```
+</Callout>
+
+<Callout title="增强字符串" icon="✨">
+  使用双引号，可以嵌入表达式:
+  ```Shimmer
+  age = 18
+  info = "我今年{age}岁"
+  ```
+</Callout>
+
+<Callout title="多行字符串" icon="📄">
+  使用三个双引号，可以写多行:
+  ```Shimmer
+  taiyouyale = """
+  春眠不觉晓，
+  处处闻啼鸟。
+  夜来风雨声，
+  花落知多少。
+  """
+  ```
+</Callout>
+### 布尔值
+
+<Callout type="info">
+  布尔值只有两种状态：true（真）和false（假），用于表示"是"或"否"
+</Callout>
+
+```Shimmer
+rain = true
+hungry = false
+
+if(hungry){
+    Shimmer.println('我要恰饭!')
+}
+```
+
+## 复合数据类型
+
+### 列表
+
+<Steps>
+  <Step title="什么是列表">
+    列表就像一个有序的容器，可以存放多个数据:
+    ```Shimmer
+    fruit = ['苹果', '香蕉', '橙子']
+    fraction = [98, 86, 92, 77]
+    ```
+  </Step>
+
+  <Step title="使用列表">
+    ```Shimmer
+    // 获取第一个水果(注意：序号从0开始)
+    first = fruit[0]  // 结果是'苹果'
+    
+    // 修改列表内容
+    fruit[1] = '草莓'     // 把'香蕉'换成'草莓'
+
+    // 拼接另一个列表 或者插入一个新元素
+    fruit += ['蓝莓', '西瓜']
+    fruit += '一时间想不起来有啥水果了，下次补上'
+
+    // 删除某个下标的元素 或者删除和某个列表的重复值
+    fruit -= ['草莓','苹果']
+    fruit -= 1 // 删除下标位于1的元素
+    ```
+  </Step>
+</Steps>
+
+### 字典
+
+<Callout type="info">
+  字典像是一本查找手册，通过名字(键)来查找对应的内容(值)
+</Callout>
+
+```Shimmer
+// 创建一个学生信息字典
+student = {
+    '姓名': '小明',
+    '年龄': 15,
+    '爱好': ['足球', '画画']
+}
+
+// 使用字典
+Shimmer.println(student['姓名'])    // 显示'小明'
+Shimmer.println(student['爱好'][0]) // 显示'足球'
+
+// 字典合并
+student += {'身高': 145}
+
+// 删除和另一个字典的重复值
+student -= {'身高': 145}
+// 删除列表中包含的键值
+student -= ['年龄','爱好']
+// 删除某个键
+student -= '身高'
+
+```
+
+## 实际应用示例
+
+<Cards>
+  <Card title="个人信息卡" icon="👤">
+    ```Shimmer
+    information = {
+        '姓名': '小红',
+        '年龄': 16,
+        '是否在校': true,
+        '成绩': [85, 92, 78],
+        '联系方式': {
+            '电话': '123-4567',
+            '邮箱': 'xiaohong@email.com'
+        }
+    }
+    ```
+  </Card>
+
+  <Card title="购物清单" icon="🛒">
+    ```Shimmer
+    shoppingList = [
+        '牛奶',
+        '面包',
+        '水果'
+    ]
+    
+    for (item in shoppingList){
+        Shimmer.println("需要买: {item}")
+    }
+    ```
+  </Card>
+</Cards>
+
+## 练习题
+
+<Callout title="练习" icon="✏️">
+  创建一个字典，记录你最喜欢的电影信息，包括:
+  * 片名
+  * 年份
+  * 主演(用列表存储)
+  * 是否看过(布尔值)
+</Callout>
+
+<Callout type="info">
+  理解数据类型是编程的基础。在实际编程中，我们经常需要组合使用不同的数据类型来解决问题。
+</Callout>

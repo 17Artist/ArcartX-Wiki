@@ -1,0 +1,38 @@
+---
+title: 路标导航
+description: 路标导航
+---
+
+## 路标导航
+- 路标导航是 RPG 游戏中常见的功能，用于在 HUD 上显示标记以指引玩家前进方向。
+
+### 配置示例
+- 路标配置位于 ArcartX 根目录中的 `waypoint` 目录下，你可以创建多个 yml 配置，只需遵循以下格式新建路标样式即可。
+- 路标需要你创建"样式"配置，以在游戏中按照自定义的方式显示。
+- 配置格式：
+```yaml
+# 样式ID
+default:
+  # 常态显示贴图路径
+  normal: "waypoint/normal.png"
+  # 路标显示在屏幕边缘时候的两种状态贴图
+  left: "waypoint/left.png"
+  right: "waypoint/right.png"
+  # 贴图渲染宽高
+  width: 40
+  height: 40
+  # 字体
+  font: ""
+  # 渲染字号
+  fontSize: 32
+  # 联动UI罗盘控件时显示的图标
+  icon: "xxx.png"
+```
+
+- 创建完成后请重载配置。你可以通过以下两种方式显示路标：
+    1. 通过 `a waypoint` 指令为玩家添加路标
+    2. 通过 API 控制
+- 请注意，ArcartX 仅提供渲染接口，具体任务插件的实现需要你安装额外附属或自行开发管理逻辑。
+- 效果展示：
+<img src="/simple/waypoint-1.jpg" alt="路标"/>
+<img src="/simple/waypoint-2.jpg" alt="路标"/>

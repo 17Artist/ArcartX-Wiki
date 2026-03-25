@@ -1,0 +1,233 @@
+---
+title: 控件公共属性
+description: 所有控件共享的公共属性
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 控件公共属性
+
+以下属性适用于所有类型的控件。
+
+### 基础属性
+
+|     名称      |   说明   |   默认值    | 备注                            |
+|:-----------:|:------:|:--------:|:------------------------------|
+|   enable    |  是否开启  |   true   | 关闭后交互性触发器不会触发（影响子组件）          |
+|   visible   |  是否可见  |   true   | 关闭后不可见（影响子组件）                 |
+|    width    |   宽度   |    0     |                               |
+|   height    |   高度   |    0     |                               |
+|      x      |  X 坐标  |    0     | 相对于父组件的位置                     |
+|      y      |  Y 坐标  |    0     | 相对于父组件的位置                     |
+|    scale    |  缩放比例  |    1     | 从左上角缩放                        |
+| middleScale | 中心缩放比例 |    1     | 从正中心缩放                        |
+|    alpha    |  透明度   |    1     | 0 为完全透明，1 为完全不透明              |
+|   rotate    |  旋转角度  |    0     |                               |
+|    point    |   锚点   | TOP_LEFT | 详见下方锚点类型表                     |
+|   through   |   穿透   |  false   | 为 true 时不阻挡下方组件的交互事件，且不接受点击事件 |
+
+### 拖动
+
+|    名称    |   说明   | 默认值 | 备注          |
+|:--------:|:------:|:---:|:------------|
+| minDragX | 最小拖动 X |  0  | 可拖动的 X 轴最小值 |
+| minDragY | 最小拖动 Y |  0  | 可拖动的 Y 轴最小值 |
+| maxDragX | 最大拖动 X |  0  | 可拖动的 X 轴最大值 |
+| maxDragY | 最大拖动 Y |  0  | 可拖动的 Y 轴最大值 |
+
+### 文本相关
+
+以下属性仅对包含文本显示功能的控件生效：
+
+|    名称     |   说明   |  默认值   | 备注                        |
+|:---------:|:------:|:------:|:--------------------------|
+|   texts   |  文本内容  |   空    |                           |
+|   font    |   字体   |   空    |                           |
+| fontSize  |  字体大小  |   16   |                           |
+|  center   |  文字居中  | false  |                           |
+| lineSpace |  行间距   |   16   |                           |
+|   limit   | 字数显示限制 | 999999 | 限制最大显示字数（不含颜色代码），可用于打字机效果 |
+
+### 其它
+
+|      名称      |   说明   | 默认值 | 备注                            |
+|:------------:|:------:|:---:|:------------------------------|
+| limitControl | 限制显示范围 |  空  | 将当前组件的显示范围剪裁为指定组件的范围，传入目标组件对象 |
+|     tip      |  提示信息  |  空  | 仅用于包含 Tip 的组件                 |
+
+## 锚点类型
+
+锚点仅在顶层组件（父级是 UI 本身）或父级为 Canvas、Adaptive 时生效。
+
+| 锚点类型                      | 说明                   |
+|:--------------------------|:---------------------|
+| horizontal_stretch_top    | 宽度跟随父级，置于顶部          |
+| horizontal_stretch_middle | 宽度跟随父级，置于中间          |
+| horizontal_stretch_bottom | 宽度跟随父级，置于底部          |
+| vertical_stretch_left     | 高度跟随父级，置于左侧          |
+| vertical_stretch_center   | 高度跟随父级，置于正中          |
+| vertical_stretch_right    | 高度跟随父级，置于右侧          |
+| stretch_all               | 完全跟随父级宽高，x 和 y 锁定为 0 |
+| top_left                  | 左上角                  |
+| top_center                | 顶部中间                 |
+| top_right                 | 右上角                  |
+| middle_left               | 左中间                  |
+| middle_center             | 正中间                  |
+| middle_right              | 右中间                  |
+| bottom_left               | 左下角                  |
+| bottom_center             | 底部中间                 |
+| bottom_right              | 右下角                  |
+
+## 图形效果
+- 以下内容适用于任何带有渲染纹理(贴图、色块)的控件，它会对纹理的渲染表现进行附加处理，实现更精美的UI
+
+### 形状与圆角
+
+|   名称   |  说明  | 默认值  | 备注                                                  |
+|:------:|:----:|:----:|:----------------------------------------------------|
+| shape  | 形状类型 | RECT | 可选值：`RECT`（矩形）、`ROUNDED_RECT`（圆角矩形）、`CIRCLE`（圆形/椭圆） |
+| radius | 圆角半径 |  5   | 当 shape 为 `ROUNDED_RECT` 时生效                        |
+
+### 纹理表达方式说明
+- 对于纹理渲染，后续我将在控件属性说明中 以 `纹理表达式` 指代
+
+|   类型   |               说明               |                       语法                       |
+|:------:|:------------------------------:|:----------------------------------------------:|
+|   图像   | 直接填写资源路径进行对应图片的渲染，支持PNG GIF 网链 |  xxx.png / xxx.gif / https://xxx.com/xxx.png   |
+|  玩家头像  |        取指定UUID玩家的正版皮肤头像        | PlayerSkin:xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
+| RGBA色块 |         根据RGBA表达式渲染颜色          |                255,255,255,255                 |
+|  毛玻璃   |     高斯模糊的块,后面这个语法示例的30是模糊度     |           Frosted:30;255,255,255,80            |
+
+- 请注意，虽然我这里语法写的都不带`~`这是为了举例更清晰，但是如果你属性值是纯文本，一定记得标记纯文本 比如 `normal: ~xxx.png`
+
+### 纹理特效
+- 纹理特效位于控件的 `effect` 块中，每种特效作为一个子节点配置。以下是 ArcartX 支持的所有特效类型。
+
+```yaml
+attribute:
+  x: 0
+  y: 0
+  # 下文略
+effect:
+  stroke:
+    width: 2
+    color: ~255,255,255
+  shadow:
+    xOffset: 3
+    yOffset: 3
+    blur: 6
+    color: ~0,0,0,100
+  neon:
+    color: ~0,0,100
+    size: 8
+    intensity: 1
+    animated: true
+  ripple:
+    duration: 1200
+    color: ~255,255,255,100
+    width: 0.1
+  gradient:
+    color1: ~255,0,0,100
+    color2: ~0,0,255,50
+    type: 1
+    angleDeg: 90
+  flow:
+    color: ~255,255,255
+    speed: 1
+    width: 0.1
+    angleDeg: 60
+    mode: 0
+  energy:
+    color: ~0,0,255
+    intensity: 1
+    frequency: 1
+    speed: 1
+    pattern: 2
+```
+
+#### 描边 (stroke)
+
+为控件添加边框描边效果。
+
+| 参数    |  类型   | 说明   |
+|:------|:-----:|:-----|
+| width | float | 描边宽度 |
+| color | RGBA  | 描边颜色 |
+
+#### 阴影 (shadow)
+
+为控件添加投影效果。
+
+| 参数      |  类型   | 说明    |
+|:--------|:-----:|:------|
+| xOffset | float | X 轴偏移 |
+| yOffset | float | Y 轴偏移 |
+| blur    | float | 模糊程度  |
+| color   | RGBA  | 阴影颜色  |
+
+#### 霓虹 (neon)
+
+为控件添加发光霓虹效果。
+
+| 参数        |   类型    | 说明       |
+|:----------|:-------:|:---------|
+| color     |  RGBA   | 霓虹颜色     |
+| size      |  float  | 发光范围     |
+| intensity |  float  | 发光强度     |
+| animated  | boolean | 是否启用呼吸动画 |
+
+#### 波纹 (ripple)
+
+点击时产生水波纹扩散效果。
+
+| 参数       |  类型   | 说明       |
+|:---------|:-----:|:---------|
+| duration |  int  | 持续时间（毫秒） |
+| color    | RGBA  | 波纹颜色     |
+| width    | float | 波纹宽度     |
+
+#### 渐变 (gradient)
+
+为控件添加颜色渐变效果。
+
+| 参数       |  类型   | 说明                               |
+|:---------|:-----:|:---------------------------------|
+| color1   | RGBA  | 起始颜色                             |
+| color2   | RGBA  | 结束颜色                             |
+| type     |  int  | 渐变类型：`0` 线性、`1` 径向、`2` 角度、`3` 菱形 |
+| angleDeg | float | 渐变角度（度）                          |
+
+#### 流光 (flow)
+
+为控件添加流动光效。
+
+| 参数       |  类型   | 说明                         |
+|:---------|:-----:|:---------------------------|
+| color    | RGBA  | 流光颜色                       |
+| speed    | float | 流动速度                       |
+| width    | float | 光带宽度                       |
+| angleDeg | float | 流动角度（度）                    |
+| mode     |  int  | 流光模式：`0` 线性、`1` 环形、`2` 对角线 |
+
+#### 能量 (energy)
+
+为控件添加能量场效果。
+
+| 参数        |  类型   | 说明                                |
+|:----------|:-----:|:----------------------------------|
+| color     | RGBA  | 能量颜色                              |
+| intensity | float | 强度                                |
+| frequency | float | 频率                                |
+| speed     | float | 速度                                |
+| pattern   |  int  | 图案类型：`0` 脉冲、`1` 波浪、`2` 电弧、`3` 等离子 |
+
+#### 饼图剪裁 (pie)
+
+| 参数         |  类型   | 说明                                        |
+|:-----------|:-----:|:------------------------------------------|
+| startAngle | float | 起始角度（注意，0度的位置是真的0度而不是图形顶部中间的位置，而是右侧中间的位置） |
+| endAngle   | float | 结束角度                                      |
+| centerX    | float | 中心 X 比例 （正中间就写0.5）                        |
+| centerY    | float | 中心 Y 比例  （正中间就写0.5）                       |
+| feather    | float | 边缘羽化                                      |
+

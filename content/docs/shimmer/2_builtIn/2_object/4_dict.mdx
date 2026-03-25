@@ -1,0 +1,199 @@
+---
+title: 字典类型函数
+description: 字典类型函数表
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `get(key){:Shimmer}`
+- 获取目标Map中指定键对应的值
+
+<Callout type="info">
+- **参数**：`key`：对象类型
+- **返回值**：对象类型
+- **调用示例**
+```Shimmer
+{'key': 'value'}.get('key')
+```
+- **示例返回值**
+```Shimmer
+'value'
+```
+</Callout>
+
+## `put(key, value){:Shimmer}`
+- 将指定的键值对添加到目标Map中
+
+<Callout type="info">
+- **参数**：`key`：对象类型，`value`：对象类型
+- **返回值**：对象类型[这里说明以下 返回的是上次put的值，而不是本次的]
+- **调用示例**
+```Shimmer
+{'key': 'value'}.put('key', 'value2')
+```
+- **示例返回值**
+```Shimmer
+'value'
+```
+</Callout>
+
+## `size(){:Shimmer}`
+- 获取目标Map中键值对的数量，即Map的大小
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+{'key': 'value'}.size()
+```
+- **示例返回值**
+```Shimmer
+1
+```
+</Callout>
+
+## `remove(key){:Shimmer}`
+- 从目标Map中移除指定键对应的键值对，并返回该键对应的值
+
+<Callout type="info">
+- **参数**：`key`：对象类型
+- **返回值**：对象类型
+- **调用示例**
+```Shimmer
+{'key': 'value'}.remove('key')
+```
+- **示例返回值**
+```Shimmer
+'value'
+```
+</Callout>
+
+## `containsKey(key){:Shimmer}`
+- 判断目标Map中是否包含指定的键
+
+<Callout type="info">
+- **参数**：`key`：对象类型
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+{'key': 'value'}.containsKey('key')
+```
+- **示例返回值**
+```Shimmer
+true
+```
+</Callout>
+
+## `clear(){:Shimmer}`
+- 清空目标Map中的所有键值对，使其变为空Map
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```Shimmer
+{'key': 'value'}.clear()
+```
+- **示例返回值**
+```Shimmer
+none
+```
+</Callout>
+
+## `isEmpty(){:Shimmer}`
+- 判断目标Map是否为空，即不包含任何键值对
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+{'key': 'value'}.isEmpty()
+```
+- **示例返回值**
+```Shimmer
+false
+```
+</Callout>
+
+## `putAll(map){:Shimmer}`
+- 将指定Map中的所有键值对添加到目标Map中
+
+<Callout type="info">
+- **参数**：`map`：Map类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+{'key': 'value'}.putAll({'key2': 'value2'})
+```
+- **示例返回值**
+```Shimmer
+none
+```
+</Callout>
+
+## `values(){:Shimmer}`
+- 获取目标Map中所有值组成的列表
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：列表类型
+- **调用示例**
+```Shimmer
+{'key': 'value','key2','value2'}.values()
+```
+- **示例返回值**
+```Shimmer
+['value1', 'value2']
+```
+</Callout>
+
+## `keys(){:Shimmer}`
+- 获取目标Map中所有键组成的列表
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：列表类型
+- **调用示例**
+```Shimmer
+{'key': 'value','key2','value2'}.keys()
+```
+- **示例返回值**
+```Shimmer
+['key1', 'key2']
+```
+</Callout>
+
+## `putIfAbsent(key, value){:Shimmer}`
+- 若目标Map中不存在指定键，则将相应键值对添加到Map中，并返回该键原来对应的值（若不存在则返回null）
+
+<Callout type="info">
+- **参数**：`key`：文本类型，`value`：对象类型
+- **返回值**：对象类型
+- **调用示例**
+```Shimmer
+{}.putIfAbsent('key', 'value')
+```
+- **示例返回值**
+```Shimmer
+none
+```
+</Callout>
+
+## `getOrDefault(key, defaultValue){:Shimmer}`
+- 获取目标Map中指定键对应的值，若该键不存在则返回默认值
+
+<Callout type="info">
+- **参数**：`key`：文本类型，`defaultValue`：对象类型
+- **返回值**：对象类型
+- **调用示例**
+```Shimmer
+{}.getOrDefault('key', 'default')
+```
+- **示例返回值**
+```Shimmer
+'default'
+```
+</Callout> 

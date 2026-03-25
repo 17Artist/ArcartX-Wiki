@@ -1,0 +1,113 @@
+---
+title: Camera:相机
+description: Camera相机工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Camera.setCameraPosition(x, y, z, isFree){:Shimmer}`
+- 设置相机位置
+
+<Callout type="info">
+    - **参数**：
+    - `x`: 双精度浮点数类型(X坐标)
+    - `y`: 双精度浮点数类型(Y坐标)
+    - `z`: 双精度浮点数类型(Z坐标)
+    - `isFree`: 布尔类型(是否自由视角)
+    - **调用示例**
+    ```Shimmer
+    Camera.setCameraPosition(0.0, 0.0, 0.0, true)
+    ```
+</Callout>
+
+## `Camera.setThirdPerson(isThirdPerson){:Shimmer}`
+- 设置第三人称视角
+
+<Callout type="info">
+    - **参数**：
+    - `isThirdPerson`: 布尔类型(是否第三人称视角)
+    - **调用示例**
+    ```Shimmer
+    Camera.setThirdPerson(true)
+    ```
+</Callout>
+
+## `Camera.setCameraPreset(preset){:Shimmer}`
+- 设置相机预设
+
+<Callout type="info">
+    - **参数**：
+    - `preset`: 字符串类型(预设名称)
+    - **调用示例**
+    ```Shimmer
+    Camera.setCameraPreset("default")
+    ```
+</Callout>
+
+## `Camera.lockCameraMode(mode){:Shimmer}`
+- 锁定相机模式
+
+<Callout type="info">
+    - **参数**：
+    - `mode`: 视角锁定模式，0-关闭，1-强制锁定第一人称，2-强制锁定第三人称
+    - **调用示例**
+    ```Shimmer
+    Camera.lockCameraMode(true)
+    ```
+</Callout>
+
+## `Camera.setState(x, y, z, yaw, pitch, time){:Shimmer}`
+- 设置状态相机位置
+- 状态相机是覆盖掉当前预设相机的xyz，而pitch和yaw是相对于玩家本体转向角度进行设置。
+- 该相机类型主要用于UI，比如一些UI需要应用自体相机位置变化的场景。
+<Callout type="info">
+    - **参数**：
+    - `x`: 双精度浮点数类型(X坐标)
+    - `y`: 双精度浮点数类型(Y坐标)
+    - `z`: 双精度浮点数类型(Z坐标)
+    - `yaw`: 浮点数类型(偏航角)
+    - `pitch`: 浮点数类型(俯仰角)
+    - `time`: 长整型(过渡时间)
+    - **调用示例**
+    ```Shimmer
+    Camera.setState(0.0, 0.0, 0.0, 0.0, 0.0, 1000)
+    ```
+</Callout>
+
+## `Camera.clearState(){:Shimmer}`
+- 清除状态相机位置
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    Camera.clearState()
+    ```
+</Callout>
+
+## `Camera.setStateScene(x, y, z, yaw, pitch){:Shimmer}`
+- 设置单步场景相机位置
+<Callout type="info">
+    - **参数**：
+    - `x`: 双精度浮点数类型(X坐标)
+    - `y`: 双精度浮点数类型(Y坐标)
+    - `z`: 双精度浮点数类型(Z坐标)
+    - `yaw`: 浮点数类型(偏航角)
+    - `pitch`: 浮点数类型(俯仰角)
+    - **调用示例**
+    ```Shimmer
+    Camera.setStateScene(0.0, 0.0, 0.0, 0.0, 0.0)
+    ```
+</Callout>
+
+## `Camera.clearStateScene(){:Shimmer}`
+- 关闭场景相机
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    Camera.clearState()
+    ```
+</Callout>

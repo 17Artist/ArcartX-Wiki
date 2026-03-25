@@ -1,0 +1,912 @@
+---
+title: Glimmer 语句
+description: Chronos Glimmer 表达式语句参考
+---
+
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 概述
+
+Glimmer 是 Chronos 的服务端表达式系统，用于在状态配置中编写动态逻辑。
+
+<Callout type="info">
+**Glimmer vs Shimmer：** 两者语法完全相同，Glimmer 运行在服务端（Chronos），Shimmer 运行在客户端（ArcartX）。取不同的名字是为了方便区分。
+</Callout>
+
+<Callout type="warn">
+**迁移说明：** 大部分 Glimmer 语句已从 Chronos 迁移至 ArcartX 本体。这意味着即使不安装 Chronos，ArcartX 本体也可以使用这些 Glimmer 语句（如 `dash`、`teleport` 系列、`sendUIPacket`、`getPlaceholder` 等）。以下文档中的语句在 ArcartX 本体中同样可用。
+</Callout>
+
+### 新增语句
+
+以下语句为新版本新增：
+
+- `self.getPlaceholder(placeholder)` — 获取 PlaceholderAPI 占位符的值，参数为占位符字符串，返回解析后的字符串
+- `self.sendUIPacket(uiID, handlerName, data)` — 向玩家发送 UI 通讯包，参数为 UI ID、处理器名称、包内容字符串
+- `self.dashAdvanced(forward, strafe, vertical)` — 高级冲刺，参数为前后力度（正值前/负值后）、左右力度（正值右/负值左）、垂直力度
+
+---
+
+## 基本用法
+
+在 Chronos 配置中，`self` 指代当前玩家对象：
+
+```yaml
+state:
+  攻击1段:
+    # 动态持续时间
+    duration: "500 * (1 - self.getAttackSpeed())"
+    
+    # 动态速度
+    speed: "1 + var.speedBonus"
+    
+    # 进入条件
+    conditions:
+      expression: "self.getFood() >= 6 && !self.isFlying()"
+    
+    # 执行点
+    execute:
+      冲刺:
+        at: 100
+        expression: "self.dash(1.5, 0.3)"
+```
+
+---
+
+## 使用场景
+
+### 1. 条件表达式
+
+控制状态是否可以进入：
+
+```yaml
+conditions:
+  expression: "self.getFood() >= 3 && self.isOnGround()"
+```
+
+### 2. 动态数值
+
+根据玩家状态计算持续时间、速度等：
+
+```yaml
+duration: "600 - self.getChargeTime() * 0.5"
+speed: "1.0 + var.attackSpeedBonus"
+```
+
+### 3. 执行动作
+
+在状态执行过程中触发效果：
+
+```yaml
+execute:
+  前冲:
+    at: 50
+    expression: "self.dash(2.0, 0.2)"
+  攻击判定:
+    at: 150
+    expression: "self.castMythicMobSkill('slash_damage', 1.0)"
+```
+
+---
+
+## 变量系统
+
+你可以使用 `var.` 前缀来存储和读取自定义变量：
+
+```yaml
+setting:
+  action:
+    init: |-
+      var.comboCounter = 0
+      var.attackTag = false
+
+state:
+  攻击1段:
+    execute:
+      设置连击:
+        at: 100
+        expression: "var.comboCounter = 1"
+```
+
+---
+
+## 实用示例
+
+### 闪避冲刺
+
+```yaml
+闪避:
+  execute:
+    前冲:
+      at: 50
+      expression: "self.dash(1.5, 0.1)"
+```
+
+### 跳跃攻击
+
+```yaml
+跳斩:
+  conditions:
+    expression: "self.isAfterJump()"  # 只能在跳跃后触发
+  execute:
+    俯冲:
+      at: 100
+      expression: "self.dive(1.0)"
+```
+
+### 蓄力判定
+
+```yaml
+蓄力释放:
+  execute:
+    判定伤害:
+      at: 50
+      expression: |-
+        var.power = self.getChargeTime() / 1000
+        self.castMythicMobSkill("charge_attack", var.power)
+```
+
+---
+
+## 语句参考
+
+## 战斗相关语句 (EntityCombat)
+
+### attack
+- **说明：** 使对象攻击指定生物
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名    | 类型           | 说明   |
+|--------|--------------|------|
+| living | LivingEntity | 攻击目标 |
+
+- **使用方式：** `entity.attack(living)`
+- **返回值：** 无
+
+---
+
+### setHealth
+- **说明：** 设置对象的生命值
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名    | 类型     | 说明    |
+|--------|--------|-------|
+| amount | double | 生命值数值 |
+
+- **使用方式：** `entity.setHealth(20.0)`
+- **返回值：** 无
+
+---
+
+### setFire
+- **说明：** 设置对象的着火时间
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名   | 类型  | 说明                     |
+|-------|-----|------------------------|
+| ticks | int | 着火时间（tick，20tick = 1秒） |
+
+- **使用方式：** `entity.setFire(100)`
+- **返回值：** 无
+
+---
+
+## 药水效果语句 (EntityEffect)
+
+### addPotionEffect
+- **说明：** 为对象添加药水效果
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名       | 类型     | 说明            |
+|-----------|--------|---------------|
+| id        | String | 药水效果ID（见下方列表） |
+| duration  | int    | 持续时间（tick）    |
+| amplifier | int    | 效果等级（0为1级）    |
+
+- **使用方式：** `entity.addPotionEffect("speed", 200, 1)`
+- **返回值：** 无
+
+- **可用药水效果ID列表：**
+
+| 增益效果                | 中文名   | 负面效果           | 中文名  |
+|---------------------|-------|----------------|------|
+| speed               | 速度    | slowness       | 缓慢   |
+| haste               | 急迫    | mining_fatigue | 挖掘疲劳 |
+| strength            | 力量    | instant_damage | 瞬间伤害 |
+| instant_health      | 瞬间治疗  | nausea         | 反胃   |
+| jump_boost          | 跳跃提升  | blindness      | 失明   |
+| regeneration        | 生命恢复  | hunger         | 饥饿   |
+| resistance          | 抗性提升  | weakness       | 虚弱   |
+| fire_resistance     | 防火    | poison         | 中毒   |
+| water_breathing     | 水下呼吸  | wither         | 凋零   |
+| invisibility        | 隐身    | glowing        | 发光   |
+| night_vision        | 夜视    | levitation     | 飘浮   |
+| health_boost        | 生命提升  | unluck         | 霉运   |
+| absorption          | 伤害吸收  | bad_omen       | 不祥之兆 |
+| saturation          | 饱和    |                |      |
+| luck                | 幸运    |                |      |
+| slow_falling        | 缓降    |                |      |
+| conduit_power       | 潮涌能量  |                |      |
+| dolphins_grace      | 海豚的恩惠 |                |      |
+| hero_of_the_village | 村庄英雄  |                |      |
+
+---
+
+### removePotionEffect
+- **说明：** 移除对象的指定药水效果
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明     |
+|------------|--------|--------|
+| effectName | String | 药水效果ID |
+
+- **使用方式：** `entity.removePotionEffect("SPEED")`
+- **返回值：** 无
+
+---
+
+### clearPotionEffect
+- **说明：** 清除对象所有药水效果
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.clearPotionEffect()`
+- **返回值：** 无
+
+---
+
+### hasPotionEffect
+- **说明：** 检查对象是否拥有指定药水效果
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明     |
+|------------|--------|--------|
+| effectName | String | 药水效果ID |
+
+- **使用方式：** `entity.hasPotionEffect("SPEED")`
+- **返回值：** boolean（是否拥有该效果）
+
+---
+
+### getPotionEffectDuration
+- **说明：** 获取对象指定药水效果的剩余持续时间
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明     |
+|------------|--------|--------|
+| effectName | String | 药水效果ID |
+
+- **使用方式：** `entity.getPotionEffectDuration("SPEED")`
+- **返回值：** int（剩余时间tick，无效果返回0）
+
+---
+
+### getPotionEffectAmplifier
+- **说明：** 获取对象指定药水效果的等级
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明     |
+|------------|--------|--------|
+| effectName | String | 药水效果ID |
+
+- **使用方式：** `entity.getPotionEffectAmplifier("SPEED")`
+- **返回值：** int（效果等级，无效果返回 -1，无效药水名称返回 0）
+
+---
+
+## 实体信息语句 (EntityInfo)
+
+### isJumping
+- **说明：** 检查对象是否正在跳跃
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isJumping()`
+- **返回值：** boolean
+
+<Callout type="warn">
+此语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+---
+
+### isInWater
+- **说明：** 检查对象是否在水中
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isInWater()`
+- **返回值：** boolean
+
+---
+
+### isFallFlying
+- **说明：** 检查对象是否正在鞘翅滑翔
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isFallFlying()`
+- **返回值：** boolean
+
+---
+
+### isSwimming
+- **说明：** 检查对象是否正在游泳
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isSwimming()`
+- **返回值：** boolean
+
+---
+
+### isInLava
+- **说明：** 检查对象是否在岩浆中
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isInLava()`
+- **返回值：** boolean
+
+<Callout type="warn">
+此语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+---
+
+### isSleeping
+- **说明：** 检查对象是否正在睡觉
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isSleeping()`
+- **返回值：** boolean
+
+---
+
+### isOnGround
+- **说明：** 检查对象是否在地面上
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.isOnGround()`
+- **返回值：** boolean
+
+---
+
+### getPosX
+- **说明：** 获取对象的X坐标
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getPosX()`
+- **返回值：** double
+
+---
+
+### getPosY
+- **说明：** 获取对象的Y坐标
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getPosY()`
+- **返回值：** double
+
+---
+
+### getPosZ
+- **说明：** 获取对象的Z坐标
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getPosZ()`
+- **返回值：** double
+
+---
+
+### getYaw
+- **说明：** 获取对象的水平朝向角度
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getYaw()`
+- **返回值：** float
+
+---
+
+### getPitch
+- **说明：** 获取对象的垂直朝向角度
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getPitch()`
+- **返回值：** float
+
+---
+
+### getAir
+- **说明：** 获取对象的剩余氧气值
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getAir()`
+- **返回值：** int
+
+---
+
+### getHealth
+- **说明：** 获取对象当前生命值
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getHealth()`
+- **返回值：** double
+
+---
+
+### getMaxHealth
+- **说明：** 获取对象最大生命值
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.getMaxHealth()`
+- **返回值：** double
+
+---
+
+## 移动相关语句 (EntityMovement)
+
+### teleportForward
+- **说明：** 向前方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportForward(5.0)`
+- **返回值：** 无
+
+---
+
+### teleportBack
+- **说明：** 向后方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportBack(5.0)`
+- **返回值：** 无
+
+---
+
+### teleportLeft
+- **说明：** 向左方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportLeft(5.0)`
+- **返回值：** 无
+
+---
+
+### teleportRight
+- **说明：** 向右方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportRight(5.0)`
+- **返回值：** 无
+
+---
+
+### teleportUp
+- **说明：** 向上方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportUp(5.0)`
+- **返回值：** 无
+
+---
+
+### teleportDown
+- **说明：** 向下方传送指定距离（自动寻找安全位置）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明      |
+|----------|--------|---------|
+| distance | double | 传送距离（格） |
+
+- **使用方式：** `entity.teleportDown(5.0)`
+- **返回值：** 无
+
+---
+
+### dash
+- **说明：** 向前方冲刺（设置速度向量）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明   |
+|------------|--------|------|
+| horizontal | double | 水平速度 |
+| vertical   | double | 垂直速度 |
+
+- **使用方式：** `entity.dash(1.5, 0.3)`
+- **返回值：** 无
+
+---
+
+### dashBack
+- **说明：** 向后方冲刺（设置速度向量）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明   |
+|------------|--------|------|
+| horizontal | double | 水平速度 |
+| vertical   | double | 垂直速度 |
+
+- **使用方式：** `entity.dashBack(1.5, 0.3)`
+- **返回值：** 无
+
+---
+
+### dashLeft
+- **说明：** 向左方冲刺（设置速度向量）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明   |
+|------------|--------|------|
+| horizontal | double | 水平速度 |
+| vertical   | double | 垂直速度 |
+
+- **使用方式：** `entity.dashLeft(1.5, 0.3)`
+- **返回值：** 无
+
+---
+
+### dashRight
+- **说明：** 向右方冲刺（设置速度向量）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名        | 类型     | 说明   |
+|------------|--------|------|
+| horizontal | double | 水平速度 |
+| vertical   | double | 垂直速度 |
+
+- **使用方式：** `entity.dashRight(1.5, 0.3)`
+- **返回值：** 无
+
+---
+
+### jump
+- **说明：** 使对象向上跳跃
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名   | 类型     | 说明   |
+|-------|--------|------|
+| force | double | 跳跃力度 |
+
+- **使用方式：** `entity.jump(0.5)`
+- **返回值：** 无
+
+---
+
+### dive
+- **说明：** 使对象向下俯冲
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名   | 类型     | 说明   |
+|-------|--------|------|
+| force | double | 俯冲力度 |
+
+- **使用方式：** `entity.dive(1.0)`
+- **返回值：** 无
+
+---
+
+### bounce
+- **说明：** 反弹对象速度（速度向量取反）
+- **对象：** LivingEntity（生物）
+- **参数：** 无
+- **使用方式：** `entity.bounce()`
+- **返回值：** 无
+
+---
+
+### dashAdvanced
+- **说明：** 高级冲刺，可分别控制前后、左右、垂直三个方向的力度
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名      | 类型     | 说明                   |
+|----------|--------|----------------------|
+| forward  | double | 前后力度（正值前/负值后） |
+| strafe   | double | 左右力度（正值右/负值左） |
+| vertical | double | 垂直力度               |
+
+- **使用方式：** `entity.dashAdvanced(1.5, 0.5, 0.3)`
+- **返回值：** 无
+
+---
+
+## 实体选择器语句 (EntitySelector)
+
+<Callout type="warn">
+以下实体选择器语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+### getLivingEntitiesInRadius
+- **说明：** 获取圆形范围内的所有生物实体
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名    | 类型     | 说明 |
+|--------|--------|----|
+| radius | double | 半径 |
+
+- **使用方式：** `entity.getLivingEntitiesInRadius(10.0)`
+- **返回值：** List\<LivingEntity\>（范围内的生物列表）
+
+---
+
+### getLivingEntitiesInCone
+- **说明：** 获取面前扇形范围内的生物实体
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名    | 类型     | 说明       |
+|--------|--------|----------|
+| radius | double | 半径       |
+| angle  | double | 扇形角度（度数） |
+
+- **使用方式：** `entity.getLivingEntitiesInCone(10.0, 90.0)`
+- **返回值：** List\<LivingEntity\>（范围内的生物列表）
+
+---
+
+### getLivingEntitiesInBox
+- **说明：** 获取面前矩形范围内的生物实体
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名    | 类型     | 说明 |
+|--------|--------|----|
+| width  | double | 宽度 |
+| length | double | 长度 |
+| height | double | 高度 |
+
+- **使用方式：** `entity.getLivingEntitiesInBox(5.0, 10.0, 3.0)`
+- **返回值：** List\<LivingEntity\>（范围内的生物列表）
+
+---
+
+### getLivingEntitiesInRing
+- **说明：** 获取环形范围内的生物实体（内圈到外圈之间）
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名         | 类型     | 说明  |
+|-------------|--------|-----|
+| innerRadius | double | 内半径 |
+| outerRadius | double | 外半径 |
+
+- **使用方式：** `entity.getLivingEntitiesInRing(5.0, 10.0)`
+- **返回值：** List\<LivingEntity\>（范围内的生物列表）
+
+---
+
+### getNearestLivingEntity
+- **说明：** 获取最近的生物实体
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名         | 类型     | 说明     |
+|-------------|--------|--------|
+| maxDistance | double | 最大搜索距离 |
+
+- **使用方式：** `entity.getNearestLivingEntity(20.0)`
+- **返回值：** LivingEntity（最近的生物，没有则返回null）
+
+---
+
+## 玩家信息语句 (PlayerInfo)
+
+### isAfterJump
+- **说明：** 检查玩家是否在跳跃后的时间窗口内
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.isAfterJump()`
+- **返回值：** boolean
+
+---
+
+### isSprinting
+- **说明：** 检查玩家是否正在疾跑
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.isSprinting()`
+- **返回值：** boolean
+
+---
+
+### isSneaking
+- **说明：** 检查玩家是否正在潜行
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.isSneaking()`
+- **返回值：** boolean
+
+---
+
+### isFlying
+- **说明：** 检查玩家是否正在飞行
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.isFlying()`
+- **返回值：** boolean
+
+---
+
+### getFood
+- **说明：** 获取玩家的饥饿值
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.getFood()`
+- **返回值：** int（0-20）
+
+---
+
+### getPlaceholder
+- **说明：** 获取 PlaceholderAPI 占位符的值
+- **对象：** Player（玩家）
+- **参数：**
+
+| 参数名         | 类型     | 说明       |
+|-------------|--------|----------|
+| placeholder | String | 占位符字符串 |
+
+- **使用方式：** `player.getPlaceholder("%player_level%")`
+- **返回值：** String（解析后的字符串）
+
+---
+
+### getChargeTime
+- **说明：** 获取玩家的蓄力时间
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.getChargeTime()`
+- **返回值：** double
+
+<Callout type="warn">
+此语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+---
+
+### isInvincibleTag
+- **说明：** 检查玩家是否处于无敌状态
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.isInvincibleTag()`
+- **返回值：** boolean
+
+<Callout type="warn">
+此语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+---
+
+### getState
+- **说明：** 获取玩家的当前状态ID
+- **对象：** Player（玩家）
+- **参数：** 无
+- **使用方式：** `player.getState()`
+- **返回值：** String
+
+<Callout type="warn">
+此语句由 Chronos 插件提供，需要安装 Chronos 才可使用。
+</Callout>
+
+---
+
+## 玩家消息语句 (PlayerMessage)
+
+### showTitle
+- **说明：** 向玩家显示标题
+- **对象：** Player（玩家）
+- **参数：**
+
+| 参数名      | 类型     | 说明         |
+|----------|--------|------------|
+| title    | String | 主标题        |
+| subtitle | String | 副标题        |
+| fadeIn   | int    | 淡入时间（tick） |
+| stay     | int    | 停留时间（tick） |
+| fadeOut  | int    | 淡出时间（tick） |
+
+- **使用方式：** `player.showTitle("主标题", "副标题", 10, 70, 20)`
+- **返回值：** 无
+
+---
+
+### sendMessage
+- **说明：** 向玩家发送聊天消息
+- **对象：** Player（玩家）
+- **参数：**
+
+| 参数名     | 类型     | 说明   |
+|---------|--------|------|
+| message | String | 消息内容 |
+
+- **使用方式：** `player.sendMessage("Hello World!")`
+- **返回值：** 无
+
+---
+
+### sendUIPacket
+- **说明：** 向玩家发送 UI 通讯包
+- **对象：** Player（玩家）
+- **参数：**
+
+| 参数名         | 类型     | 说明       |
+|-------------|--------|----------|
+| uiID        | String | UI ID    |
+| handlerName | String | 处理器名称 |
+| data        | String | 包内容字符串 |
+
+- **使用方式：** `player.sendUIPacket("my_ui", "handler", "data")`
+- **返回值：** 无
+
+---
+
+## MythicMobs集成 (MythicMob)
+
+### castMythicMobSkill
+- **说明：** 使对象释放MythicMobs技能
+- **对象：** LivingEntity（生物）
+- **参数：**
+
+| 参数名   | 类型     | 说明   |
+|-------|--------|------|
+| name  | String | 技能名称 |
+| power | float  | 技能强度 |
+
+- **使用方式：** `entity.castMythicMobSkill("FireBall", 1.0)`
+- **返回值：** 无
+
+---
+
+## 对象类型说明
+
+| 对象类型         | 说明               |
+|--------------|------------------|
+| LivingEntity | 所有生物实体（包括玩家、怪物等） |
+| Player       | 仅限玩家             |
+
+---
+
+## 时间单位说明
+
+- **tick**: Minecraft 的基本时间单位，1秒 = 20 tick
+
+---
+

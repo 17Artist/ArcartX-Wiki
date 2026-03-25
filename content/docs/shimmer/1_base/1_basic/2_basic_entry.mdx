@@ -1,0 +1,141 @@
+---
+title: 基础语法
+description: 学习Shimmer的基本语法规则
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { AlertBox } from '@/components/AlertBox';
+
+## 1.注释：给代码加说明
+<Callout title="什么是注释?"  icon = "📝">
+注释是写给人看的说明文字，Shimmer会自动忽略这些内容。好的注释能帮助别人`包括将来的你自己`更容易理解代码。
+</Callout>
+
+### 两种注释方式
+
+<Steps>
+  <Step title="单行注释">
+    使用 `//` 添加单行注释:
+    ```Shimmer
+    // 这是一个打招呼的程序
+    Shimmer.println('你好!')
+    // 下面这行输出再见
+    Shimmer.println('再见!')
+    ```
+  </Step>
+
+  <Step title="多行注释">
+    使用 `/*` 和 `*/` 包裹多行注释:
+    ```Shimmer
+    /* 这是一个展示多行注释的例子
+       可以写很多行
+       都会被认为是注释
+    */
+    Shimmer.println('看到了吗?')
+    ```
+  </Step>
+</Steps>
+
+## 2.代码结构
+
+<Callout type="info">
+  在Shimmer中，代码结构非常简单直观，每一行就是一个完整的指令。
+</Callout>
+
+### 基本规则
+
+<Steps>
+  <Step title="一行一个指令">
+    ```Shimmer
+    Shimmer.println('第一行')
+    Shimmer.println('第二行')
+    Shimmer.println('第三行')
+    ```
+    每行代码都是独立的指令，按顺序从上到下执行。
+  </Step>
+
+  <Step title="代码块">
+    当我们需要把多行代码组织在一起时，使用花括号 `{ }`:
+    ```Shimmer
+    if(true){
+        Shimmer.println('这是代码块内的第一行')
+        Shimmer.println('这是代码块内的第二行')
+    }
+    ```
+  </Step>
+</Steps>
+
+## 3.语句规范
+
+<Cards>
+  <Card title="空格与缩进" icon="⌨️">
+    * 运算符前后建议加空格: `1 + 1`
+    * 代码块内的内容要缩进(Shimmer无视缩进 但是建议养成习惯)，让结构更清晰
+  </Card>
+
+  <Card title="标点符号" icon="✒️">
+    * 字符串要用引号: `'你好'`
+    * 括号要成对出现: `()`、`{}`
+    * 不需要在每行末尾加分号
+  </Card>
+</Cards>
+
+### 良好的代码风格示例
+
+```Shimmer
+// 计算并显示结果
+result = 10
+if(result > 5){
+    /* 如果数字大于5
+       就显示下面的内容 */
+    Shimmer.println("这个数字是: {result}")
+    Shimmer.println('它大于5!')
+}
+```
+### 特别说明
+
+```Shimmer
+// Shimmer的“块”中 必须存在内容 不允许出现空块
+result = 10
+if(result > 5){
+   // 如果确实没有什么好执行的 可以写个0占位
+   0
+}
+```
+<Callout type="warn">
+  养成良好的代码书写习惯很重要！整洁的代码可以:
+  * 减少出错
+  * 方便阅读
+  * 易于修改
+</Callout>
+
+## 实践练习
+
+<Cards>
+  <Card title="练习1：添加注释" icon="📝">
+    为下面的代码添加适当的注释:
+    ```Shimmer
+    Shimmer.println('小猫')
+    Shimmer.println('小狗')
+    Shimmer.println('小兔子')
+    ```
+  </Card>
+
+  <Card title="练习2：代码整理" icon="🎯">
+    把下面的代码按照规范格式重新整理:
+    ```Shimmer
+    result = 5 + 3
+    if( result > 7 ){
+      Shimmer.println('大于7')
+    }
+    Shimmer.println('结果是:{result}')
+    ```
+  </Card>
+</Cards>
+
+<Callout type="info">
+  记住：写代码就像写文章，整洁清晰的格式能让人更容易理解你想表达的内容。
+</Callout>
+

@@ -1,0 +1,263 @@
+---
+title: UI变量以及函数
+description: UI变量以及函数
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## UI变量以及函数
+- 这里列出UI中可用的Shimmer函数以及UI对象自身的变量。
+
+## 元素
+- 通过ui对象自身，可通过元素访问语法来获取顶层控件对象
+- 比如我们获取顶层的`background`控件，则可以用`self['background']{:Shimmer}`来访问。
+
+## 变量
+- `itemSize` 物品大小（MENU类型含有）
+- `through` 是否穿透（MENU类型、HUD类型含有）
+- `escClose` 是否按ESC关闭（MENU类型含有）
+- `background` 背景颜色（MENU类型含有）
+- `closeDied` 是否关闭时死亡（MENU类型含有）
+- `show` 是否显示（MENU类型、HUD类型含有）
+- `jei` 是否显示JEI（MENU类型含有）
+- `actions` 触发器字典[字典类型]（MENU类型、HUD类型含有）
+- `wheelValue` 滚轮值（MENU类型、HUD类型含有）
+- `currentKeyPress` 当前按键按下（MENU类型、HUD类型含有）
+- `currentKeyReleased` 当前按键释放（MENU类型、HUD类型含有）
+- `level` 渲染优先级（HUD类型含有）
+
+## 函数
+### `childrenCount(){:Shimmer}`
+- 获取顶层组件数量
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```Shimmer
+    self.childrenCount()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    1
+    ```
+</Callout>
+
+### `close(){:Shimmer}`
+- 关闭当前UI
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.close()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    无
+    ```
+</Callout>
+
+### `getID(){:Shimmer}`
+- 获取当前UI的ID
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```Shimmer
+    self.getID()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    "exampleUI"
+    ```
+</Callout>
+
+### `removeControlWithMeta(){:Shimmer}`
+- 匹配控件元数据删除控件
+- 关于控件meta的操作直接举例似乎不太直观，这里详细说明一下。
+- 对于控件有一个固有常量：`meta` 调用方式是`val.控件.meta{:Shimmer}`
+- 其储存一个字典型数据，你可以在触发器中去写入元数据键值对。
+<Callout type="info">
+    - **参数**：`key` （元数据键）和`value`（元数据值，可选，如果不包含值则只要包含键即符合匹配）
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.removeControlWithMeta("exampleKey", "exampleValue")
+    ```
+    - **示例返回值**
+    ```Shimmer
+    无
+    ```
+</Callout>
+
+### `getControlWithMeta(){:Shimmer}`
+- 匹配控件元数据获取控件
+- 关于控件meta的操作直接举例似乎不太直观，这里详细说明一下。
+- 对于控件有一个固有常量：`meta` 调用方式是`val.控件.meta{:Shimmer}`
+- 其储存一个字典型数据，你可以在触发器中去写入元数据键值对。
+<Callout type="info">
+    - **参数**：`key` （元数据键）和`value`（元数据值，可选，如果不包含值则只要包含键即符合匹配）
+    - **返回值**：列表
+    - **调用示例**
+    ```Shimmer
+    self.getControlWithMeta("exampleKey", "exampleValue")
+    ```
+    - **示例返回值**
+    ```Shimmer
+    [控件对象A,控件对象B...]
+    ```
+</Callout>
+
+### `getSlotItemStack(){:Shimmer}`
+- 获取指定槽位的物品
+<Callout type="info">
+    - **参数**：`slotName` （槽位ID）和`slotType`（槽位类型）
+    - **返回值**：物品堆
+    - **调用示例**
+    ```Shimmer
+    self.getSlotItemStack('xxx', "Extra")
+    ```
+    - **示例返回值**
+    ```Shimmer
+    // 会返回一个物品对象，如果为空会返回空气
+    ```
+</Callout>
+
+### `getOriginalName(){:Shimmer}`
+- <font color="red">仅Menu类型包含</font>
+- 获取UI的原始名称（如果该UI是作为替换原版UI渲染的）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```Shimmer
+    self.getOriginalName()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    "原版UI名称"
+    ```
+</Callout>
+
+### `clickSlot(){:Shimmer}`
+- <font color="red">仅Menu类型包含</font>
+- 模拟点击容器槽位，比如你替换了原版的箱子菜单，可以模拟点击对应槽位触发原版的点击槽位事件。
+<Callout type="info">
+    - **参数**：`id` （槽位ID）、`button`（按键id，一般为0、1、2） 和`type`（点击类型，可选，默认为"PICKUP"）
+    - **可用点击类型**：`PICKUP`, `QUICK_MOVE`, `SWAP`, `CLONE`, `THROW`, `QUICK_CRAFT`, `PICKUP_ALL`
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.clickSlot(0, 0, "exampleType")
+    ```
+    - **示例返回值**
+    ```Shimmer
+    // 无返回值
+    ```
+</Callout>
+
+### `getCarriedItemStack(){:Shimmer}`
+- <font color="red">仅Menu类型包含</font>
+- 获取当前鼠标指针上的物品堆
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：物品堆
+    - **调用示例**
+    ```Shimmer
+    self.getCarriedItemStack()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    // 会返回一个物品对象，如果为空会返回空物品堆
+    ```
+</Callout>
+
+### `delayAction(){:Shimmer}`
+- 延迟触发UI的触发器事件
+<Callout type="info">
+    - **参数**：`delay` （延迟时间 毫秒）  `actionName` （触发器名称）
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.delayAction(1000, '触发器名称')
+    ```
+    - **示例返回值**
+    ```Shimmer
+    // 无返回值
+    ```
+</Callout>
+
+### `getHoverScroll(){:Shimmer}`
+- <font color="red">仅Menu类型包含</font>
+- 获取当前鼠标悬停的滚动控件列表
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.getHoverScroll()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    [] // 鼠标悬停的滚动栏控件列表
+    ```
+</Callout>
+
+### `create(){:Shimmer}`
+
+- 在当前界面创建一级控件
+<Callout type="info">
+    - **参数**：`tempID` 模板ID、 `newName` 新创建控件的ID
+    - **返回值**：无
+    - **调用示例**
+    ```Shimmer
+    self.create('模板ID', '新控件ID')
+    ```
+    - **示例返回值**
+    ```Shimmer
+    // 返回一个控件对象
+    ```
+
+    - 好像不是那么好理解，这里放一个带模板的UI配置做例子：比如我们想通过模板在一级创建一个控件，则使用`self.create(‘我是一个模板’, '新控件名称')`
+
+    ```yaml
+    ui:
+    controls:
+      background:
+        type: "Texture"
+        attribute:
+          width: "1270"
+          height: "650"
+          normal: "~inventory/bg.png"
+    template:
+      我是一个模板:
+        type: "Texture"
+        attribute:
+          width: "128"
+          height: "128"
+          normal: "~inventory/xxx.png"
+    ```
+</Callout>
+
+### `slotCount(){:Shimmer}`
+- 获取当前 Menu 的容器槽位总数（仅 Menu 类型）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```Shimmer
+    self.slotCount()
+    ```
+</Callout>
+
+### `get(index){:Shimmer}`
+- 通过索引获取顶层控件
+<Callout type="info">
+    - **参数**：`index`（控件索引，数字类型）
+    - **返回值**：控件对象（找不到时返回 null）
+    - **调用示例**
+    ```Shimmer
+    self.get(0)
+    ```
+</Callout>

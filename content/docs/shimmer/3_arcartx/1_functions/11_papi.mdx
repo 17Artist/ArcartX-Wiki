@@ -1,0 +1,51 @@
+---
+title: Placeholder:变量处理
+description: Placeholder变量解析工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Placeholder.parse(placeholder){:Shimmer}`
+- 解析服务器变量占位符
+
+<Callout type="info">
+- **参数**：`placeholder`: 字符串类型(变量占位符)
+- **返回值**：字符串类型(解析后的变量值)
+- **调用示例**
+```Shimmer
+Placeholder.parse("%player_name%")
+```
+- **示例返回值**
+```Shimmer
+"Steve"
+```
+</Callout>
+
+<Callout type="warn">
+注意：
+- 如果变量不存在，将返回空字符串
+- 变量解析会在下一游戏刻更新
+</Callout>
+
+## `Placeholder.parse(placeholder){:Shimmer}`
+- 解析服务器变量占位符
+
+<Callout type="info">
+    - **参数**：`一段带占位符的字符串`: 字符串类型
+    - **返回值**：字符串类型(解析后的文本)
+    - **调用示例**
+    ```Shimmer
+    Placeholder.parseAll("玩家 %player_name% 等级 %player_level%")
+    ```
+    - **示例返回值**
+    ```Shimmer
+    "玩家 17Artist 等级 0"
+    ```
+</Callout>
+
+<Callout type="warn">
+    注意：
+    - 如果变量不存在，将返回空字符串
+    - 变量解析会在下一游戏刻更新
+</Callout>

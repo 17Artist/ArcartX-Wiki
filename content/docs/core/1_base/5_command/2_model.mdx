@@ -1,0 +1,175 @@
+---
+title: model:模型
+description: 模型相关调试指令
+---
+
+## 模型指令
+
+- 用于调试和测试模型相关功能，包括设置模型、播放动画、控制器等。
+
+### `arcartx model setModel`
+
+- 设置玩家模型
+
+| 属性  | 值                                                   |
+|-----|-----------------------------------------------------|
+| 用法  | `arcartx model setModel <player> <modelID> <scale>` |
+| 权限  | `arcartx.command.admin.entity.edit`                 |
+| 执行者 | 仅OP                                                 |
+
+- `player`：目标玩家名
+- `modelID`：模型ID
+- `scale`：模型缩放比例
+
+### `arcartx model removeModel`
+
+- 移除玩家模型
+
+| 属性  | 值                                    |
+|-----|--------------------------------------|
+| 用法  | `arcartx model removeModel <player>` |
+| 权限  | `arcartx.command.admin.entity.edit`  |
+| 执行者 | 仅OP                                  |
+
+- `player`：目标玩家名
+
+### `arcartx model testController`
+
+- 测试为玩家设置动作控制器
+
+| 属性  | 值                                                      |
+|-----|--------------------------------------------------------|
+| 用法  | `arcartx model testController <player> <controllerID>` |
+| 权限  | `arcartx.command.admin.entity.edit`                    |
+| 执行者 | 仅OP                                                    |
+
+- `player`：目标玩家名
+- `controllerID`：控制器配置ID
+
+### `arcartx model testControllerState`
+
+- 测试设置动作控制器的状态
+
+| 属性  | 值                                                                              |
+|-----|--------------------------------------------------------------------------------|
+| 用法  | `arcartx model testControllerState <player> <subControllerID> <state> <speed>` |
+| 权限  | `arcartx.command.admin.entity.edit`                                            |
+| 执行者 | 仅OP                                                                            |
+
+- `player`：目标玩家名
+- `subControllerID`：子控制器ID
+- `state`：状态名称
+- `speed`：播放速度
+
+### `arcartx model testAddExtraModel`
+
+- 测试为玩家添加额外模型
+
+| 属性  | 值                                                                  |
+|-----|--------------------------------------------------------------------|
+| 用法  | `arcartx model testAddExtraModel <player> <locatorName> <modelID>` |
+| 权限  | `arcartx.command.admin.entity.edit`                                |
+| 执行者 | 仅OP                                                                |
+
+- `player`：目标玩家名
+- `locatorName`：定位器名称
+- `modelID`：模型ID
+
+### `arcartx model testRemoveModel`
+
+- 测试移除玩家的额外模型
+
+| 属性  | 值                                                      |
+|-----|--------------------------------------------------------|
+| 用法  | `arcartx model testRemoveModel <player> <locatorName>` |
+| 权限  | `arcartx.command.admin.entity.edit`                    |
+| 执行者 | 仅OP                                                    |
+
+- `player`：目标玩家名
+- `locatorName`：定位器名称
+
+### `arcartx model testSubstitutionModel`
+
+- 测试为玩家设置覆盖模型
+
+| 属性  | 值                                                               |
+|-----|-----------------------------------------------------------------|
+| 用法  | `arcartx model testSubstitutionModel <player> <modelID> <mode>` |
+| 权限  | `arcartx.command.admin.entity.edit`                             |
+| 执行者 | 仅OP                                                             |
+
+- `player`：目标玩家名
+- `modelID`：覆盖模型ID
+- `mode`：布尔值，`true` 为传统隐藏模式，`false` 为完整替换模式
+
+### `arcartx model testAnimation`
+
+- 测试为玩家播放动画
+
+| 属性  | 值                                                            |
+|-----|--------------------------------------------------------------|
+| 用法  | `arcartx model testAnimation <player> <animationID> <speed>` |
+| 权限  | `arcartx.command.admin.entity.edit`                          |
+| 执行者 | 仅OP                                                          |
+
+- `player`：目标玩家名
+- `animationID`：动画ID
+- `speed`：播放速度
+
+### `arcartx model testFPAnimationByCount`
+
+- 测试为玩家播放第一人称动画（按次数）
+
+| 属性  | 值                                                                             |
+|-----|-------------------------------------------------------------------------------|
+| 用法  | `arcartx model testFPAnimationByCount <player> <animationID> <speed> <count>` |
+| 权限  | `arcartx.command.admin.entity.edit`                                           |
+| 执行者 | 仅OP                                                                           |
+
+- `player`：目标玩家名
+- `animationID`：动画ID
+- `speed`：播放速度
+- `count`：播放次数
+
+### `arcartx model testFPAnimationByTime`
+
+- 测试为玩家播放第一人称动画（按持续时间）
+
+| 属性  | 值                                                                           |
+|-----|-----------------------------------------------------------------------------|
+| 用法  | `arcartx model testFPAnimationByTime <player> <animationID> <speed> <time>` |
+| 权限  | `arcartx.command.admin.entity.edit`                                         |
+| 执行者 | 仅OP                                                                         |
+
+- `player`：目标玩家名
+- `animationID`：动画ID
+- `speed`：播放速度
+- `time`：持续时间（毫秒）
+
+### `arcartx model testAnimationUUID`
+
+- 通过UUID测试为实体播放动画
+
+| 属性  | 值                                                              |
+|-----|----------------------------------------------------------------|
+| 用法  | `arcartx model testAnimationUUID <uuid> <animationID> <speed>` |
+| 权限  | `arcartx.command.admin.entity.edit`                            |
+| 执行者 | 仅OP                                                            |
+
+- `uuid`：实体UUID
+- `animationID`：动画ID
+- `speed`：播放速度
+
+### `arcartx model testBlockAnimation`
+
+- 测试方块动画
+
+| 属性  | 值                                                                    |
+|-----|----------------------------------------------------------------------|
+| 用法  | `arcartx model testBlockAnimation <x> <y> <z> <animationID> <speed>` |
+| 权限  | `arcartx.command.admin.block.edit`                                   |
+| 执行者 | 仅玩家                                                                  |
+
+- `x` `y` `z`：方块坐标
+- `animationID`：动画ID
+- `speed`：播放速度

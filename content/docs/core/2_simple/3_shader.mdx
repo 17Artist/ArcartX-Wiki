@@ -1,0 +1,113 @@
+---
+title: Shader
+description: 后处理着色器使用指南
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="error">
+    自 1.21.8 版本起，由于 Mojang 对 Shader 系统进行了大规模重构，ArcartX 已移除对 Shader 的支持。以下内容仅适用于 1.21.8 之前的版本。
+</Callout>
+
+## Shader
+
+Shader（着色器）的工作模式类似于"滤镜"，可以对游戏画面施加特殊的视觉效果，例如模糊（Blur）、铅笔画等。
+
+<Callout type="warn">
+    1.21.4 版本以后，Shader 文件改为通过数据包加载。你可以通过语句/命令/API 主动开启数据包中定义好的 Shader。以下使用方式为 1.21.4 之前的用法。
+</Callout>
+
+## 使用
+
+<Steps>
+    <Step>
+        准备 Shader 文件。Shader 分为 `program` 和 `post` 两个文件夹，放入客户端 `resource/shader` 目录中：
+        <img src="/simple/shader-1.png" alt="Shader 文件夹结构" />
+    </Step>
+    <Step>
+        以从 1.7.10 提取的 "pencil" 着色器为例。打开 post 文件后，需要将资源域 ID 修改为 `arcartx`：
+        ```json
+        {
+            "targets": [
+                "swap"
+            ],
+            "passes": [
+                {
+                    "name": "arcartx:outline_soft",  // 资源域改为 arcartx
+                    "intarget": "minecraft:main",
+                    "outtarget": "swap"
+                },
+                {
+                    "name": "arcartx:blit",  // 资源域改为 arcartx
+                    "intarget": "swap",
+                    "outtarget": "minecraft:main"
+                }
+            ]
+        }
+        ```
+    </Step>
+    <Step>
+        该 Shader 包含两个 passes：`outline_soft` 和 `blit`。将它们的 program 文件提取出来，同样修改资源域 ID：
+        ```json
+        {
+            "blend": {
+                "func": "add",
+                "srcrgb": "one",
+                "dstrgb": "zero"
+            },
+            "vertex": "sobel",
+            "fragment": "arcartx:outline_soft", // 资源域改为 arcartx
+            "attributes": [ "Position" ],
+            "samplers": [
+                { "name": "DiffuseSampler" }
+            ],
+            "uniforms": [
+                { "name": "ProjMat",   "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+                { "name": "InSize",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+                { "name": "OutSize",   "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+                { "name": "LumaRamp",  "type": "float",     "count": 1,  "values": [ 16.0 ] },
+                { "name": "LumaLevel", "type": "float",     "count": 1,  "values": [ 4.0 ] }
+            ]
+        }
+        ```
+
+        ```json
+        {
+            "blend": {
+                "func": "add",
+                "srcrgb": "one",
+                "dstrgb": "zero"
+            },
+            "vertex": "blit",
+            "fragment": "arcartx:blit", // 资源域改为 arcartx
+            "attributes": [ "Position" ],
+            "samplers": [
+                { "name": "DiffuseSampler" }
+            ],
+            "uniforms": [
+                { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+                { "name": "OutSize",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] }
+            ]
+        }
+
+        ```
+    </Step>
+    <Step>
+        将对应的 `.fsh` 和 `.vsh` 文件也放到对应的文件夹中：
+        <img src="/simple/shader-3.png" alt="Shader 文件结构" />
+        <img src="/simple/shader-2.png" alt="Shader 文件结构" />
+    </Step>
+    <Step>
+        进入游戏，重载客户端资源后，使用指令开启着色器（名称取自 post 文件夹中的文件名）：
+
+        `/a shader start [玩家ID] pencil`
+
+        <img src="/simple/shader-4.png" alt="Shader 效果" />
+
+        也可以通过 Shimmer 脚本和 API 控制 Shader。
+    </Step>
+    <Step>
+        更多 Shader 编写知识请参考 Minecraft Shader 相关教程。
+    </Step>
+</Steps>

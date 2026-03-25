@@ -1,0 +1,144 @@
+---
+title: 自定义聊天栏
+description: 自定义聊天栏
+---
+
+## 自定义聊天栏
+- ArcartX 的 UI 控件提供了聊天栏所需的所有功能，你可以通过 UI 控件来实现自定义聊天栏。
+- 此外，使用ArcartX替换原版聊天栏，还可支持额外的卡片消息、特殊颜色、表情符号等功能。
+
+## 一个简单的聊天栏配置
+- 涉及聊天栏的控件有 `ChatTextBox`(聊天栏输入框) `Chat`(聊天栏) `Suggestion`(命令补全)
+- 下面是一个简单的聊天栏配置示例：
+
+- 第一部分是聊天栏的HUD部分
+```yaml
+ui:
+  isHud: true
+  hide:
+    - chat_panel # 隐藏原版聊天栏
+controls:
+  adaptive:
+    type: adaptive
+    attribute:
+      point: ~bottom_left
+      width: 1920
+      height: 1080
+    children:
+      chat:
+        type: chat
+        attribute:
+          width: 700
+          height: 400
+          point: ~bottom_left
+          background: ~0,0,0,80
+          fontSize: 28
+          y: -280
+          x: 35
+```
+
+- 第二部分是替换原版聊天栏输入框界面
+```yaml
+ui:
+  match:
+    - ChatScreen # 匹配原版聊天界面
+  background: false
+  # 这俩记得打开，不然交互不了HUD
+  transfer: true # 传递交互
+  through: true # 穿透
+controls:
+  adaptive:
+    type: adaptive
+    attribute:
+      point: ~bottom_left
+      width: 1920
+      height: 1080
+    children:
+      background:
+        type: texture
+        attribute:
+          point: ~bottom_left
+          width: 700
+          height: 24
+          x: 35
+          y: -250
+          normal: ~0,0,0,80
+      input:
+        type: chatTextBox
+        val: input
+        attribute:
+          point: ~bottom_left
+          length: 64
+          x: 75
+          y: -250
+          fontSize: 28
+          width: 615
+          height: 20
+        action:
+         create: |-
+          self.setFocus(true)
+        children:
+          suggestion:
+            type: Suggestion
+            attribute:
+              fontSize: 28
+              background: ~0,0,0,80
+```
+
+- 直接复制粘贴创建配置，即可看到效果：
+
+<img src="/ui/chat-1.jpg" alt="自定义聊天栏"/>
+
+- 该聊天栏支持特殊颜色和表情符号：
+
+<img src="/ui/chat-2.jpg" alt="自定义聊天栏"/>
+
+## 卡片消息
+
+- 卡片消息可用于在聊天栏中展示好友请求、组队邀请、红包等交互式内容。
+- 它是将一个控件加入到聊天栏。注意，聊天栏最多存储 10 个卡片消息，超出 10 个会将最早创建的卡片消息显示为"卡片消息已失效"。
+- 效果：
+
+<img src="/ui/chat-3.jpg" alt="自定义聊天栏"/>
+
+- 卡片消息本质上就是一个控件，因此你可以使用背景、按钮、文本等控件来构建自定义的卡片消息。
+- 它的配置位于插件的 `chat_card` 文件夹，你可以创建多个卡片消息模板。
+
+``` yaml
+root_control:
+  type: card # 注意这里必须是card类型
+  attribute:
+    width: 20 # 填写正确的尺寸以便聊天栏控件排列
+    height: 50 # 如果你的聊天栏本身已经套了一层自适应布局控件，这里不需要再套一层
+  children:
+    texture:
+      type: texture
+      attribute:
+        width: 500
+        height: 50
+        normal: ~255,0,0
+        hover: ~255,255,0
+        texts: "'我是一个卡片消息' + self.parent.data['name']"
+        fontSize: 32
+      action:
+        click: |-
+          Message.chat('点我干嘛')
+```
+
+- 卡片消息需要使用API发送，每个卡片消息可以附带一个 `Map<String,String>` 数据，正如上面示例配置的这一行`'我是一个卡片消息' + self.parent.data['name']{:Shimmer}`，它会将数据中的`name`值渲染到文本中。
+- 发送卡片消息的API如下：
+
+- Kotlin
+```kotlin
+// 卡片消息配置路径：例如配置位于ArcartX/chat_card/example.yml 此处填写example 如果位于子文件夹使用斜杠分割
+player.arcartXHandler?.sendChatCard("卡片消息配置路径", mapOf("name" to player.name))
+```
+
+- Java
+```java
+// 卡片消息配置路径：例如配置位于ArcartX/chat_card/example.yml 此处填写example 如果位于子文件夹使用斜杠分割
+ArcartXPlayer arcartXPlayer = PlayerUtils.getArcartXHandler(player);
+if(arcartXPlayer != null){
+    arcartXPlayer.sendChatCard("卡片消息配置路径", Map.of("name",player.getName()));
+}
+```

@@ -1,0 +1,16 @@
+{
+    "title": "事件系统",
+    "defaultOpen": false,
+    "pages": [
+        "index",
+        "1_initialized",
+        "2_communication",
+        "3_key",
+        "4_entity",
+        "5_ui",
+        "6_slot",
+        "7_input",
+        "8_player",
+        "9_plugin"
+    ]
+}

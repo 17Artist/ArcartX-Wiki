@@ -1,0 +1,96 @@
+---
+title: ArcartXAPI:API入口
+description: ArcartX API入口类
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXAPI
+
+- `ArcartXAPI` 是ArcartX所有服务端API的统一入口，位于 `priv.seventeen.artist.arcartx.api` 包下。
+- 它是一个单例对象，所有方法均为静态方法，可直接调用。
+
+## `getUIRegistry(){:java}`
+- 获取UI注册管理器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXUIRegistry`
+- **调用示例**
+```java
+ArcartXUIRegistry registry = ArcartXAPI.getUIRegistry();
+```
+</Callout>
+
+## `getKeyBindRegistry(){:java}`
+- 获取按键绑定注册管理器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXKeyBindRegistry`
+- **调用示例**
+```java
+ArcartXKeyBindRegistry registry = ArcartXAPI.getKeyBindRegistry();
+```
+</Callout>
+
+## `getEntityManager(){:java}`
+- 获取实体管理器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXEntityManager`
+- **调用示例**
+```java
+ArcartXEntityManager manager = ArcartXAPI.getEntityManager();
+```
+</Callout>
+
+## `getSoundPlayer(){:java}`
+- 获取音效播放器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXSoundPlayer`
+- **调用示例**
+```java
+ArcartXSoundPlayer player = ArcartXAPI.getSoundPlayer();
+```
+</Callout>
+
+## `getNetworkSender(){:java}`
+- 获取网络发送器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXNetworkSender`
+- **调用示例**
+```java
+ArcartXNetworkSender sender = ArcartXAPI.getNetworkSender();
+```
+</Callout>
+
+## `getAreaManager(){:java}`
+- 获取区域管理器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXAreaManager`
+- **调用示例**
+```java
+ArcartXAreaManager manager = ArcartXAPI.getAreaManager();
+```
+</Callout>
+
+## `getEffectManager(){:java}`
+- 获取特效管理器
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：`ArcartXEffectManager`
+- **调用示例**
+```java
+ArcartXEffectManager manager = ArcartXAPI.getEffectManager();
+```
+</Callout>

@@ -1,0 +1,31 @@
+---
+title: 插件事件
+description: ArcartX插件自身事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 插件事件
+
+- ArcartX插件自身生命周期相关的事件。
+
+## `ArcartXReloadEvent`
+- ArcartX插件重载时触发（通过 `arcartx reload` 指令或API调用）
+
+<Callout type="info">
+- **属性**：无
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onReload(ArcartXReloadEvent event) {
+    // ArcartX已重载，重新加载依赖ArcartX配置的内容
+    reloadMyConfig();
+}
+```
+</Callout>
+
+<Callout type="warn">
+如果你的插件缓存了ArcartX的配置数据（如区域、UI等），建议监听此事件并在触发时刷新缓存。
+</Callout>

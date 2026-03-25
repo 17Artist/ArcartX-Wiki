@@ -1,0 +1,10 @@
+{
+    "title": "按键篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_simple_key",
+        "2_client_key",
+        "3_key_group",
+        "4_key_name"
+    ]
+}

@@ -1,0 +1,105 @@
+---
+title: Breathe-呼吸效果
+description: 呼吸效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Breathe是一个模拟自然呼吸节奏的对象。它用于缩放、透明度或其他需要缓慢周期性变化的属性，支持独立设置吸气、呼气和屏息时间，可选择自然呼吸曲线。
+</Callout>
+
+## 实例化方式
+
+### `Breathe`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个呼吸动画实例。
+    - **参数**：
+    - `minValue`：数值类型，最小值（呼气时的值）
+    - `maxValue`：数值类型，最大值（吸气时的值）
+    - `inhaleTime`：长整型，吸气时间（毫秒，最小100ms）
+    - `exhaleTime`：长整型，呼气时间（毫秒，最小100ms）
+    - `holdTime`：长整型，屏息时间（毫秒，最小0ms）
+    - `naturalCurve`：布尔值，是否使用自然呼吸曲线（可选）
+    - **调用示例**：
+    ```Shimmer
+    Breathe(0.8, 1.2, 2000, 2500, 500) // 自然呼吸节奏
+    Breathe(0, 1, 1500, 1500, 0, true) // 无屏息的平滑呼吸
+    Breathe(0.5, 1.5, 3000, 4000, 1000, true) // 深呼吸效果
+    ```
+</Callout>
+
+## 呼吸阶段说明
+
+<Callout type="info">
+    呼吸动画包含四个阶段：
+    - **inhale（吸气）**：从最小值过渡到最大值
+    - **hold_in（吸气后屏息）**：保持在最大值
+    - **exhale（呼气）**：从最大值过渡到最小值
+    - **hold_out（呼气后屏息）**：保持在最小值
+</Callout>
+
+## 函数
+
+### `get(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前呼吸值，根据呼吸阶段在最小值和最大值之间变化。
+</Callout>
+
+### `phase(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **说明**：获取当前呼吸阶段，返回 "inhale"、"hold_in"、"exhale" 或 "hold_out"。
+</Callout>
+
+### `cycleProgress(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（0.0-1.0）
+    - **说明**：获取当前周期的进度，表示在一个完整呼吸周期中的位置。
+</Callout>
+
+### `intensity(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（0.0-1.0）
+    - **说明**：获取呼吸强度，基于当前值在最小-最大范围内的位置。
+</Callout>
+
+### `reset(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置呼吸状态，重新开始效果。
+</Callout>
+
+### `reverse(){:Shimmer}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转呼吸方向。
+</Callout>
+
+## 类型转换
+
+Breathe对象支持以下类型转换：
+- **数值**：返回当前呼吸值
+- **布尔值**：呼吸强度超过0.5时返回true，否则返回false
+- **字符串**：返回当前值的字符串表示
+
+<Callout type="info">
+    Breathe对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

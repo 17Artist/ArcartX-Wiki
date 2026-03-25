@@ -1,0 +1,63 @@
+---
+title: 状态保留名
+description: 状态保留名
+---
+
+## 状态保留名
+
+### 基础状态
+
+| 状态名        | 触发条件               |
+|:-----------|:-------------------|
+| idle       | 始终为 true（作为默认状态使用） |
+| walk       | 正在移动且速度 > 0.1      |
+| run        | 正在移动且冲刺            |
+| sneak      | 下蹲                 |
+| sneak_walk | 下蹲且移动（速度 > 0.05）   |
+| jump       | 跳跃中                |
+| die        | 死亡                 |
+
+### 特殊移动
+
+| 状态名         | 触发条件       |
+|:------------|:-----------|
+| swim        | 游泳         |
+| swim_stand  | 在水中（非游泳姿态） |
+| fly         | 创造模式飞行     |
+| fall_fly    | 鞘翅滑翔       |
+| climb       | 匍匐         |
+| climb_walk  | 匍匐移动       |
+| ladder_up   | 梯子上爬       |
+| ladder_down | 梯子下爬       |
+| ladder_idle | 梯子上静止      |
+
+### 骑乘
+
+| 状态名       | 触发条件   |
+|:----------|:-------|
+| ride      | 骑乘任意实体 |
+| ride_pig  | 骑猪     |
+| ride_boat | 骑船     |
+
+### 战斗与物品使用
+
+以下状态区分主手（right）和副手（left）：
+
+| 状态名                                      | 触发条件   |
+|:-----------------------------------------|:-------|
+| sword                                    | 主手挥剑   |
+| punch                                    | 主手空手攻击 |
+| break_right / break_left                 | 挥动手臂   |
+| bow_right / bow_left                     | 拉弓     |
+| crossbow_right / crossbow_left           | 弩蓄力/持弩 |
+| trident_throw_right / trident_throw_left | 投掷三叉戟  |
+| shield_block_right / shield_block_left   | 盾牌格挡   |
+| eat_right / eat_left                     | 进食/饮用  |
+| spyglass_right / spyglass_left           | 望远镜    |
+| toot_horn_right / toot_horn_left         | 山羊角    |
+| brush_right / brush_left                 | 刷子     |
+| use_right / use_left                     | 通用使用物品 |
+
+<Callout type="info">
+    如果状态名不匹配任何内置条件，该状态不会被自动触发，但可以通过外部 API 手动切换到该状态。这适用于连招等需要外部插件控制的场景。
+</Callout>

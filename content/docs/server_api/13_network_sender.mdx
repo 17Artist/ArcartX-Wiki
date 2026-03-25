@@ -1,0 +1,214 @@
+---
+title: ArcartXNetworkSender:网络发送器
+description: 底层网络发送API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXNetworkSender
+
+- 网络发送器提供了更底层的网络数据包发送能力，所有方法都是**点对点**发送给指定玩家。
+- 通过 `ArcartXAPI.getNetworkSender()` 获取。
+- 大多数场景下你应该优先使用 `ArcartXPlayer` 或其他高级API，仅在需要精细控制时使用本类。
+
+## 自定义数据包
+
+### `sendCustomPacket(player, id, args...){:java}`
+- 向玩家发送自定义数据包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — 数据包ID
+    - `args`: String... — 数据内容（可变参数）
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendCustomPacket(player, "my_plugin:sync", "data1", "data2");
+```
+</Callout>
+
+## 服务端变量
+
+### `sendServerVariable(player, variableName, value){:java}`
+- 向玩家客户端设置一个服务端变量，可在Shimmer脚本中读取
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `variableName`: String — 变量名
+    - `value`: Object — 变量值
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendServerVariable(player, "player_level", 10);
+```
+</Callout>
+
+### `sendMultipleServerVariable(player, variables){:java}`
+- 批量设置服务端变量
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `variables`: Map&lt;String, Object&gt; — 变量映射
+- **返回值**：无
+- **调用示例**
+```java
+Map<String, Object> vars = new HashMap<>();
+vars.put("hp", 100);
+vars.put("mp", 50);
+ArcartXAPI.getNetworkSender().sendMultipleServerVariable(player, vars);
+```
+</Callout>
+
+### `removeServerVariable(player, variableName, startWith){:java}`
+- 移除玩家客户端的服务端变量
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `variableName`: String — 变量名
+    - `startWith`: boolean — 是否匹配以该名称开头的所有变量（默认false）
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().removeServerVariable(player, "player_", true);
+```
+</Callout>
+
+## 伤害显示
+
+### `sendDamageDisplay(player, configID, damage, location){:java}`
+- 在指定位置为玩家显示伤害数字
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `configID`: String — 伤害显示配置ID
+    - `damage`: double — 伤害数值
+    - `location`: Location — 显示位置
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendDamageDisplay(player, "critical", 999.0, location);
+```
+</Callout>
+
+### `sendDamageDisplay(player, configID, damage, target){:java}`
+- 在目标实体位置为玩家显示伤害数字
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `configID`: String — 伤害显示配置ID
+    - `damage`: double — 伤害数值
+    - `target`: Entity — 目标实体
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendDamageDisplay(player, "default", 50.0, targetEntity);
+```
+</Callout>
+
+## 图片资源
+
+### `sendBase64Image(player, resourceID, base64){:java}`
+- 向玩家客户端发送Base64编码的图片资源
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `resourceID`: String — 资源ID
+    - `base64`: String — Base64编码的图片数据
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendBase64Image(player, "avatar", base64String);
+```
+</Callout>
+
+## 音效控制
+
+### `sendSoundPlay(player, name, path, x, y, z, soundCategory, distOrRoll, pitch, keepTime){:java}`
+- 在指定坐标播放具名音效
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `name`: String — 音效名称（用于后续停止）
+    - `path`: String — 音效资源路径
+    - `x` `y` `z`: int — 播放坐标
+    - `soundCategory`: String — 音效类别（默认 `master`）
+    - `distOrRoll`: int — 传播距离（默认16）
+    - `pitch`: double — 音调（默认1.0）
+    - `keepTime`: int — 持续时间（默认5000毫秒）
+- **返回值**：无
+</Callout>
+
+### `sendSoundPlay(player, name, path, entity, ...){:java}`
+- 绑定实体播放具名音效（多个重载版本）
+
+<Callout type="info">
+- 支持绑定到实体、绑定到自身、有名/无名等多种组合
+- 具名音效可以通过 `sendStopSound` 停止播放
+</Callout>
+
+### `sendStopSound(player, name){:java}`
+- 停止播放指定名称的音效
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `name`: String — 音效名称
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendStopSound(player, "bgm");
+```
+</Callout>
+
+## 实体控制
+
+### `sendSetEntityModel(player, entity, modelID, scale){:java}`
+- 为指定玩家设置某个实体的模型显示
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `entity`: UUID — 实体UUID
+    - `modelID`: String — 模型ID
+    - `scale`: double — 缩放比例（默认1.0）
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getNetworkSender().sendSetEntityModel(player, entityUUID, "custom_model", 1.5);
+```
+</Callout>
+
+### `sendSetEntityAnimation(player, entity, animationName, speed, transitionTime, time){:java}`
+- 为指定玩家播放某个实体的动画
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `entity`: UUID — 实体UUID
+    - `animationName`: String — 动画名称
+    - `speed`: double — 播放速度
+    - `transitionTime`: int — 过渡时间（毫秒）
+    - `time`: long — 持续时间（毫秒）
+- **返回值**：无
+</Callout>
+
+### `sendSetEntitySize(player, entity, width, height){:java}`
+- 为指定玩家设置某个实体的碰撞体积显示
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `entity`: UUID — 实体UUID
+    - `width`: double — 宽度
+    - `height`: double — 高度
+- **返回值**：无
+</Callout>

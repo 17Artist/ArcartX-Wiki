@@ -1,0 +1,159 @@
+---
+title: 基础配置
+description: setting.yml 配置项详解
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 配置文件位置
+
+配置文件 `setting.yml` 位于服务端 `plugins/ArcartX/` 目录下。
+
+<Callout type="info">
+    YAML 文件对缩进敏感，请确保每个配置项的缩进正确。
+</Callout>
+
+## 配置项详解
+
+### 调试模式
+
+```yaml
+# 是否开启调试模式
+debug: false
+```
+
+开启后会在控制台输出详细的调试信息，正常使用时保持关闭即可。
+
+### 许可证
+
+```yaml
+# 许可证配置
+# 前往 https://arcartx.com/resources/eula/view 接受 EULA 协议后获取
+licenseId: 0
+licenseKey: ""
+```
+
+ArcartX 是免费的，不填许可证也不影响功能使用。设置许可证的目的是确认你已阅读并接受 EULA 协议，同时帮助识别非官方渠道的付费转载。
+
+### 数据库
+
+```yaml
+database:
+  # 关闭则使用 SQLite 本地存储
+  enable: false
+  hostName: "127.0.0.1"
+  port: "3306"
+  database: "database"
+  username: "root"
+  password: "root"
+  maxConnections: 4
+  connectionTimeout: 10000
+  validationTimeout: 3000
+  idleTimeout: 60000
+  loginTimeout: 5
+  maxLifetime: 180000
+  maximumPoolSize: 10
+  minimumIdle: 5
+  readOnly: false
+  properties:
+    - "useSSL=false"
+    - "useUnicode=true"
+    - "characterEncoding=utf-8"
+    - "serverTimezone=UTC"
+```
+
+支持 SQLite 和 MySQL 两种存储方式。如果你的服务器是单服架构，保持 `enable: false` 使用 SQLite 即可。需要跨服数据同步时，开启 MySQL 并填写连接信息。
+
+`maxConnections` 的默认值为 CPU 核心数 × 2。
+
+### 加密资源包
+
+```yaml
+encryptedResourceFiles:
+  Example:
+    # 位于 ArcartX/resource/ 目录下的加密压缩文件名
+    fileName: "Example.zip"
+    # 解压密码
+    password: "123456789"
+```
+
+加密资源包需要放在客户端 `ArcartX/resource/` 目录下。
+
+<Callout type="warn">
+    仅支持 zip 格式，压缩时请选择 AES256 加密算法。如果你使用的不是 WinRAR，请在压缩选项中手动指定加密方式。
+</Callout>
+
+<Callout type="warn">
+    压缩包内的路径和文件名不要使用中文。
+</Callout>
+
+<Callout type="info">
+    关于加密安全性：没有绝对安全的加密方案，客户端加密资源始终存在被提取的可能。建议对重要资源进行版权留存证明，以便维权。
+</Callout>
+
+### 客户端标题
+
+```yaml
+clientTitle: "欢迎使用ArcartX,该标题可在setting.yml修改"
+```
+
+玩家进入服务器后，客户端窗口标题会显示为此处设置的文字。
+
+### 占位符黑名单
+
+```yaml
+placeholderBlacklist:
+  - "Example_"
+```
+
+当客户端通过 Shimmer 脚本请求 PlaceholderAPI 占位符时，匹配此列表的请求会被拦截。支持前缀匹配，比如填写 `Player_` 会拦截所有以 `Player_` 开头的占位符请求。
+
+适用场景：某些占位符计算开销较大，可以通过黑名单阻止客户端频繁请求。
+
+### 脚本类导入
+
+```yaml
+script_imports:
+  Bukkit: "org.bukkit.Bukkit"
+  ArcartXAPI: "priv.seventeen.artist.arcartx.api.ArcartXAPI"
+  PlayerUtils: "priv.seventeen.artist.arcartx.util.PlayerUtils"
+  ItemStackUtils: "priv.seventeen.artist.arcartx.util.ItemStackUtils"
+```
+
+用于服务端 JS 脚本中导入 Java/Kotlin 类。key 是脚本中使用的别名，value 是完整类路径。如果你不编写服务端脚本，不需要修改此项。
+
+### CRC64 拓展检测
+
+```yaml
+crc64:
+  # 是否启用客户端拓展 CRC64 检测
+  enable: false
+  # 全匹配模式：true 需要完全匹配，false 允许缺少部分拓展
+  allowPartial: false
+  list: []
+```
+
+用于校验玩家客户端安装的 ArcartX 拓展是否与服务端一致。OP 不受检测限制，可以使用 `/a Crc64 update` 命令将当前客户端的拓展 CRC64 列表同步到服务端。普通玩家如果不匹配会被踢出。
+
+### 实体缓存清理间隔
+
+```yaml
+# 单位：tick（6000 tick ≈ 5 分钟）
+entityCacheClearInterval: 6000
+```
+
+ArcartX 实体管理器的缓存清理周期。一般保持默认值即可。
+
+### 资源同步
+
+```yaml
+resourceSync:
+  # 是否启用资源同步
+  enable: false
+  # 资源更新 API 后端地址
+  url: ""
+  # API 密钥
+  apiKey: ""
+```
+
+配合 ArcartX 资源管理后端使用，可以实现服务端资源自动下发到客户端。需要先搭建资源管理后端（详见社区资源），获取 API 地址和密钥后填入此处。

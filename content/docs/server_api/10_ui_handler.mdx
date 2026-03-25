@@ -1,0 +1,154 @@
+---
+title: UIHandler:UI处理器
+description: UI处理器抽象类
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## UIHandler
+
+- `UIHandler` 是一个抽象类，提供了更优雅的UI管理方式。
+- 它封装了UI的注册、生命周期回调和数据通信，你只需要继承它并实现回调方法即可。
+- 创建继承实现之后，创建实例即注册UI
+
+## 基本用法
+
+```java
+public class MyUI extends UIHandler {
+
+    private final JavaPlugin plugin;
+
+    public MyUI(JavaPlugin plugin) {
+        super("my_ui_id", new File(plugin.getDataFolder(), "ui/my_ui.yml"));
+        this.plugin = plugin;
+    }
+
+    @Override
+    public JavaPlugin getPlugin() {
+        return plugin;
+    }
+
+    @Override
+    public void onOpenPre(Player player) {
+        // UI打开前执行（服务端侧）
+    }
+
+    @Override
+    public void onOpenPost(Player player) {
+        // UI打开后执行（客户端确认打开后回调）
+    }
+
+    @Override
+    public void onClose(Player player) {
+        // UI关闭时执行
+    }
+
+    @Override
+    public void onPacket(Player player, String identifier, List<String> data) {
+        // 收到客户端UI发来的数据包时执行
+    }
+}
+```
+
+## 构造参数
+
+<Callout type="info">
+- `identifier`: String — UI唯一标识
+- `uiConfig`: File — UI配置文件
+
+构造时会自动调用 `ArcartXUIRegistry.register()` 注册UI，并绑定生命周期回调。
+</Callout>
+
+## 生命周期回调
+
+### `onOpenPre(player){:java}`
+- UI打开前的回调，请求客户端打开UI之前执行，可在此处理数据或者发送早于控件create事件的预先包
+- 详细解释下这个控件create之前的包是什么意思：
+    - UI打开流程：
+        - 收到打开请求
+        - 创建UI实例
+        - 检查有没有在UI打开之前就给该UI发送的包 如果有则调用对应处理器处理
+        - 创建该UI所有控件（即上文说的控件create）
+
+<Callout type="info">
+- **参数**：`player`: Player — 目标玩家
+- 适合在此处准备数据，发送控件create之前的包
+</Callout>
+
+### `onOpenPost(player){:java}`
+- UI打开后的回调，客户端确认UI已打开后触发
+
+<Callout type="info">
+- **参数**：`player`: Player — 目标玩家
+- 适合在此处发送初始数据到UI
+</Callout>
+
+### `onClose(player){:java}`
+- UI关闭时的回调
+
+<Callout type="info">
+- **参数**：`player`: Player — 目标玩家
+- 适合在此处清理资源、保存数据等
+</Callout>
+
+### `onPacket(player, identifier, data){:java}`
+- 收到客户端UI发来的数据包时触发
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 发送数据的玩家
+    - `identifier`: String — 数据包标识
+    - `data`: List&lt;String&gt; — 数据内容
+</Callout>
+
+## 便捷方法
+
+### `open(player){:java}`
+- 为玩家打开此UI，会先调用 `onOpenPre`
+
+<Callout type="info">
+- **参数**：`player`: Player — 目标玩家
+- **调用示例**
+```java
+myUI.open(player);
+```
+</Callout>
+
+### `close(player){:java}`
+- 为玩家关闭此UI
+
+<Callout type="info">
+- **参数**：`player`: Player — 目标玩家
+- **调用示例**
+```java
+myUI.close(player);
+```
+</Callout>
+
+### `sendPacket(player, packetHandler, packet){:java}`
+- 向玩家客户端的UI发送数据包
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `packetHandler`: String — 处理器名称
+    - `packet`: Object — 数据包内容
+- **调用示例**
+```java
+myUI.sendPacket(player, "update", dataMap);
+```
+</Callout>
+
+### `sendRun(player, shimmerCode){:java}`
+- 在玩家客户端的UI中执行Shimmer脚本
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `shimmerCode`: String — Shimmer脚本代码
+- **调用示例**
+```java
+myUI.sendRun(player, "refreshList()");
+```
+</Callout>

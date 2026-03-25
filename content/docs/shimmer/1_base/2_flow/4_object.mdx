@@ -1,0 +1,84 @@
+---
+title: 对象
+description: 了解如何在Shimmer中使用Java定义的对象
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+虽然Shimmer本身不能定义类`因为没有类的概念`，但可以使用Java为Shimmer注册对象。
+</Callout>
+
+## 对象的基本概念
+
+<Callout icon="📦">
+### 什么是对象?
+* 对象是由Java定义并提供给Shimmer使用的功能集合
+* 对象可以包含函数、变量和元素
+* 使用方式类似字典，但功能更强大
+* 每个对象的具体功能取决于Java的定义
+* 每次声明对象不会和其它对象共享状态，内部状态每个对象是独立的
+</Callout>
+
+<Callout icon="✨">
+### 对象的声明方式
+- PS: `声明`的意思其实就是`新建`
+```Shimmer
+// 三种声明方式
+var.uuid = UUID        // 简写形式
+var.uuid = UUID()      // 带括号形式
+var.uuid = UUID("123e4567-e89b-12d3-a456-426614174000")  // 带参数形式
+
+// 所有这些形式都是有效的，具体使用哪种取决于对象的设计
+```
+</Callout>
+
+## 对象的使用方式
+
+<Callout icon="🔧">
+### 调用对象函数
+```Shimmer
+// 直接调用对象的函数
+var.uuid = UUID
+var.uuid.variant()          // 调用variant函数
+var.uuid.version()         // 调用version函数
+
+// 函数调用可以链式操作
+var.结果 = UUID.variant().round(0)
+```
+</Callout>
+
+<Callout icon="🔍">
+### 访问对象元素
+```Shimmer
+// 使用方括号访问对象元素
+var.配置 = Config     // 假设Config是一个配置对象
+var.值 = var.配置["数据库地址"]  // 访问名为"数据库地址"的元素
+
+var.配置["数据库地址"] = "127.0.0.1" // 设置元素值（如果对象支持设置值）
+```
+</Callout>
+
+<Callout icon="📊">
+### 对象变量使用
+```Shimmer
+var.玩家 = Player    // 假设Player是一个玩家对象
+
+// 访问对象的变量
+var.名字 = 玩家.名称
+var.等级 = 玩家.等级
+
+// 如果变量是可修改的
+var.玩家.分数 += 100
+```
+</Callout>
+
+<Callout type="info">
+对象是连接Shimmer脚本和Java功能的桥梁。通过对象，我们可以在Shimmer中使用Java提供的强大功能。具体有哪些对象、每个对象有什么功能，需要参考相应的文档。
+</Callout>
+
+<Callout type="warn">
+  注意：对象的具体功能和用法取决于Java端的实现。在使用新对象时，建议先查看相关拓展文档了解其功能和使用方式。
+</Callout>

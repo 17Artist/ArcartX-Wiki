@@ -1,0 +1,83 @@
+---
+title: UUID对象
+description: UUID对象以及函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+UUID是一段随机的ID，你也可以通过包含参数的方式进行实例化
+</Callout>
+
+## 实例化方式
+
+### `UUID`无参实例化
+<Callout type="info">
+- **描述**：创建一个随机的 `UUID` 实例。
+- **调用示例**：
+```Shimmer
+UUID // 虽然可以没有括号 但是为了可读性建议带着括号，以免和工具集混淆
+// 或者
+UUID()
+```
+</Callout>
+
+### `UUID`含参数实例化
+<Callout type="info">
+- **描述**：通过指定的字符串创建一个 `UUID` 实例。如果字符串无效，将生成一个随机的UUID。
+- **参数**：`uuidString`：文本类型，表示UUID字符串。
+- **调用示例**：
+```Shimmer
+UUID('123e4567-e89b-12d3-a456-426614174000')
+```
+</Callout>
+## 函数
+
+### `getMostSignificantBits(){:Shimmer}`
+- 获取UUID的最高有效位
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：长整型
+- **调用示例**
+```Shimmer
+UUID().getMostSignificantBits()
+```
+</Callout>
+
+### `UUID.getLeastSignificantBits(){:Shimmer}`
+- 获取UUID的最低有效位
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：长整型
+- **调用示例**
+```Shimmer
+UUID().getLeastSignificantBits()
+```
+</Callout>
+
+### `UUID.version(){:Shimmer}`
+- 获取UUID的版本号
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+UUID().version()
+```
+</Callout>
+
+### `UUID.variant(){:Shimmer}`
+- 获取UUID的变体号
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+UUID().variant()
+```
+</Callout> 

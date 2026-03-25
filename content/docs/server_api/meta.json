@@ -1,0 +1,29 @@
+{
+    "title": "服务端API",
+    "defaultOpen": false,
+    "pages": [
+        "index",
+        "1_api_entry",
+        "2_entity_manager",
+        "3_arcartx_entity",
+        "4_arcartx_player",
+        "5_effect_manager",
+        "6_effect_data",
+        "7_area_manager",
+        "8_keybind_registry",
+        "9_ui_registry",
+        "10_ui_handler",
+        "11_controller_registry",
+        "12_sound_player",
+        "13_network_sender",
+        "14_link_manager",
+        "15_events",
+        "16_itemstack_utils",
+        "17_player_utils",
+        "18_entity_utils",
+        "19_scheduler_utils",
+        "20_chat_utils",
+        "21_json_utils",
+        "22_callbacks"
+    ]
+}

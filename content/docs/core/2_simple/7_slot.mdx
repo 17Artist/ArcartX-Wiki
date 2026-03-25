@@ -1,0 +1,68 @@
+---
+title: 额外槽位
+description: 自定义额外槽位配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 额外槽位
+
+额外槽位用于在 ArcartX 的自定义 UI 中创建自定义物品格子（如装备栏、时装栏等）。
+
+配置文件位于服务端 `plugins/ArcartX/extra_slot/` 目录下，支持创建多个 yml 文件。
+
+## 配置格式
+
+```yaml
+Slot1: # 配置项名作为槽位 ID，不要重复
+  # 槽位属性系统
+  # 可选值：none（不启用）、AttributePlus（需要 3.0+）、AstraXHero、CraneAttribute
+  attribute: "none"
+  # 槽位限制脚本（可选，不需要限制可删除此项）
+  limit:
+    - "检测玩家等级{level = 10}"
+  # 物品更新后执行的脚本（可选）
+  update:
+    - "给玩家发送消息{message = 你更新了你的槽位物品}"
+  # 是否加载模型
+  loadSubstitutionModel: false
+```
+
+## 字段说明
+
+| 字段                    |   类型    |  默认值   | 说明                                 |
+|:----------------------|:-------:|:------:|:-----------------------------------|
+| attribute             | string  | "none" | 槽位属性系统，物品放入后自动应用属性                 |
+| limit                 |  list   |   空    | 物品放入限制条件（脚本表达式列表）                  |
+| update                |  list   |   空    | 物品更新后执行的脚本列表                       |
+| loadSubstitutionModel | boolean | false  | 是否启用时装模型功能，开启后以物品 NBT 中的模型信息进行时装穿戴 |
+
+## 在 UI 中使用
+
+在 UI 的 Slot 控件中，将 `slotType` 设为 `Extra`，`id` 填写槽位配置的 ID 即可。
+
+```yaml
+slot_example:
+  type: Slot
+  attribute:
+    slotType: ~Extra
+    id: Slot1
+    width: 50
+    height: 50
+```
+
+
+
+## 时装示例
+
+通过额外槽位实现简单的时装穿戴：
+
+```yaml
+时装槽:
+  attribute: "none"
+  loadSubstitutionModel: true # 这里改成true
+```
+
+<Callout type="info">
+    如果需要使用时装，需要先将玩家模型替换为 ArcartX 的自定义模型。具体请参考模型章节。
+</Callout>

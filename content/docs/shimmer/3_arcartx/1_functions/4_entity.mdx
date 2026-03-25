@@ -1,0 +1,118 @@
+---
+title: Entity:实体操作
+description: Entity实体工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Entity.isRendering(uuid){:Shimmer}`
+- 检查指定UUID的实体是否正在渲染
+
+<Callout type="info">
+- **参数**：`uuid`: 字符串类型(实体UUID)
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+Entity.isRendering("550e8400-e29b-41d4-a716-446655440000")
+```
+- **示例返回值**
+```Shimmer
+true
+```
+</Callout>
+
+## `Entity.getMouseEntityName(){:Shimmer}`
+- 获取鼠标指向实体的名称
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Entity.getMouseEntityName()
+```
+- **示例返回值**
+```Shimmer
+"Steve"
+```
+</Callout>
+
+## `Entity.getMouseEntityDistance(){:Shimmer}`
+- 获取玩家与鼠标指向实体的距离
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```Shimmer
+Entity.getMouseEntityDistance()
+```
+- **示例返回值**
+```Shimmer
+3.5
+```
+</Callout>
+
+## `Entity.getMouseEntityUUID(){:Shimmer}`
+- 获取鼠标指向实体的UUID
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Entity.getMouseEntityUUID()
+```
+- **示例返回值**
+```Shimmer
+"550e8400-e29b-41d4-a716-446655440000"
+```
+</Callout>
+
+## `Entity.getMouseEntityHealth(){:Shimmer}`
+- 获取鼠标指向实体的当前生命值
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```Shimmer
+Entity.getMouseEntityHealth()
+```
+- **示例返回值**
+```Shimmer
+20.0
+```
+</Callout>
+
+## `Entity.getMouseEntityMaxHealth(){:Shimmer}`
+- 获取鼠标指向实体的最大生命值
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```Shimmer
+Entity.getMouseEntityMaxHealth()
+```
+- **示例返回值**
+```Shimmer
+20.0
+```
+</Callout>
+
+## `Entity.isMouseEntityAdyeshach(){:Shimmer}`
+- 检查鼠标指向的实体是否为Adyeshach实体
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```Shimmer
+    Entity.isMouseEntityAdyeshach()
+    ```
+    - **示例返回值**
+    ```Shimmer
+    true
+    ```
+</Callout>

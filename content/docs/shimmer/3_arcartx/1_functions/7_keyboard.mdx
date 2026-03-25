@@ -1,0 +1,109 @@
+---
+title: Keyboard:键盘控制
+description: Keyboard 键盘输入工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Keyboard.isKeyDown(key){:Shimmer}`
+- 检测指定按键是否被按下
+
+<Callout type="info">
+- **参数**：`key`: 字符串类型（按键名称）
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+Keyboard.isKeyDown("W")
+```
+</Callout>
+
+## `Keyboard.getKeyBindingKey(binding){:Shimmer}`
+- 获取按键绑定的 MC 键位 ID（如 `key.keyboard.left.control`）
+- 与 `getKeyBindingKeyName` 的区别：此函数返回的是固定的键位 ID，不会随客户端语言变化
+
+<Callout type="info">
+- **参数**：`binding`: 字符串类型（按键绑定名称）
+- **返回值**：字符串类型（MC 键位 ID）
+- **调用示例**
+```Shimmer
+Keyboard.getKeyBindingKey("forward")
+```
+- **示例返回值**
+```Shimmer
+"key.keyboard.w"
+```
+</Callout>
+
+## `Keyboard.getKeyBindingKeyName(binding){:Shimmer}`
+- 获取按键绑定的显示名称（会根据客户端语言变化）
+
+<Callout type="info">
+- **参数**：`binding`: 字符串类型（按键绑定名称）
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Keyboard.getKeyBindingKeyName("forward")
+```
+- **示例返回值**
+```Shimmer
+"W"
+```
+</Callout>
+
+## `Keyboard.getKeyBindingKeyModifierName(binding){:Shimmer}`
+- 获取按键绑定的修饰键名称
+
+<Callout type="info">
+- **参数**：`binding`: 字符串类型（按键绑定名称）
+- **返回值**：字符串类型（修饰键名称，无修饰键时返回空字符串）
+- **调用示例**
+```Shimmer
+Keyboard.getKeyBindingKeyModifierName("screenshot")
+```
+- **示例返回值**
+```Shimmer
+"CONTROL"
+```
+</Callout>
+
+<Callout type="warn">
+    Fabric 版本不支持修饰键功能，此函数在 Fabric 上始终返回空字符串。
+</Callout>
+
+## `Keyboard.setKeyBindingKeyName(binding, modifier, keyName){:Shimmer}`
+- 设置按键绑定的按键
+
+<Callout type="info">
+- **参数**：
+    - `binding`: 字符串类型（按键绑定名称）
+    - `modifier`: 字符串类型（修饰键名称，Fabric 上填任意字符串即可，不会生效）
+    - `keyName`: 字符串类型（按键名称，如 `key.keyboard.w`）
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Keyboard.setKeyBindingKeyName("forward", "NONE", "key.keyboard.w")
+```
+</Callout>
+
+<Callout type="info">
+    第三个参数已从数字 ID 改为按键名称字符串。使用 MC 的键位 ID 格式，如 `key.keyboard.w`、`key.keyboard.left.control` 等。
+</Callout>
+
+## `Keyboard.keyPress(key, pressed){:Shimmer}`
+- 模拟按键按下或释放
+
+<Callout type="info">
+- **参数**：
+    - `key`: 字符串类型（按键名称）
+    - `pressed`: 布尔类型（true 为按下，false 为释放）
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Keyboard.keyPress("W", true)
+```
+</Callout>
+
+<Callout type="info">
+    `key` 参数支持两种格式：MC 键位 ID（如 `key.keyboard.w`）和 AX 键位名称（如 `W`）。
+</Callout>

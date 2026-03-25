@@ -1,0 +1,243 @@
+---
+title: ArcartXEntity:实体对象
+description: ArcartX实体管理对象API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXEntity
+
+- `ArcartXEntity` 是ArcartX对Bukkit实体的包装对象，提供了模型、动画、发光、音效等功能的控制接口。
+- 通过 `ArcartXEntityManager.getOrCreateEntity(entity)` 获取。
+- `ArcartXPlayer` 继承自此类，玩家对象拥有本页所有方法以及更多扩展功能。
+- 本类所有涉及客户端显示的方法均为**范围广播**模式——会向所有能看到该实体的玩家发送数据包。
+
+## 模型管理
+
+### `setModel(modelID, scale){:java}`
+- 为实体设置模型
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 模型ID
+    - `scale`: double — 模型缩放比例
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setModel("my_model", 1.0);
+```
+</Callout>
+
+### `setModel(modelID, scale, reset){:java}`
+- 为实体设置模型，可选择是否重置动画状态
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 模型ID
+    - `scale`: double — 模型缩放比例
+    - `reset`: boolean — 是否重置动画状态
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setModel("my_model", 1.5, true);
+```
+</Callout>
+
+### `removeModel(){:java}`
+- 移除实体的模型
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.removeModel();
+```
+</Callout>
+
+## 碰撞与体积
+
+### `setSize(width, height){:java}`
+- 设置实体的碰撞体积，同时会同步到客户端显示
+
+<Callout type="info">
+- **参数**：
+    - `width`: double — 碰撞箱宽度
+    - `height`: double — 碰撞箱高度
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setSize(0.6, 1.8);
+```
+</Callout>
+
+<Callout type="warn">
+此方法会在主线程执行，如果你在异步线程调用，它会自动切换到主线程。
+</Callout>
+
+### `setHideHitBox(hide){:java}`
+- 设置是否隐藏实体的碰撞箱显示
+
+<Callout type="info">
+- **参数**：`hide`: boolean — 是否隐藏
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setHideHitBox(true);
+```
+</Callout>
+
+## 骨骼与动画
+
+### `setHideBone(bone, hide){:java}`
+- 隐藏或显示模型的指定骨骼
+
+<Callout type="info">
+- **参数**：
+    - `bone`: String — 骨骼名称
+    - `hide`: boolean — 是否隐藏
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setHideBone("head", true);
+```
+</Callout>
+
+### `setDefaultState(state, name){:java}`
+- 设置实体模型的默认动画状态
+
+<Callout type="info">
+- **参数**：
+    - `state`: String — 状态名称
+    - `name`: String — 动画名称
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setDefaultState("idle", "idle_animation");
+```
+</Callout>
+
+### `playAnimation(animation, speed, transitionTime, keepTime){:java}`
+- 为实体播放一次动画
+
+<Callout type="info">
+- **参数**：
+    - `animation`: String — 动画名称
+    - `speed`: double — 播放速度
+    - `transitionTime`: int — 过渡时间（毫秒）
+    - `keepTime`: long — 持续时间（毫秒），-1为播放完整动画
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.playAnimation("attack", 1.0, 5, -1);
+```
+</Callout>
+
+## 显示效果
+
+### `setDisplayName(displayName){:java}`
+- 设置是否显示实体名称
+
+<Callout type="info">
+- **参数**：`displayName`: boolean — 是否显示
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setDisplayName(false);
+```
+</Callout>
+
+### `setGlowColor(r, g, b){:java}`
+- 设置实体的发光颜色
+
+<Callout type="info">
+- **参数**：
+    - `r`: int — 红色分量（0-255）
+    - `g`: int — 绿色分量（0-255）
+    - `b`: int — 蓝色分量（0-255）
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.setGlowColor(255, 0, 0); // 红色发光
+```
+</Callout>
+
+### `enableGlow(){:java}`
+- 启用实体发光效果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.enableGlow();
+```
+</Callout>
+
+### `disableGlow(){:java}`
+- 关闭实体发光效果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.disableGlow();
+```
+</Callout>
+
+## 音效
+
+### `playSound(resourcePath, soundCategory, distOrRoll, pitch, keepTime){:java}`
+- 为实体播放音效，音效会跟随实体移动，向所有能看到该实体的玩家广播
+
+<Callout type="info">
+- **参数**：
+    - `resourcePath`: String — 音效资源路径
+    - `soundCategory`: String — 音效类别（如 `master`、`music`）
+    - `distOrRoll`: int — 传播距离/衰减
+    - `pitch`: double — 音调
+    - `keepTime`: int — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.playSound("sounds/hit.ogg", "master", 16, 1.0, 3000);
+```
+</Callout>
+
+## 伤害显示
+
+### `broadcastDamageDisplay(damageDisplayConfigId, damage){:java}`
+- 在实体位置广播伤害数字，所有能看到该实体的玩家都会看到
+
+<Callout type="info">
+- **参数**：
+    - `damageDisplayConfigId`: String — 伤害显示配置ID
+    - `damage`: double — 伤害数值
+- **返回值**：无
+- **调用示例**
+```java
+axEntity.broadcastDamageDisplay("default", 100.0);
+```
+</Callout>
+
+<Callout type="warn">
+此方法是**范围广播**模式，会向所有能看到该实体的玩家发送伤害数字。如果你只想让特定玩家看到伤害数字，请使用 `sendDamageDisplayToPlayers` 或 `ArcartXPlayer.addDamageDisplay`。
+</Callout>
+
+### `sendDamageDisplayToPlayers(damageDisplayConfigId, damage, players){:java}`
+- 在实体位置显示伤害数字，仅指定列表中的玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `damageDisplayConfigId`: String — 伤害显示配置ID
+    - `damage`: double — 伤害数值
+    - `players`: List&lt;Player&gt; — 可见玩家列表
+- **返回值**：无
+- **调用示例**
+```java
+List<Player> viewers = Arrays.asList(player1, player2);
+axEntity.sendDamageDisplayToPlayers("default", 50.0, viewers);
+```
+</Callout>

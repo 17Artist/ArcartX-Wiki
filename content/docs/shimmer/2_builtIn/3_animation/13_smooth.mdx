@@ -1,0 +1,94 @@
+---
+title: Smooth-平滑动画插值
+description: 平滑动画插值对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+Smooth是一个基于余弦函数的简单插值对象。它提供了比线性插值更自然的过渡效果，两端平滑，中间匀速。
+</Callout>
+
+## 实例化方式
+
+### `Smooth`含参实例化
+<Callout type="info">
+- **描述**：创建一个平滑插值实例。
+- **参数**：
+  - `start`：数值类型，起始值
+  - `end`：数值类型，结束值
+  - `transferTime`：长整型，过渡时间（毫秒）
+- **调用示例**：
+```Shimmer
+Smooth(0, 100, 1000) // 1秒内从0平滑过渡到100
+```
+</Callout>
+
+### 默认参数
+<Callout type="info">
+当不提供完整参数时，使用以下默认值：
+- **起始值**: 0
+- **结束值**: 0
+- **过渡时间**: 0毫秒
+</Callout>
+
+### 特点说明
+<Callout type="info">
+- 使用余弦函数`(1-cos(x))/2`实现平滑过渡
+- 在起点和终点处速度平滑变化
+- 中间段保持相对匀速运动
+- 比线性插值更自然，比其他复杂插值器更简单
+</Callout>
+
+## 函数
+
+### `get(){:Shimmer}`
+- 获取当前插值计算的结果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数值类型
+- **说明**：根据当前时间计算平滑插值结果
+- **调用示例**：
+```Shimmer
+Smooth(0, 100, 1000).get()
+```
+</Callout>
+
+### `reset(){:Shimmer}`
+- 重置插值器状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：重置计时器并清除反向状态，重新开始动画
+- **调用示例**：
+```Shimmer
+Smooth(0, 100, 1000).reset()
+```
+</Callout>
+
+### `reverse(){:Shimmer}`
+- 反转动画方向
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：将动画方向反转，从当前位置开始向起始值过渡
+- **调用示例**：
+```Shimmer
+Smooth(0, 100, 1000).reverse()
+```
+</Callout>
+
+## 类型转换
+
+Smooth对象支持以下类型转换：
+- **数值**：返回当前插值计算的结果
+- **布尔值**：当前值大于0时返回true，否则返回false
+- **字符串**：返回当前插值计算结果的字符串表示
+
+<Callout type="info">
+Smooth对象支持数学运算，可以直接参与计算表达式。
+</Callout>

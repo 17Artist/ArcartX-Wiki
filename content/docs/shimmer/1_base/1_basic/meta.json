@@ -1,0 +1,10 @@
+{
+    "title": "基础篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_first_shimmer",
+        "2_basic_entry",
+        "3_data_type",
+        "4_variable"
+    ]
+}

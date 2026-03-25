@@ -1,0 +1,8 @@
+{
+    "title": "玩家模型客户端控制器",
+    "defaultOpen": false,
+    "pages": [
+        "1_controller",
+        "2_state_name"
+    ]
+}

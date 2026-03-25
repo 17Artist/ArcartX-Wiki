@@ -1,0 +1,649 @@
+---
+title: Math:数学运算
+description: Math工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Math.abs(target){:Shimmer}`
+- 取数字绝对值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.abs(-10)
+```
+- **示例返回值**
+```Shimmer
+10
+```
+</Callout>
+
+## `Math.acos(target){:Shimmer}`
+- 取数字的反余弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.acos(0.5)
+```
+- **示例返回值**
+```Shimmer
+1.0471975511965979
+```
+</Callout>
+
+## `Math.asin(target){:Shimmer}`
+- 取数字的反正弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.asin(0.5)
+```
+- **示例返回值**
+```Shimmer
+0.5235987755982989
+```
+</Callout>
+
+## `Math.atan(target){:Shimmer}`
+- 取数字的反正切值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.atan(1)
+```
+- **示例返回值**
+```Shimmer
+0.7853981633974483
+```
+</Callout>
+
+## `Math.atan2(y, x){:Shimmer}`
+- 取 `y/x` 的反正切值
+
+<Callout type="info">
+- **参数**：
+    - `y`: 数字类型
+    - `x`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.atan2(1, 1)
+```
+- **示例返回值**
+```Shimmer
+0.7853981633974483
+```
+</Callout>
+
+## `Math.cbrt(target){:Shimmer}`
+- 取数字的立方根
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.cbrt(8)
+```
+- **示例返回值**
+```Shimmer
+2
+```
+</Callout>
+
+## `Math.ceil(target){:Shimmer}`
+- 取大于等于目标的最小整数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.ceil(4.2)
+```
+- **示例返回值**
+```Shimmer
+5
+```
+</Callout>
+
+## `Math.cos(target){:Shimmer}`
+- 取数字的余弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.cos(0)
+```
+- **示例返回值**
+```Shimmer
+1
+```
+</Callout>
+
+## `Math.floor(target){:Shimmer}`
+- 取小于等于目标的最大整数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.floor(4.8)
+```
+- **示例返回值**
+```Shimmer
+4
+```
+</Callout>
+
+## `Math.max(a, b){:Shimmer}`
+- 取两个数字中的最大值
+
+<Callout type="info">
+- **参数**：
+    - `a`: 数字类型
+    - `b`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.max(5, 3)
+```
+- **示例返回值**
+```Shimmer
+5
+```
+</Callout>
+
+## `Math.min(a, b){:Shimmer}`
+- 取两个数字中的最小值
+
+<Callout type="info">
+- **参数**：
+    - `a`: 数字类型
+    - `b`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.min(5, 3)
+```
+- **示例返回值**
+```Shimmer
+3
+```
+</Callout>
+
+## `Math.pi(){:Shimmer}`
+- 返回圆周率 `π`
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.pi()
+```
+- **示例返回值**
+```Shimmer
+3.141592653589793
+```
+</Callout>
+
+## `Math.random(){:Shimmer}`
+- 返回一个随机数
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.random()
+```
+- **示例返回值**（每次运行结果不同）
+```Shimmer
+0.123456789 （示例）
+```
+</Callout>
+
+## `Math.sin(target){:Shimmer}`
+- 取数字的正弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.sin(0)
+```
+- **示例返回值**
+```Shimmer
+0
+```
+</Callout>
+
+## `Math.sqrt(target){:Shimmer}`
+- 取数字的平方根
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.sqrt(4)
+```
+- **示例返回值**
+```Shimmer
+2
+```
+</Callout>
+
+## `Math.tan(target){:Shimmer}`
+- 取数字的正切值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.tan(0)
+```
+- **示例返回值**
+```Shimmer
+0
+```
+</Callout>
+
+## `Math.toDegrees(target){:Shimmer}`
+- 将弧度转换为角度
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.toDegrees(Math.PI / 2)
+```
+- **示例返回值**
+```Shimmer
+90
+```
+</Callout>
+
+## `Math.toRadians(target){:Shimmer}`
+- 将角度转换为弧度
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.toRadians(90)
+```
+- **示例返回值**
+```Shimmer
+1.5707963267948966
+```
+</Callout>
+
+## `Math.ulp(target){:Shimmer}`
+- 返回数字的ULP值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.ulp(1.0)
+```
+- **示例返回值**（取决于具体实现和硬件，以下为示例）
+```Shimmer
+2.220446049250313e-16
+```
+</Callout>
+
+## `Math.signum(target){:Shimmer}`
+- 返回数字的符号函数值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.signum(-5)
+```
+- **示例返回值**
+```Shimmer
+-1
+```
+</Callout>
+
+## `Math.rint(target){:Shimmer}`
+- 返回最接近目标的整数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.rint(4.5)
+```
+- **示例返回值**
+```Shimmer
+4
+```
+</Callout>
+
+## `Math.round(target){:Shimmer}`
+- 返回目标的四舍五入值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.round(4.5)
+```
+- **示例返回值**
+```Shimmer
+5
+```
+</Callout>
+
+## `Math.log(target){:Shimmer}`
+- 取数字的自然对数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.log(Math.E)
+```
+- **示例返回值**
+```Shimmer
+1
+```
+</Callout>
+
+## `Math.log10(target){:Shimmer}`
+- 取数字的以10为底的对数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.log10(100)
+```
+- **示例返回值**
+```Shimmer
+2
+```
+</Callout>
+
+## `Math.log1p(target){:Shimmer}`
+- 取 `1` 加上数字的自然对数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.log1p(Math.E - 1)
+```
+- **示例返回值**
+```Shimmer
+1
+```
+</Callout>
+
+## `Math.exp(target){:Shimmer}`
+- 取数字的指数值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.exp(1)
+```
+- **示例返回值**
+```Shimmer
+2.718281828459045
+```
+</Callout>
+
+## `Math.expm1(target){:Shimmer}`
+- 取数字的指数值减 `1`
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.expm1(1)
+```
+- **示例返回值**
+```Shimmer
+1.718281828459045
+```
+</Callout>
+
+## `Math.getExponent(target){:Shimmer}`
+- 返回数字的指数部分
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.getExponent(1024)
+```
+- **示例返回值**
+```Shimmer
+10
+```
+</Callout>
+
+## `Math.hypot(x, y){:Shimmer}`
+- 返回 `sqrt(x^2 + y^2)`
+
+<Callout type="info">
+- **参数**：
+    - `x`: 数字类型
+    - `y`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.hypot(3, 4)
+```
+- **示例返回值**
+```Shimmer
+5
+```
+</Callout>
+
+## `Math.nextAfter(start, direction){:Shimmer}`
+- 返回从 `start` 向 `direction` 移动的下一个浮点数
+
+<Callout type="info">
+- **参数**：
+    - `start`: 数字类型
+    - `direction`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.nextAfter(1.0, 2.0)
+```
+- **示例返回值**（取决于具体实现和硬件，以下为示例）
+```Shimmer
+1.0000000000000002
+```
+</Callout>
+
+## `Math.nextUp(target){:Shimmer}`
+- 返回大于目标的下一个浮点数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.nextUp(1.0)
+```
+- **示例返回值**（取决于具体实现和硬件，以下为示例）
+```Shimmer
+1.0000000000000002
+```
+</Callout>
+
+## `Math.nextDown(target){:Shimmer}`
+- 返回小于目标的下一个浮点数
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.nextDown(1.0)
+```
+- **示例返回值**（取决于具体实现和硬件，以下为示例）
+```Shimmer
+0.9999999999999999
+```
+</Callout>
+
+## `Math.copySign(magnitude, sign){:Shimmer}`
+- 返回带有 `sign` 符号的 `magnitude`
+
+<Callout type="info">
+- **参数**：
+    - `magnitude`: 数字类型
+    - `sign`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.copySign(5, -1)
+```
+- **示例返回值**
+```Shimmer
+-5
+```
+</Callout>
+
+## `Math.scalb(target, scaleFactor){:Shimmer}`
+- 返回 `target` 乘以 `2` 的 `scaleFactor` 次方
+
+<Callout type="info">
+- **参数**：
+    - `目标`: 数字类型
+    - `scaleFactor`: 整数类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.scalb(2, 3)
+```
+- **示例返回值**
+```Shimmer
+16
+```
+</Callout>
+
+## `Math.sinh(target){:Shimmer}`
+- 取数字的双曲正弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.sinh(1)
+```
+- **示例返回值**
+```Shimmer
+1.1752011936438014
+```
+</Callout>
+
+## `Math.cosh(target){:Shimmer}`
+- 取数字的双曲余弦值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.cosh(1)
+```
+- **示例返回值**
+```Shimmer
+1.5430806348152437
+```
+</Callout>
+
+## `Math.tanh(target){:Shimmer}`
+- 取数字的双曲正切值
+
+<Callout type="info">
+- **参数**：`目标`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.tanh(1)
+```
+- **示例返回值**
+```Shimmer
+0.7615941559557649
+```
+</Callout>
+
+## `Math.pow(base, exponent){:Shimmer}`
+- 返回 `base` 的 `exponent` 次方
+
+<Callout type="info">
+- **参数**：
+    - `base`: 数字类型
+    - `exponent`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.pow(2, 3)
+```
+- **示例返回值**
+```Shimmer
+8
+```
+</Callout>
+
+## `Math.IEEEremainder(dividend, divisor){:Shimmer}`
+- 返回IEEE 754标准的余数
+
+<Callout type="info">
+- **参数**：
+    - `dividend`: 数字类型
+    - `divisor`: 数字类型
+- **返回值**：数字类型
+- **调用示例**
+```Shimmer
+Math.IEEEremainder(7, 3)
+```
+- **示例返回值**
+```Shimmer
+1
+```
+</Callout>

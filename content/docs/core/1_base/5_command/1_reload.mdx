@@ -1,0 +1,22 @@
+---
+title: reload:重载
+description: 重载插件配置
+---
+
+## 重载插件
+
+- 用于重载ArcartX的所有配置文件，是你日常使用中最常用的指令。
+
+| 属性  | 值                                |
+|-----|----------------------------------|
+| 用法  | `arcartx reload [?withResource]` |
+| 权限  | `arcartx.command.reload`         |
+| 执行者 | 仅OP                              |
+
+- `withResource`：可选参数，布尔值。设为 `true` 时会连同客户端资源文件一起重载，默认仅重载服务端配置。
+
+- 示例：
+  - `arcartx reload` — 仅重载服务端配置
+  - `arcartx reload true` — 同时重载客户端资源
+
+- 也可以在游戏内通过快捷键 `Alt + R` 触发 `arcartx reload true`，效果等同于同时重载服务端配置和客户端资源。

@@ -1,0 +1,45 @@
+---
+title: 控件触发器
+description: 控件可用的交互触发器
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 控件触发器
+
+控件触发器用于响应用户的交互操作。在控件的 `action` 中配置触发器名称和对应的 Shimmer 脚本即可。
+
+### 鼠标交互
+
+|      名称       |    说明    | 备注                                          |
+|:-------------:|:--------:|:--------------------------------------------|
+|     click     |   鼠标点击   | 任意按键点击                                      |
+|   clickLeft   |   左键点击   |                                             |
+|  clickRight   |   右键点击   |                                             |
+|  clickMiddle  |   中键点击   |                                             |
+|    release    |   鼠标释放   | 任意按键释放                                      |
+|  releaseLeft  |   左键释放   |                                             |
+| releaseRight  |   右键释放   |                                             |
+| releaseMiddle |   中键释放   |                                             |
+|     enter     | 鼠标进入控件范围 |                                             |
+|     leave     | 鼠标离开控件范围 |                                             |
+|     wheel     |   鼠标滚轮   | 通过 `self.wheelValue{:Shimmer}` 获取滚动值，正负代表方向 |
+
+### 键盘交互
+
+|     名称     |  说明  | 备注                               |
+|:----------:|:----:|:---------------------------------|
+|  keyPress  | 按键按下 | 通过 `self.keyCode{:Shimmer}` 获取按键 |
+| keyRelease | 按键释放 | 通过 `self.keyCode{:Shimmer}` 获取按键 |
+
+### 生命周期
+
+|     名称     |   说明    | 备注                         |
+|:----------:|:-------:|:---------------------------|
+|   create   | 控件被创建时  |                            |
+|   remove   | 控件被删除时  | 关闭 UI 不会触发此事件              |
+| textChange | 输入框内容变化 | 仅 TextBox / ChatTextBox 控件 |
+
+<Callout type="info">
+    触发器中的脚本通过 `self` 访问当前控件对象，可以读取控件属性、调用控件函数。
+</Callout>

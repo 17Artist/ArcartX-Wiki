@@ -1,0 +1,168 @@
+---
+title: item:物品编辑
+description: 物品NBT和属性编辑指令
+---
+
+## 物品编辑指令
+
+- 用于编辑手持物品的各种属性，所有子命令都需要手持物品执行。
+
+### `arcartx item addTag`
+
+- 为手持物品添加NBT标签
+
+| 属性  | 值                                   |
+|-----|-------------------------------------|
+| 用法  | `arcartx item addTag <key> <value>` |
+| 权限  | `arcartx.command.admin.item.edit`   |
+| 执行者 | 仅玩家                                 |
+
+- `key`：NBT键名
+- `value`：NBT值
+
+### `arcartx item addLore`
+
+- 为手持物品追加一行Lore
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item addLore <lore>`     |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `lore`：Lore文本，支持颜色代码
+
+### `arcartx item setLore`
+
+- 设置手持物品指定行的Lore
+
+| 属性  | 值                                    |
+|-----|--------------------------------------|
+| 用法  | `arcartx item setLore <lore> <line>` |
+| 权限  | `arcartx.command.admin.item.edit`    |
+| 执行者 | 仅玩家                                  |
+
+- `lore`：Lore文本
+- `line`：行号（从0开始）
+
+### `arcartx item insertLore`
+
+- 在手持物品指定行插入Lore
+
+| 属性  | 值                                       |
+|-----|-----------------------------------------|
+| 用法  | `arcartx item insertLore <lore> <line>` |
+| 权限  | `arcartx.command.admin.item.edit`       |
+| 执行者 | 仅玩家                                     |
+
+- `lore`：Lore文本
+- `line`：插入位置行号
+
+### `arcartx item removeLore`
+
+- 删除手持物品指定行的Lore
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item removeLore <line>`  |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `line`：要删除的行号
+
+### `arcartx item setDisplayName`
+
+- 设置手持物品的显示名称
+
+| 属性  | 值                                    |
+|-----|--------------------------------------|
+| 用法  | `arcartx item setDisplayName <name>` |
+| 权限  | `arcartx.command.admin.item.edit`    |
+| 执行者 | 仅玩家                                  |
+
+- `name`：显示名称，支持颜色代码
+
+### `arcartx item setIcon`
+
+- 设置手持物品的图标贴图
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item setIcon <path>`     |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `path`：图标资源路径
+
+### `arcartx item setModel`
+
+- 设置手持物品的模型
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item setModel <modelID>` |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `modelID`：模型ID
+
+### `arcartx item setFPModel`
+
+- 设置手持物品的第一人称模型
+
+| 属性  | 值                                   |
+|-----|-------------------------------------|
+| 用法  | `arcartx item setFPModel <modelID>` |
+| 权限  | `arcartx.command.admin.item.edit`   |
+| 执行者 | 仅玩家                                 |
+
+- `modelID`：第一人称模型ID
+
+### `arcartx item setExtraModel`
+
+- 设置手持物品的额外渲染模型
+
+| 属性  | 值                                                |
+|-----|--------------------------------------------------|
+| 用法  | `arcartx item setExtraModel <locator> <modelID>` |
+| 权限  | `arcartx.command.admin.item.edit`                |
+| 执行者 | 仅玩家                                              |
+
+- `locator`：定位器名称
+- `modelID`：模型ID
+
+### `arcartx item setUrl`
+
+- 设置手持物品在界面中显示的贴图
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item setUrl <path>`      |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `path`：贴图资源路径
+
+### `arcartx item setDrop`
+
+- 设置手持物品的掉落附加模型
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item setDrop <modelID>`  |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `modelID`：掉落模型ID
+
+### `arcartx item setCoolDownTag`
+
+- 设置手持物品的冷却标签
+
+| 属性  | 值                                     |
+|-----|---------------------------------------|
+| 用法  | `arcartx item setCoolDownTag <value>` |
+| 权限  | `arcartx.command.admin.item.edit`     |
+| 执行者 | 仅玩家                                   |
+
+- `value`：冷却标签值，相同标签的物品共享冷却

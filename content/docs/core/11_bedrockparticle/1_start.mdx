@@ -1,0 +1,59 @@
+---
+title: 基岩粒子系统
+description: 基岩版粒子
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 简介
+
+你可以使用 [Snowstorm 编辑器](https://snowstorm.app/) 制作粒子，然后直接在 ArcartX 中使用。
+
+
+## 粒子文件加载
+
+粒子文件通过 ArcartX 的资源目录加载，放置在客户端 `ArcartX/resource/particle/` 文件夹下。
+
+### 目录结构
+
+<Files>
+    <Folder name="ArcartX" defaultOpen>
+        <Folder name="resource" defaultOpen>
+            <Folder name="particle" defaultOpen>
+                <File name="magic.particle.json" />
+                <File name="magic.png" />
+            </Folder>
+        </Folder>
+    </Folder>
+</Files>
+
+### 加载步骤
+
+<Steps>
+    <Step>
+        在 Snowstorm 编辑器中制作粒子效果，或者下载现成的粒子文件。
+    </Step>
+    <Step>
+        将粒子文件（`.particle.json` 或 `.json`）放入 `ArcartX/resource/particle/` 文件夹。
+    </Step>
+    <Step>
+        将粒子使用的贴图（`.png`）放在同一目录下，文件名与粒子文件保持一致。
+        例如粒子文件为 `magic.particle.json`，贴图文件应为 `magic.png`。
+    </Step>
+    <Step>
+        重载客户端资源，查看日志确认粒子加载成功。日志中输出的名称就是粒子 ID。
+    </Step>
+</Steps>
+
+### 粒子 ID 规则
+
+粒子 ID = 文件相对于 `particle/` 目录的路径（不含后缀）。
+
+例如：
+- `particle/magic.particle.json` → ID 为 `magic`
+- `particle/effects/fire.particle.json` → ID 为 `effects/fire`
+
+
+## 其它说明
+- 基岩粒子通常用于模型定位器发射或者MM / API中调用，本章节无其它可讲解内容，对于联动功能每个章节内都有所说明。

@@ -1,0 +1,73 @@
+---
+title: 如何安装 ArcartX
+description: 安装指南
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 安装前提
+
+ArcartX 由两部分组成：服务端插件 + 客户端 MOD。两者需要配合使用。
+
+你需要准备：
+1. 一个 Bukkit 系服务端（Spigot / Paper 及其分支均可，不支持 Sponge）
+2. 一个安装了对应 ModLoader 的 Minecraft 客户端
+
+
+## 安装流程
+
+<Steps>
+    <Step>
+        前往 <a href="https://arcartx.com/resources/categories/arcartx-guan-fang-zi-yuan.2/" target="_blank" rel="noopener">ArcartX 下载中心</a> 下载对应的文件。
+        你需要下载两个 jar：
+        - 服务端插件（文件名通常以 Bukkit 结尾）
+        - 客户端 MOD（文件名以 ModLoader 名称结尾，如 Forge、Fabric）
+        <img src="/setup1.png" alt="下载页面示例"/>
+    </Step>
+
+    <Step>
+        将服务端插件放入服务端的 `plugins` 文件夹，将客户端 MOD 放入客户端的 `mods` 文件夹。
+    </Step>
+
+    <Step>
+        启动服务端，ArcartX 会在 `plugins/ArcartX` 下生成默认配置文件。
+        启动客户端，在 MOD 列表中确认 ArcartX 已加载。
+    </Step>
+</Steps>
+
+## BungeeCord / Velocity 跨服
+
+如果你使用了 BungeeCord 或 Velocity 进行跨服，需要额外安装信道插件来打通通讯：
+
+在下载中心找到 ArcartXChannel，将其放入 BungeeCord / Velocity 的 `plugins` 文件夹（不是游戏服的 plugins）。
+
+## 客户端拓展
+
+ArcartX 支持模块化的客户端拓展组件。拓展组件既不是 MOD 也不是插件，有专门的安装位置。
+
+<Callout type="warn">
+    不要将客户端拓展放入 `mods` 或 `plugins` 文件夹，否则不会生效。
+</Callout>
+
+安装位置：打开客户端的资源包目录（`.minecraft/resourcepacks`），首次启动游戏后会自动生成 `ArcartX` 文件夹：
+
+<Files>
+    <Folder name="ArcartX" defaultOpen>
+        <Folder name="expansion" defaultOpen>
+            <File name="拓展组件.jar" />
+        </Folder>
+        <Folder name="resource">
+            <File name="..." />
+        </Folder>
+        <Folder name="setting">
+            <File name="..." />
+        </Folder>
+    </Folder>
+</Files>
+
+将客户端拓展的 jar 文件放入 `expansion` 文件夹即可。
+
+## 安装完成
+
+到这里 ArcartX 就安装好了。后续文档会假设你有基本的开服经验（了解插件配置、YAML 语法等）。如果遇到问题，可以加入 QQ 群 832063293 寻求帮助。

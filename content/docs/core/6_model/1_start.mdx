@@ -1,0 +1,91 @@
+---
+title: 开始使用模型
+description: 模型加载与配置指南
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 模型概述
+
+ArcartX 支持两种模型格式：
+- bbmodel 格式：BlockBench 的原生格式，可读取 Java 模型、基岩模型、通用模型。推荐使用。
+- geo 格式：基岩模型的导出格式（`.geo.json` + `.animation.json` + `.png`）。
+
+<Callout type="info">
+    bbmodel 中一些复杂的运动方式（如 lk 等）在直接读取时无法解析，需要先在 BlockBench 中导出为 geo 格式然后再导到bbmodel里面
+</Callout>
+
+## 模型加载
+
+模型文件放入客户端 `ArcartX/resource/model` 文件夹下。
+
+### bbmodel 格式
+
+<Steps>
+    <Step>
+        将 `.bbmodel` 文件放入 `ArcartX/resource/model` 文件夹。
+        <img src="/model/setup-1.png" alt="bbmodel 文件放置位置"/>
+    </Step>
+    <Step>
+        重载客户端资源（或重启客户端），查看客户端日志确认模型是否加载成功。日志中输出的名称就是后续使用的模型 ID。
+        <img src="/model/setup-2.png" alt="客户端日志中的模型加载信息"/>
+    </Step>
+    <Step>
+        如果需要发光贴图，在模型的贴图列表中添加一个名为 `[主贴图名]_glow` 的贴图即可。
+        <img src="/model/setup-3.png" alt="发光贴图命名示例"/>
+    </Step>
+</Steps>
+
+### geo 格式
+
+<Steps>
+    <Step>
+        准备好模型文件，按以下命名规则放入 `ArcartX/resource/model` 文件夹：
+        - `xxx.geo.json` — 模型文件
+        - `xxx.animation.json` — 动画文件（可选）
+        - `xxx.png` — 贴图文件
+        - `xxx.glow.png` — 发光贴图（可选）
+        <img src="/model/setup-4.png" alt="geo 格式文件命名示例"/>
+    </Step>
+    <Step>
+        重载客户端资源，查看客户端日志确认加载结果。
+        <img src="/model/setup-5.png" alt="geo 格式加载日志"/>
+    </Step>
+</Steps>
+
+## axmeta 扩展数据文件
+
+axmeta 文件用于为模型配置额外参数。文件名格式为 `模型名.axmeta.json`，放在模型文件的同级目录下。
+
+<img src="/model/setup-6.png" alt="axmeta 文件放置位置"/>
+
+```json
+{
+    "glow_level": 0,
+    "player_skin": false,
+    "item_scale": 1.0,
+    "distance": 16,
+    "hand_offset": [0, 0, 0]
+}
+```
+
+各字段说明：
+
+| 字段          |    类型    |   默认值   | 说明                                |
+|:------------|:--------:|:-------:|:----------------------------------|
+| glow_level  |   int    |    0    | 发光等级，取值 0~15                      |
+| player_skin | boolean  |  false  | 是否将贴图替换为玩家皮肤（仅对玩家实体有效）            |
+| item_scale  |  double  |   1.0   | 物品类型模型的缩放比例，影响物品、方块、特效、掉落物附加模型的尺寸 |
+| distance    |  double  |   16    | 方块模型的靠近动画触发距离（格），玩家进入此距离时播放靠近动画   |
+| hand_offset | float[3] | [0,0,0] | 第一人称手部模型的偏移量 [x, y, z]            |
+
+如果所有字段都使用默认值，不需要创建 axmeta 文件。
+
+### 玩家皮肤贴图
+
+`player_skin` 设为 `true` 时，会将模型的所有贴图替换为玩家皮肤。如果你使用的是多贴图模型，只想让部分贴图使用玩家皮肤，可以将对应贴图命名为 `player_skin.png`，这样只有这张贴图会被替换。
+
+
+
+

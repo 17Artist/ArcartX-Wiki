@@ -1,0 +1,9 @@
+{
+    "title": "ArcartX对象及用法",
+    "defaultOpen": false,
+    "pages": [
+        "1_itemstack",
+        "2_potion",
+        "3_player"
+    ]
+}

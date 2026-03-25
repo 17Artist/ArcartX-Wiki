@@ -1,0 +1,105 @@
+---
+title: 回调接口
+description: ArcartX回调函数式接口
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 回调接口
+
+- ArcartX定义了一组函数式接口用于各种回调场景，位于 `priv.seventeen.artist.arcartx.util.collections` 包下。
+- 所有接口均为函数式接口（`fun interface`），在Java中可以使用Lambda表达式。
+
+## `CallBack`
+- 最基础的无参回调接口
+
+<Callout type="info">
+```java
+@FunctionalInterface
+public interface CallBack {
+    void call();
+}
+```
+- **使用场景**：UI打开回调等不需要参数的场景
+- **调用示例**
+```java
+registry.open(player, "my_ui", () -> {
+    // UI打开后执行
+});
+```
+</Callout>
+
+## `PlayerCallBack`
+- 接收一个 `Player` 参数的回调接口
+
+<Callout type="info">
+```java
+@FunctionalInterface
+public interface PlayerCallBack {
+    void call(Player player);
+}
+```
+- **使用场景**：按键绑定的按下/释放回调、实体可见性遍历等
+- **调用示例**
+```java
+entity.doWithSeenBy(player -> {
+    player.sendMessage("你看到了这个实体");
+});
+```
+</Callout>
+
+## `KeyCallBack`
+- 按键回调接口，包含按下和释放两个方法
+
+<Callout type="info">
+```java
+public interface KeyCallBack {
+    default void onPress(Player player) {}
+    default void onRelease(Player player) {}
+}
+```
+- **使用场景**：注册按键绑定时的回调
+- **调用示例**
+```java
+registry.registerClientKeyBind("my_key", "我的插件", "G", new KeyCallBack() {
+    @Override
+    public void onPress(Player player) {
+        // 按下
+    }
+    @Override
+    public void onRelease(Player player) {
+        // 释放
+    }
+});
+```
+</Callout>
+
+<Callout type="warn">
+`KeyCallBack` 不是函数式接口（有两个方法），在Java中需要使用匿名类实现。
+</Callout>
+
+## `UICallBack`
+- UI事件回调接口，接收一个 `CallData` 参数
+
+<Callout type="info">
+```java
+@FunctionalInterface
+public interface UICallBack {
+    void call(CallData event);
+}
+```
+- **使用场景**：UI的打开、关闭、数据包回调
+</Callout>
+
+## `CallData`
+- UI回调的数据载体
+
+<Callout type="info">
+```java
+public record CallData(Player player, String identifier, List<String> data) {}
+```
+- `player` — 触发事件的玩家
+- `identifier` — 事件标识（如数据包处理器名称）
+- `data` — 数据内容列表
+</Callout>

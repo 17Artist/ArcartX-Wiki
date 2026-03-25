@@ -1,0 +1,90 @@
+---
+title: 客户端配置
+description: config.json 客户端本地配置项详解
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 配置文件位置
+
+配置文件 `config.json` 位于客户端 `.minecraft/resourcepacks/ArcartX/setting/` 目录下。首次启动客户端时会自动生成默认配置。
+
+## 默认配置
+
+```json
+{
+  "preload_resources": [],
+  "font_shadow": true,
+  "pixel_font": true,
+  "global_font": false,
+  "font_baseline_offset": 0.0,
+  "font_scale_offset": 0.0
+}
+```
+
+## 配置项详解
+
+### 资源预加载
+
+```json
+"preload_resources": []
+```
+
+填写资源的相对路径列表，客户端启动时会对这些本地资源进行预加载，将它们提前缓存到内存中。适用于需要在进服后立即显示、不希望出现异步加载延迟的资源。
+
+示例：
+
+```json
+"preload_resources": [
+  "ui/background.png",
+  "ui/logo.png",
+  "effect/particle.png"
+]
+```
+
+<Callout type="info">
+    仅对本地资源（非压缩包内的加密资源）生效。网络资源和 ZIP 内资源不受此配置影响。
+</Callout>
+
+### 字体阴影
+
+```json
+"font_shadow": true
+```
+
+控制 ArcartX 字体渲染引擎在替换全局文字时是否绘制文字阴影。设为 `false` 后，替换原版文字渲染不再渲染阴影。
+
+
+### 像素字体识别
+
+```json
+"pixel_font": true
+```
+
+控制是否启用像素字体自动识别。开启时，ArcartX 会根据字体名称中的关键词（`pixel`、`点阵`、`像素`）自动识别像素字体，并使用专用的像素渲染模式（关闭抗锯齿，使用 Pixel Shader）。
+
+设为 `false` 后，所有字体统一走平滑 SDF 文字渲染，不再区分像素字体。适用于希望所有字体都保持平滑渲染效果的场景。
+
+### 全局字体替换
+
+```json
+"global_font": false
+```
+
+控制是否启用全局字体替换。开启后，ArcartX 的字体渲染引擎将接管 Minecraft 原版的所有文字渲染，使用 ArcartX 的字体替代默认字体。默认关闭，开启后原版文字可使用ArcartX特殊渲染，但是可能和同质插件产生冲突。
+
+### 字体基线偏移
+
+```json
+"font_baseline_offset": 0.0
+```
+
+调整全局字体替换渲染的基线垂直偏移量。正值向下偏移，负值向上偏移。用于微调全局字体替换文字在 UI 中的垂直对齐位置。
+
+### 字体缩放偏移
+
+```json
+"font_scale_offset": 0.0
+```
+
+调整全局字体替换字体渲染的缩放偏移量。正值放大，负值缩小。用于微调全局字体替换文字的整体大小。

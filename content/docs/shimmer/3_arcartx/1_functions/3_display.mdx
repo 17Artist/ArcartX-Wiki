@@ -1,0 +1,203 @@
+---
+title: Display:窗口显示
+description: Display窗口控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Display.setResizable(resizable){:Shimmer}`
+- 设置窗口是否可调整大小
+
+<Callout type="info">
+- **参数**：`resizable`: 布尔类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Display.setResizable(true)
+```
+</Callout>
+
+## `Display.setFullScreen(fullscreen){:Shimmer}`
+- 设置窗口是否全屏
+
+<Callout type="info">
+- **参数**：`fullscreen`: 布尔类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Display.setFullScreen(true)
+```
+</Callout>
+
+## `Display.isFullScreen(){:Shimmer}`
+- 获取窗口是否处于全屏状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+Display.isFullScreen()
+```
+- **示例返回值**
+```Shimmer
+true
+```
+</Callout>
+
+## `Display.isResizable(){:Shimmer}`
+- 获取窗口是否可调整大小
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：布尔类型
+- **调用示例**
+```Shimmer
+Display.isResizable()
+```
+- **示例返回值**
+```Shimmer
+true
+```
+</Callout>
+
+## `Display.desktopWidth(){:Shimmer}`
+- 获取桌面宽度
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.desktopWidth()
+```
+- **示例返回值**
+```Shimmer
+1920
+```
+</Callout>
+
+## `Display.desktopHeight(){:Shimmer}`
+- 获取桌面高度
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.desktopHeight()
+```
+- **示例返回值**
+```Shimmer
+1080
+```
+</Callout>
+
+## `Display.width(){:Shimmer}`
+- 获取窗口宽度
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.width()
+```
+- **示例返回值**
+```Shimmer
+1280
+```
+</Callout>
+
+## `Display.height(){:Shimmer}`
+- 获取窗口高度
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.height()
+```
+- **示例返回值**
+```Shimmer
+720
+```
+</Callout>
+
+## `Display.x(){:Shimmer}`
+- 获取窗口X坐标
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.x()
+```
+- **示例返回值**
+```Shimmer
+100
+```
+</Callout>
+
+## `Display.y(){:Shimmer}`
+- 获取窗口Y坐标
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+- **调用示例**
+```Shimmer
+Display.y()
+```
+- **示例返回值**
+```Shimmer
+100
+```
+</Callout>
+
+## `Display.setLocation(x, y){:Shimmer}`
+- 设置窗口位置
+
+<Callout type="info">
+- **参数**：
+    - `x`: 整数类型
+    - `y`: 整数类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Display.setLocation(100, 100)
+```
+</Callout>
+
+## `Display.resize(width, height){:Shimmer}`
+- 调整窗口大小
+
+<Callout type="info">
+- **参数**：
+    - `width`: 整数类型
+    - `height`: 整数类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Display.resize(1280, 720)
+```
+</Callout>
+
+## `Display.getScale(){:Shimmer}`
+- 获取窗口缩放比例
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：浮点类型
+- **调用示例**
+```Shimmer
+Display.getScale()
+```
+- **示例返回值**
+```Shimmer
+1.0
+```
+</Callout>

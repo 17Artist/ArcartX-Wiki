@@ -1,0 +1,103 @@
+---
+title: Chat:聊天工具
+description: Chat工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Chat.open([message]){:Shimmer}`
+- 打开聊天界面，可选择是否预填充消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型（可选）
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Chat.open("Hello world!")
+```
+</Callout>
+
+## `Chat.setMessage(message){:Shimmer}`
+- 设置聊天框的内容
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Chat.setMessage("Hello Minecraft!")
+```
+</Callout>
+
+## `Chat.addMessage(message){:Shimmer}`
+- 在当前聊天框内容后追加文本
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Chat.addMessage(" World!")
+```
+</Callout>
+
+## `Chat.getMessage(){:Shimmer}`
+- 获取当前聊天框的内容
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Chat.getMessage()
+```
+- **示例返回值**
+```Shimmer
+"Hello Minecraft!"
+```
+</Callout>
+
+## `Chat.say(message){:Shimmer}`
+- 发送一条聊天消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```Shimmer
+Chat.say("Hello everyone!")
+```
+</Callout>
+
+## `Chat.getEventMessage(){:Shimmer}`
+- 获取当前事件的聊天消息
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Chat.getEventMessage()
+```
+- **示例返回值**
+```Shimmer
+"Player joined the game"
+```
+</Callout>
+
+## `Chat.getLastMessage(){:Shimmer}`
+- 获取最后一条聊天消息
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```Shimmer
+Chat.getLastMessage()
+```
+- **示例返回值**
+```Shimmer
+"Last chat message"
+```
+</Callout>

@@ -1,0 +1,152 @@
+---
+title: Shimmer开发者文档
+description: 注册函数、对象
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+  API其实也就是怎么注册`对象`和`工具集函数`
+</Callout>
+
+<Callout type="info">
+## 工具集函数
+~~~java
+package priv.seventeen.artist.arcartx.shimmer.callable.function;
+
+import priv.seventeen.artist.arcartx.shimmer.annotations.ShimmerInvokeHandler;
+import priv.seventeen.artist.arcartx.shimmer.annotations.ShimmerNamespace;
+import priv.seventeen.artist.arcartx.shimmer.callable.InvocationData;
+import priv.seventeen.artist.arcartx.shimmer.runtime.node.value.IValue;
+
+/**
+ * @program: ShimmerForArcartX
+ * @description: 输出
+ * @author: 17Artist
+ * @create: 2024-11-20 00:55
+ **/
+
+@ShimmerNamespace("Shimmer")
+public class ShimmerFunctions {
+
+    @ShimmerInvokeHandler("print")
+    public static void print(InvocationData invocationData){
+        System.out.println(invocationData.get(0).stringValue());
+    }
+
+    @ShimmerInvokeHandler("println")
+    public static void println(InvocationData invocationData){
+        for(IValue<?> value : invocationData.getArgs()){
+            System.out.println(value.stringValue());
+        }
+    }
+
+}
+~~~
+- 既然是开发者文档我就不写那么多了，值得注意的是`@ShimmerInvokeHandler`所注解的函数参数应该只有一个`InvocationData`
+- 至于这个`InvocationData`有什么函数，直接导包就能查看，无非是获取指定位数的参数，然后再根据你所求去取类型。
+</Callout>
+
+<Callout type="info">
+## 对象
+```java
+package priv.seventeen.artist.arcartx.shimmer.callable.object;
+
+import priv.seventeen.artist.arcartx.shimmer.annotations.ShimmerInvokeHandler;
+import priv.seventeen.artist.arcartx.shimmer.annotations.ShimmerObjectConstructor;
+import priv.seventeen.artist.arcartx.shimmer.callable.InvocationData;
+import priv.seventeen.artist.arcartx.shimmer.object.IShimmerObject;
+
+import java.util.UUID;
+
+/**
+ * @program: ShimmerForArcartX
+ * @description: uuid对象
+ * @author: 17Artist
+ * @create: 2024-11-20 12:52
+ **/
+public class UUIDObject implements IShimmerObject {
+
+    private final UUID uuid;
+
+    @ShimmerObjectConstructor("UUID")
+    public UUIDObject(InvocationData invocationData){
+        if(invocationData.size() >= 1){
+            UUID temp;
+            try{
+                temp = UUID.fromString(invocationData.get(0).stringValue());
+            } catch (Exception e){
+                temp = UUID.randomUUID();
+            }
+            this.uuid = temp;
+        } else {
+            uuid = UUID.randomUUID();
+        }
+    }
+
+    @Override
+    public String stringValue() {
+        return uuid.toString();
+    }
+
+    @Override
+    public String getTypeName() {
+        return "uuid";
+    }
+
+    @ShimmerInvokeHandler("getMostSignificantBits")
+    public long getMostSignificantBits(InvocationData data) {
+        return uuid.getMostSignificantBits();
+    }
+
+    @ShimmerInvokeHandler("getLeastSignificantBits")
+    public long getLeastSignificantBits(InvocationData data) {
+        return uuid.getLeastSignificantBits();
+    }
+
+    @ShimmerInvokeHandler("version")
+    public int version(InvocationData data) {
+        return uuid.version();
+    }
+
+    @ShimmerInvokeHandler("variant")
+    public int variant(InvocationData data) {
+        return uuid.variant();
+    }
+
+}
+
+```
+-  怎么样，是不是特别简单，`构造器`通过`@ShimmerObjectConstructor`注解，参数应该只有一个`InvocationData`
+- 至于函数，和上面工具集函数是一致的。
+</Callout>
+
+<Callout type="info">
+## 将你注册的函数导入到`ShimmerRuntime`
+```java
+package priv.seventeen.artist.arcartx.shimmer;
+
+import priv.seventeen.artist.arcartx.shimmer.callable.function.MathFunctions;
+import priv.seventeen.artist.arcartx.shimmer.callable.object.UUIDObject;
+import priv.seventeen.artist.arcartx.shimmer.runtime.ShimmerRuntime;
+
+/**
+ * @program: ShimmerForArcartX
+ * @description: 示例
+ * @author: 17Artist
+ * @create: 2024-12-07 04:28
+ **/
+public class EG {
+    
+    public static void register(){
+        // 注册函数
+        CallableManager.INSTANCE.registerStaticFunction(MathFunctions.class);
+        // 注册对象
+        CallableManager.INSTANCE.registerShimmerObject(UUIDObject.class);
+    }
+}
+
+```
+</Callout>

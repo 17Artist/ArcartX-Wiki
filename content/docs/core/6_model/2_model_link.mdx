@@ -1,0 +1,24 @@
+---
+title: 模型链接
+description: 模型链接配置指南
+---
+
+
+## 模型链接
+
+模型链接功能可以将其它模型的动作导入到指定模型中，同骨骼模型相互导入动画。
+
+配置文件位于服务端 `plugins/ArcartX/model_link/` 目录下，格式如下：
+
+```yaml
+root:
+  示例:
+    # 目标模型 ID（要导入动作的模型）
+    targetModelID: "my_model"
+    # 要导入的动作来源模型 ID 列表
+    import:
+      - "shared_animations_model"
+      - "another_model"
+```
+
+配置加载后会自动同步到客户端。目标模型在播放动画时，如果自身没有对应动作，会从 import 列表中的模型查找。

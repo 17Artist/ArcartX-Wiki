@@ -1,0 +1,45 @@
+---
+title: 客户端槽位事件
+description: 额外槽位点击与请求事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端槽位事件
+
+- 与ArcartX额外槽位系统相关的事件。
+
+## `ClientExtraSlotClickEvent`
+- 玩家点击额外槽位时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `slotID`: String — 槽位ID
+    - `buttonID`: int — 鼠标按键ID
+- **可取消**：是
+- **调用示例**
+```java
+@EventHandler
+public void onSlotClick(ClientExtraSlotClickEvent event) {
+    if (event.getSlotID().equals("ring_1")) {
+        // 玩家点击了戒指槽位
+    }
+}
+```
+</Callout>
+
+<Callout type="warn">
+这是少数可取消的事件之一。取消后客户端不会执行默认的槽位交互行为。
+</Callout>
+
+## `ClientExtraSlotRequestEvent`
+- 客户端请求额外槽位数据时触发，通常在客户端初始化或UI打开时自动发送
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `slotID`: String — 槽位ID
+- **可取消**：否
+</Callout>
