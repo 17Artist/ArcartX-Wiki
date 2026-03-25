@@ -1,8 +1,9 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY source.config.ts ./
 RUN npm ci
 
 FROM base AS builder
