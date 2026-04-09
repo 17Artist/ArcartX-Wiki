@@ -115,6 +115,21 @@ default_controller: "idle"
 switch_by_main_hand:
   enable: false
   path: "controller"
+
+# 复合触发器（主手+副手+PAPI组合匹配）
+triggers:
+  enable: false
+  list:
+    触发器名称:
+      controller: "控制器ID"
+      main_hand:
+        path: "nbt路径"
+        value: "期望值"
+      off_hand:
+        path: "nbt路径"
+        value: "期望值"
+      papi: "%placeholder%"
+      papi_value: "期望值"
 ```
 
 详细配置请参考 [基本设置](/docs/chronos/5_setting)。

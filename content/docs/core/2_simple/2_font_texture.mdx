@@ -10,7 +10,9 @@ import { Callout } from 'fumadocs-ui/components/callout';
 ArcartX 使用 SDF（Signed Distance Field）技术进行文字渲染，替代了传统的位图渲染方式。同时增加了一些特殊效果：描边、流光、渐变等特效。
 
 <Callout type="warn">
-    如需让ArcartX文字渲染器接管原版渲染，请查看客户端配置相关章节。该功能默认关闭。
+    如需让ArcartX文字渲染器接管原版渲染，请查看客户端配置相关章节。该功能默认关闭。开启后将和任意修改文字的渲染的MOD / 数据包插件（ia、ce等）冲突，请选择性使用。
+    如果开启全局文字替换渲染，可将`default.ttf` / `default.otf` 放入`ArcartX/font` 目录下，替换默认字体（注意，部分老版本系统可能不支持部分otf格式，将会显示为空心方块，请自行选择合适的字体文件）
+
 </Callout>
 
 ## 特殊格式码
