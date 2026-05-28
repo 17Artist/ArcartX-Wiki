@@ -192,6 +192,73 @@ public int getPlayerComboCount(Player player) {
 
 ---
 
+## PlaceholderAPI 占位符
+
+Chronos 提供了 PlaceholderAPI 扩展，可以在任何支持 PAPI 的插件中获取玩家的实时动作信息。
+
+<Callout type="info">
+需要服务器安装 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) 插件，Chronos 会在启动时自动注册扩展。
+</Callout>
+
+### 占位符列表
+
+| 占位符                            | 返回值              | 说明           |
+|--------------------------------|------------------|--------------|
+| `%chronos_controller%`         | 控制器ID / `none`   | 当前控制器        |
+| `%chronos_state%`              | 状态ID / `none`    | 当前正在执行的状态    |
+| `%chronos_state_group%`        | 状态组ID / `none`   | 当前状态所属的组     |
+| `%chronos_in_state%`           | `true` / `false` | 是否正在执行状态     |
+| `%chronos_window_derive%`      | `true` / `false` | 是否在派生窗口内     |
+| `%chronos_window_cancel%`      | `true` / `false` | 是否在取消窗口内     |
+| `%chronos_window_invincible%`  | `true` / `false` | 是否在无敌窗口内     |
+| `%chronos_window_super_armor%` | `true` / `false` | 是否在霸体窗口内     |
+| `%chronos_charge_time%`        | 毫秒数              | 当前蓄力时间       |
+| `%chronos_cooldown_<组名>%`      | 毫秒数              | 指定冷却组的剩余冷却时间 |
+
+### 使用示例
+
+**在记分板插件中显示当前状态：**
+
+```
+当前控制器: %chronos_controller%
+当前状态: %chronos_state%
+```
+
+**在条件插件中判断玩家是否在攻击：**
+
+```
+%chronos_in_state% == true
+```
+
+**获取冷却组剩余时间（组名为 `攻击`）：**
+
+```
+%chronos_cooldown_攻击%
+```
+
+**配合复合触发器使用：**
+
+可以将其他插件的 PAPI 占位符作为触发器条件，同时用 Chronos 的占位符在 UI 中展示玩家状态：
+
+```yaml
+# setting.yml - 触发器根据职业切换控制器
+triggers:
+  enable: true
+  list:
+    战士:
+      controller: "warrior"
+      papi: "%myrpg_class%"
+      papi_value: "warrior"
+```
+
+```
+# 记分板 - 显示 Chronos 信息
+职业控制器: %chronos_controller%
+当前动作: %chronos_state%
+```
+
+---
+
 ## 事件系统
 
 Chronos 提供了三个核心事件，可以通过 Bukkit 事件系统监听。
