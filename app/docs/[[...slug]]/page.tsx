@@ -65,9 +65,8 @@ export async function generateMetadata(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  // OG image：通过 docs-og 路由动态生成（含项目色 + 标题 + 描述）
-  const ogPath = (params.slug ?? []).join('/');
-  const ogUrl = `${BASE_URL}/docs-og${ogPath ? '/' + ogPath : ''}`;
+  // OG image：全站统一的静态品牌图（避免动态渲染中文所需的字体依赖）
+  const ogUrl = `${BASE_URL}/og.jpg`;
 
   return {
     title: page.data.title,
