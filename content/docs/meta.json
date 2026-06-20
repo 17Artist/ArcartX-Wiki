@@ -1,39 +1,10 @@
 {
-    "title": "根节点",
+    "title": "ArcartX 文档中心",
+    "description": "ArcartX 全套项目文档",
     "defaultOpen": true,
     "pages": [
-        "---ArcartX-核心教学---",
-        "index",
-        "ai_assistant",
-        "/core/1_base",
-        "/core/2_simple",
-        "/core/3_camera",
-        "/core/4_hologram",
-        "/core/5_key",
-        "/core/6_model",
-        "/core/7_mythicmobs",
-        "/core/8_ui",
-        "/core/9_tip",
-        "/core/10_controller",
-        "/core/11_bedrockparticle",
-
-        "---附录1:Shimmer---",
-        "/shimmer/1_base",
-        "/shimmer/2_builtIn/1_functions",
-        "/shimmer/2_builtIn/2_object",
-        "/shimmer/2_builtIn/3_animation",
-        "/shimmer/3_arcartx/1_functions",
-        "/shimmer/3_arcartx/2_object",
-        "/shimmer/api",
-
-
-        "---附录2:ArcartX服务端插件开发---",
-        "/server_api",
-
-        "---附录3:ArcartX客户端拓展开发---",
-
-        "---附录4:其它相关文档---",
-        "/chronos"
-
+        "arcartx_v2",
+        "arcartx_v1",
+        "chronos"
     ]
 }

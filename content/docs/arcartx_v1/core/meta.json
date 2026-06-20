@@ -1,0 +1,21 @@
+{
+    "title": "ArcartX 核心",
+    "description": "ArcartX 服务端插件 + 客户端 MOD 的核心使用文档",
+    "icon": "Sparkles",
+    "root": true,
+    "order": 1,
+    "defaultOpen": true,
+    "pages": [
+        "1_base",
+        "2_simple",
+        "3_camera",
+        "4_hologram",
+        "5_key",
+        "6_model",
+        "7_mythicmobs",
+        "8_ui",
+        "9_tip",
+        "10_controller",
+        "11_bedrockparticle"
+    ]
+}

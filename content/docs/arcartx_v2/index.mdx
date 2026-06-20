@@ -1,0 +1,93 @@
+---
+title: 序章
+description: ArcartX 使用文档
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 关于 ArcartX
+
+ArcartX 是一套面向 Minecraft 服务器的客户端渲染与交互框架，由服务端插件和客户端 MOD 两部分组成。它为服务器开发者提供了UI 界面、自定义模型、粒子特效、相机控制、键位绑定等一系列能力，让你无需编写客户端 MOD 就能实现丰富的视觉和交互效果。
+
+关于名字：ArcartX 源自 "Arc" 与 "Art" 的结合，你也可以简称为 "AX"。
+
+QQ 交流群：832063293
+
+## 支持的版本
+
+### 客户端 MOD
+
+| Minecraft 版本 | Forge | NeoForge | Fabric |
+|:------------:|:-----:|:--------:|:------:|
+|    1.20.1    |   ✅   |          |   ✅    |
+|    1.20.4    |   ✅   |          |   ✅    |
+|    1.21.1    |       |    ✅     |   ✅    |
+|    1.21.4    |       |    ✅     |   ✅    |
+|    1.21.8    |       |    ✅     |   ✅    |
+|   1.21.11    |       |    ✅     |   ✅    |
+|    26.1.2    |       |    ✅     |   ✅    |
+|     26.2     |       |   即将支持   |  即将支持  |
+
+### 服务端插件
+
+支持 Spigot / Paper 及其分支，兼容以下 Minecraft 版本：
+
+1.18.1、1.18.2、1.19、1.19.1、1.19.2、1.19.3、1.19.4、1.20.1、1.20.2、1.20.4、1.21.1、1.21.3、1.21.4、1.21.11、26.1、26.1.2
+
+## 第三方插件兼容
+
+ArcartX 插件端会自动检测以下第三方插件，在它们存在时启用对应的兼容功能：
+
+### 技能与实体
+
+| 插件          | 兼容内容                                                                          |
+|:------------|:------------------------------------------------------------------------------|
+| MythicMobs  | 提供自定义技能词条（模型、动画、碰撞箱、隐藏骨骼、默认状态、3D 音效、基岩粒子、锤地特效、UI 通讯、代理碰撞箱、镜头摇晃、坐骑系统等），支持模型投掷物 |
+| ModelEngine | 可共存其碰撞箱                                                                       |
+| Adyeshach   | 虚拟实体的模型和尺寸数据同步                                                                |
+
+### 属性提供者
+
+| 插件             | 兼容内容              |
+|:---------------|:------------------|
+| AttributePlus  | 属性读取与写入（兼容新旧两个版本） |
+| AstraXHero     | 属性读取与写入           |
+| CraneAttribute | 属性读取与写入           |
+
+### 经济与物品提供者
+
+| 插件           | 兼容内容   |
+|:-------------|:-------|
+| Vault        | 经济系统对接 |
+| PlayerPoints | 点券经济对接 |
+| NeigeItems   | 物品生成对接 |
+| MythicMobs   | 物品生成对接 |
+
+### 其它
+
+| 插件 / MOD                  | 兼容内容                                |
+|:--------------------------|:------------------------------------|
+| PlaceholderAPI            | 占位符变量支持                             |
+| JEI                       | UI 中显示 JEI 侧边栏）                     |
+| Shoulder Surfing Reloaded | 第三人称相机兼容（Forge 1.20.1，需关闭 AX 自定义相机） |
+
+
+## 使用须知
+
+<Callout type="warn">
+    启程之前，请驻足细览<strong>ArcartX 的用户协议（EULA）</strong>。使用即代表认同。<strong>若有任何不适</strong>，请暂缓脚步。
+</Callout>
+
+<Callout type="warn">
+    ArcartX 本是<strong>无偿之礼</strong>。若为付费获取，当知<strong>其为歧路</strong>。
+</Callout>
+
+<Callout type="warn">
+    流转有度，分享有方。唯允将原始之作融入你的客户端与玩家分享，<strong>任何形式的转载都将是不被允许的</strong>。
+</Callout>
+
+<Callout type="warn">
+    对于任何越界之举，<strong>法律</strong>将是共同的准绳。
+</Callout>

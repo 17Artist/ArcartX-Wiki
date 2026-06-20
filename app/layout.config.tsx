@@ -16,13 +16,14 @@ export const baseOptions: BaseLayoutProps = {
         </span>
       </>
     ),
-    url: '/docs',
+    // logo 点击直达主页（多项目入口），不再走 /docs 索引页
+    url: '/',
   },
   links: [
     {
-      text: '文档',
-      url: '/docs',
-      active: 'nested-url',
+      text: '主页',
+      url: '/',
+      active: 'url',
     },
     {
       text: '社区',

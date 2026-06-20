@@ -1,6 +1,6 @@
 {
-    "title": "服务端API",
-    "defaultOpen": false,
+    "title": "服务端 API",
+    "defaultOpen": true,
     "pages": [
         "index",
         "1_api_entry",

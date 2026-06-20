@@ -1,0 +1,15 @@
+{
+    "title": "ArcartX v2 [施工中]",
+    "description": "ArcartX 服务端插件 + 客户端 MOD 核心使用文档",
+    "icon": "Sparkles",
+    "root": true,
+    "color": "#6366f1",
+    "entry": "arcartx_v2",
+    "tagline": "为您的服务器带来无限可能",
+    "order": 1,
+    "defaultOpen": true,
+    "pages": [
+        "---ArcartX-核心教学---",
+        "index"
+    ]
+}

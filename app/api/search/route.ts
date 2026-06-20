@@ -1,5 +1,6 @@
 import { source } from '@/lib/source';
 import { createFromSource } from 'fumadocs-core/search/server';
+import type { StructuredData } from 'fumadocs-core/mdx-plugins';
 
 const COMPOUND_WORDS = new Set([
   '伤害显示', '碰撞箱', '骨骼隐藏', '控件',
@@ -52,9 +53,21 @@ const chineseTokenizer = {
   },
 };
 
-export const { GET } = createFromSource(source, undefined, {
-  tokenizer: chineseTokenizer,
-  search: {
-    tolerance: 1,
+export const { GET } = createFromSource(
+  source,
+  // 把 page 的第一段 slug 作为 tag，使 ?tag=core / shimmer / ... 能限定项目范围
+  (page) => ({
+    title: page.data.title,
+    description: page.data.description,
+    url: page.url,
+    id: page.url,
+    structuredData: page.data.structuredData as StructuredData,
+    tag: page.slugs[0] || '',
+  }),
+  {
+    tokenizer: chineseTokenizer,
+    search: {
+      tolerance: 1,
+    },
   },
-});
+);

@@ -44,16 +44,11 @@ content/docs/
 
 文档使用 `.mdx` 格式编写，支持 Markdown + React 组件。
 
-### AI 集成
-
-文档站集成了 AI 助手（BYOK 模式），支持 `/llms.txt` 和 `/llms-full.txt` 协议，方便外部 AI 工具抓取文档内容。
-
 ## 技术栈
 
 - [Next.js 15](https://nextjs.org)
 - [Fumadocs](https://fumadocs.vercel.app)
 - [Tailwind CSS](https://tailwindcss.com)
-- [React Markdown](https://github.com/remarkjs/react-markdown)
 
 ## 许可证
 

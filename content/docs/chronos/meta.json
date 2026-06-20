@@ -1,6 +1,13 @@
 {
-    "title": "[动作引擎]Chronos",
-    "defaultOpen": false,
+    "title": "Chronos",
+    "description": "Chronos 动作引擎：状态机、连招系统",
+    "icon": "Activity",
+    "root": true,
+    "color": "#f97316",
+    "entry": "chronos/1_start",
+    "tagline": "状态机驱动的引擎，赋予战斗生命",
+    "order": 4,
+    "defaultOpen": true,
     "pages": [
         "1_start",
         "2_setup",

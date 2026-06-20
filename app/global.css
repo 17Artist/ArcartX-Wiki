@@ -10,6 +10,39 @@
 }
 .animate-float { animation: float 6s ease-in-out infinite; }
 
+/* ===================================================================
+ * 主页（二次元 / 赛博朋克）专用动画
+ * 集中放在全局，避免 styled-jsx 作用域化 @keyframes 导致动画失效
+ * =================================================================== */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes hero-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+@keyframes ax-hint-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(8px); opacity: 0.7; }
+}
+@keyframes ax-particle-rise {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  12%  { opacity: var(--p-opacity, 0.6); }
+  88%  { opacity: var(--p-opacity, 0.6); }
+  100% { transform: translateY(-110vh) translateX(var(--p-drift, 0px)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ax-particle { animation: none !important; opacity: 0 !important; }
+  /* Hero 浮动 / 脉冲 / 向下箭头 / 状态点 在减少动态偏好下停止 */
+  .animate-\[hero-float_5s_ease-in-out_infinite\],
+  .animate-\[hero-pulse_4s_ease-in-out_infinite\],
+  .animate-\[ax-hint-bounce_2s_ease-in-out_infinite\],
+  .animate-ping {
+    animation: none !important;
+  }
+}
+
 
 article { animation: contentFadeIn 0.35s ease-out; }
 @keyframes contentFadeIn {
@@ -24,7 +57,7 @@ article { animation: contentFadeIn 0.35s ease-out; }
 
 .prose h3 {
   padding-left: 0.75rem !important;
-  border-left: 3px solid hsl(var(--primary)) !important;
+  border-left: 3px solid var(--project-accent, hsl(var(--primary))) !important;
 }
 
 .prose pre {
@@ -62,6 +95,48 @@ article { animation: contentFadeIn 0.35s ease-out; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+/* 项目主题色：当 <html> 上有 data-project 时启用。
+   覆盖 sidebar 当前活动链接的颜色，并给当前页 H2 / 行内链接着色。
+   不影响主页（主页 <html> 无 data-project）。 */
+html[data-project] aside a[data-active='true'] {
+  color: var(--project-accent) !important;
+}
+html[data-project] aside a[data-active='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 60%;
+  background: var(--project-accent);
+  border-radius: 1px;
+}
+html[data-project] article a:not(.fd-card) {
+  text-decoration-color: color-mix(in srgb, var(--project-accent) 60%, transparent);
+}
+
+/* 主页滚动吸附（仅 / 路由）：
+   - mandatory：每次滚动强制吸附到最近一幕
+   - scroll-snap-stop: always：每次滚动只走一幕，不会跨幕越过
+   - scroll-padding-top 给顶部 fixed nav 留出空间
+   - reduce-motion 用户禁用 */
+html[data-snap='home'] {
+  scroll-snap-type: y mandatory;
+  scroll-padding-top: 0px;
+  scroll-behavior: smooth;
+}
+html[data-snap='home'] main > section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-snap='home'] {
+    scroll-snap-type: none;
+    scroll-behavior: auto;
+  }
+}
 
 .nietzsche-quote {
   display: flex;

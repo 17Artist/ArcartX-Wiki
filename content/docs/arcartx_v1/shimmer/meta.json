@@ -1,0 +1,10 @@
+{
+    "title": "Shimmer 脚本",
+    "defaultOpen": true,
+    "pages": [
+        "1_base",
+        "2_builtIn",
+        "3_arcartx",
+        "api"
+    ]
+}
