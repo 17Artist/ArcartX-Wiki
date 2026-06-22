@@ -1,0 +1,280 @@
+---
+title: Aria 脚本引擎
+description: enableAria 在构建期/运行期的行为、BlinkAriaHost 共享宿主，以及直接用 Aria.* 执行脚本。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Aria 是 ArcartX 的脚本引擎。Blink 把它做成全 JVM 共享一份的中间件：构建时声明 `enableAria = true`，运行期 Blink 自动下载 Aria、包装成 Bukkit 插件部署，所有 Blink 插件共用同一个引擎实例。
+
+读完本篇你能：
+
+- 说清 `enableAria = true` 在构建期和运行期各做了什么。
+- 理解 `BlinkAriaHost` 共享宿主流程：下载、包装、部署、版本检测、离线回退。
+- 判断引擎是否就绪（`AriaScriptManager.isAvailable`）并直接用 `priv.seventeen.artist.aria.Aria` 编译、执行脚本。
+
+---
+
+## 1. 模型
+
+Aria 走的是和 [Asteroid NMS](/docs/blink/09-asteroid-nms) 一样的共享宿主模型：
+
+- **编译期**：Aria 以 `compileOnly` 加入工程，你可以 `import priv.seventeen.artist.aria.*` 写代码并享受补全，但它不会被打进 JAR。
+- **运行期**：第一个启动且开了 Aria 的 Blink 插件负责把 Aria 下载、包装成名为 `BlinkAriaHost` 的 Bukkit 插件并加载，之后所有插件复用它。整个服务器进程只有一份 Aria 引擎。
+
+这样设计是为了避免每个插件各打一份 Aria（体积、版本冲突），并让脚本的全局状态（`Aria.DEFAULT_ENGINE`、可调用对象注册表）真正全局共享。
+
+---
+
+## 2. 构建期：`enableAria = true` 做了什么
+
+在 `build.gradle.kts` 的 `blink { }` 里开启：
+
+```kotlin
+blink {
+    name.set("MyPlugin")
+    enableAria.set(true)
+}
+```
+
+字段定义见 [`BlinkExtension.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkExtension.kt) 的 `enableAria: Property<Boolean>`，默认 `false`。
+
+开启后，Gradle 插件在 `afterEvaluate` 调用 `configureAria(project)`，见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt)：
+
+1. **解析最新版本**：通过 `resolveLatestVersion(...)` 读仓库里 Aria 的 `maven-metadata.xml`，取 `<release>`（退而取 `<latest>`），仓库都不可达时回退到 `gradle.properties` 的 `ariaVersion`，再不行用硬编码兜底 `"1.1.1"`。
+2. **添加为 `compileOnly`**：
+
+   ```text
+   priv.seventeen.artist.aria:aria:<resolvedVersion>   (compileOnly)
+   ```
+
+   注释写明「编译时可用，运行时由 AriaSharedHost 加载到全局共享 ClassLoader」。构建产物里**不含** Aria 字节码。
+
+代码生成阶段（见 [`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt)）会在生成的主类 `BlinkGeneratedMain` 织入两段调用：
+
+- `onLoad()` 中：`AriaScriptManager.init(plugin)`
+- `onDisable()` 中：`AriaScriptManager.shutdown()`
+
+生命周期对接是自动的，你无需手写初始化代码。
+
+<Callout type="info">
+构建期解析的版本只决定 `compileOnly` 用哪个版本编译；运行期实际部署的版本由宿主再解析一次（见下一节），两者通常一致但解析路径独立。
+</Callout>
+
+---
+
+## 3. 运行期入口：`AriaScriptManager`
+
+源码见 [`AriaScriptManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/script/AriaScriptManager.kt)。它是个 `object`，只管生命周期，不包装脚本 API。
+
+它暴露的全部成员：
+
+| 成员                         | 类型             | 说明                                   |
+|----------------------------|----------------|--------------------------------------|
+| `isAvailable`              | `Boolean`      | 引擎是否就绪。`init` 成功后为 `true`。           |
+| `version`                  | `String?`      | 当前共享 Aria 版本，未就绪为 `null`。            |
+| `sharedClassLoader`        | `ClassLoader?` | 共享宿主的 ClassLoader，供动态加载 Aria 扩展类型使用。 |
+| `init(plugin: JavaPlugin)` | `fun`          | 初始化引擎，由生成主类自动调用，幂等。                  |
+| `shutdown()`               | `fun`          | 释放本地引用（共享实例保留），由生成主类自动调用。            |
+
+`init` 的核心逻辑：
+
+```kotlin
+fun init(plugin: JavaPlugin) {
+    if (initialized) return
+    val cl = AriaSharedHost.acquire(plugin)   // 部署或复用 BlinkAriaHost
+    if (cl == null) { /* 报错，引擎不可用 */ return }
+    sharedCL = cl
+    Aria.getEngine()                          // 确保引擎初始化完成
+    initialized = true
+}
+```
+
+<Callout type="info">
+`AriaScriptManager` 没有 `eval` / `compile` / `createContext` 等方法。自 Blink 1.4.0 起 Aria 改为编译期直接依赖、去掉反射包装层。执行脚本请直接用 `priv.seventeen.artist.aria.Aria`（见第 6 节）。旧示例（含早期 `test-plugin`）里的 `AriaScriptManager.eval(...)` 是旧版 API，已不存在。
+</Callout>
+
+---
+
+## 4. 共享宿主 `BlinkAriaHost` 的流程
+
+干活的是 `internal object AriaSharedHost`，见 [`AriaSharedHost.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/aria/AriaSharedHost.kt)。目标是保证整个 JVM 里只有一份 Aria。
+
+### 4.1 `acquire(plugin)`：选举宿主或复用
+
+`acquire` 加了 `@Synchronized`，线程安全且幂等：
+
+1. 本地已缓存 `hostClassLoader` → 直接返回。
+2. 查 `Bukkit.getPluginManager().getPlugin("BlinkAriaHost")`：若已存在且已启用 → **客户角色**，复用它的 ClassLoader 与版本，跳过部署。
+3. 否则当前插件作为**部署者**，进入 `ensureUpToDateAndLoad`。
+
+### 4.2 下载、包装、部署
+
+部署者把普通的 `aria.jar` 变成 Bukkit 能加载的 `BlinkAriaHost.jar`，放在 `plugins/.blink-shared/` 目录：
+
+1. **解析最新版本**：`resolveLatestAriaVersion` 固定从 hosted 仓库
+   `https://repo.arcartx.com/repository/maven-releases/.../aria/maven-metadata.xml`
+   取 `<release>`（退而 `<latest>`）。固定 hosted 仓库是为了避开 Nexus group 仓库的缓存不同步。仓库不可达返回 `null`。
+2. **版本比对**：读已有 `BlinkAriaHost.jar` 内 `plugin.yml` 的 `version`（`readEmbeddedVersion`），与最新版本比较，决定是否重新下载（`downloadAndWrap`）。
+3. **下载**：`downloadAndWrap` 调用 `DependencyLoader.downloadDependencyInternal(...)` 把 `aria-<version>.jar` 下到临时文件。
+4. **包装**（`wrapAriaIntoHostJar`）：复制原 jar 全部 entry（跳过原 `plugin.yml` 与 `MANIFEST.MF`），再追加三样东西使其成为合法 Bukkit 插件：
+   - `plugin.yml`（`name: BlinkAriaHost`，`main` 指向内置入口类）；
+   - 入口类 `priv/seventeen/artist/blink/aria/host/BlinkAriaHostPlugin.class`（以内嵌 base64 字节码写入）；
+   - 精简 `META-INF/MANIFEST.MF`。
+5. **部署**（`loadHostJar`）：`PluginManager.loadPlugin(jar)` + `enablePlugin(...)`，把宿主插入 Bukkit 插件体系，记录其版本与 `PluginClassLoader`。
+
+<Callout type="info">
+入口类路径用 base64 内嵌的原因（见源码注释）：若用字面量字符串，Shadow 插件的 `relocate` 会把 `priv.seventeen.artist.blink.aria.host` 一起改写，导致 jar 内类路径和 class 文件的 `this_class` 不一致、Bukkit 加载失败。base64 在运行时才解码，绕过 relocate。
+</Callout>
+
+### 4.3 共享语义
+
+`BlinkAriaHost` 是正式存活的 Bukkit 插件，其 `PluginClassLoader` 进入 Bukkit 全局类查找链。因此：
+
+- 任何插件（含非 Blink 插件）都能通过 `Class.forName("priv.seventeen.artist.aria.Aria")` 访问 Aria；
+- 非 Blink 插件可在自己的 `plugin.yml` 写 `depend: [BlinkAriaHost]` 显式依赖；
+- 所有访问者共享同一个 `Aria.DEFAULT_ENGINE` 与可调用对象注册表。
+
+### 4.4 离线回退
+
+`ensureUpToDateAndLoad` 对仓库不可达做降级：
+
+- 本地**无**缓存且仓库不可达 → 报错 `BlinkAriaHost 不可用`，返回 `null`，`isAvailable` 保持 `false`。
+- 本地**有**缓存：仓库不可达时跳过版本检查，直接用本地 `BlinkAriaHost.jar`；升级下载失败时也沿用本地版本继续启动。
+
+下载复用 `DependencyLoader`，见 [`DependencyLoader.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/loader/DependencyLoader.kt)：多仓库依次重试，下载到 `.tmp` 校验大小后原子替换。仓库列表可在插件数据目录的 `blink.yml` 用 `repositories` 覆盖（详见 [配置](/docs/blink/06-config)）。
+
+<Callout type="info">
+旧的 `DependencyLoader.loadAria(plugin)` 已 `@Deprecated`，是空实现，仅为二进制兼容保留——Aria 不再注入到每个插件自己的 ClassLoader。
+</Callout>
+
+---
+
+## 5. 启动日志
+
+部署者首次启动（节选）：
+
+```text
+[Blink] BlinkAriaHost 首次部署，下载 Aria v1.1.3
+[Blink] 正在下载 priv.seventeen.artist.aria:aria:1.1.3 到 .../.blink-shared/aria-1.1.3.tmp.jar
+[Blink] BlinkAriaHost 已加载 (v1.1.3, deployer=MyPlugin)
+[Blink] Aria 脚本引擎已就绪 (v1.1.3)
+```
+
+第二个插件启动（客户角色）：
+
+```text
+[Blink] BlinkAriaHost 已存在 (v1.1.3)，复用
+[Blink] Aria 脚本引擎已就绪 (v1.1.3)
+```
+
+日志走 Blink 的 `BlinkLog`，详见 [日志](/docs/blink/07-logging)。
+
+---
+
+## 6. 调用方怎么用 Aria
+
+因为是编译期直接依赖，你直接面向 `priv.seventeen.artist.aria.Aria` 的静态方法编程即可，先用 `AriaScriptManager.isAvailable` 守门。
+
+`Aria` 的关键静态 API（来自 `aria.jar`）：
+
+```java
+// 编译为可复用例程
+static AriaCompiledRoutine compile(String name, String code)
+// 执行例程，返回脚本的值
+//   AriaCompiledRoutine#execute(Context) : IValue<?>
+static Context createContext()
+// 一步到位：编译并执行
+static IValue<?> eval(String code, Context context)
+static AriaEngine getEngine()
+```
+
+执行结果是 `IValue<?>`，可通过 `jvmValue()` / `stringValue()` / `numberValue()` / `booleanValue()` 等取出 JVM 值。
+
+### 6.1 一次性 `eval`
+
+```kotlin
+import priv.seventeen.artist.aria.Aria
+import priv.seventeen.artist.blink.script.AriaScriptManager
+
+fun runOnce() {
+    if (!AriaScriptManager.isAvailable) return
+
+    val ctx = Aria.createContext()
+    val result = Aria.eval("1 + 2 + 3", ctx)
+    // 取出 JVM 值
+    println(result.numberValue())   // 6.0
+    println(result.stringValue())   // "6"
+}
+```
+
+### 6.2 预编译后多次执行（高频脚本推荐）
+
+`compile` 一次、`execute` 多次，避免重复编译开销。每次执行用独立 `Context` 做上下文隔离：
+
+```kotlin
+import priv.seventeen.artist.aria.Aria
+
+fun greetMany(names: List<String>) {
+    if (!AriaScriptManager.isAvailable) return
+
+    val routine = Aria.compile("greeting", "'Hello, ' + name + '!'")
+    for (name in names) {
+        val ctx = Aria.createContext()
+        // 通过 ctx 注入变量后再 execute（变量注入用 Context 的 set 系列方法，
+        // 具体键值类型见 Aria 自身文档）
+        val value = routine.execute(ctx)
+        println(value.stringValue())
+    }
+}
+```
+
+### 6.3 错误处理
+
+`compile` 抛 `CompileException`，`eval` / `execute` 抛 `AriaException`（均在 `priv.seventeen.artist.aria.exception` 包下）。脚本一般来自用户输入，务必兜住：
+
+```kotlin
+import priv.seventeen.artist.aria.Aria
+import priv.seventeen.artist.aria.exception.AriaException
+import priv.seventeen.artist.blink.BlinkLog
+
+fun safeEval(code: String): Any? {
+    if (!AriaScriptManager.isAvailable) return null
+    return try {
+        Aria.eval(code, Aria.createContext()).jvmValue()
+    } catch (e: AriaException) {
+        BlinkLog.error("脚本执行失败: ${e.message}", e)
+        null
+    }
+}
+```
+
+### 6.4 `sharedClassLoader` 的用途
+
+多数情况直接用 `Aria.*` 即可。只有要**反射加载 Aria 的扩展类型**（编译期没引入、只在运行期可能存在的类）时，才需要从共享 ClassLoader 取类：
+
+```kotlin
+val cl = AriaScriptManager.sharedClassLoader ?: return
+val extType = Class.forName("priv.seventeen.artist.aria.ext.SomeExtension", true, cl)
+```
+
+普通脚本调用不需要碰它。
+
+---
+
+## 7. 常见排错
+
+- **`AriaScriptManager.isAvailable` 始终为 `false`**：看启动日志，多半是「本地无缓存 + 仓库不可达」。确认能访问 `repo.arcartx.com`，或在 `blink.yml` 配置可达的 `repositories`，让宿主能下载 `aria.jar`。
+- **编译能过、运行 `NoClassDefFoundError: .../aria/Aria`**：`enableAria` 没开（Aria 是 `compileOnly`，没开就没人在运行期部署它）。确认 `blink { enableAria.set(true) }`。
+- **想升级 Aria**：不用改代码。宿主每次启动都会比对 `maven-releases` 的最新 release，落后就自动重新下载、替换 `.blink-shared/BlinkAriaHost.jar`。
+- **多个插件版本不一致**：宿主全局唯一，第一个部署者决定版本，后启动者复用。要换版本，重启服务器重新选举与解析。
+
+---
+
+## 下一步
+
+- [生命周期 @Awake](/docs/blink/03-lifecycle)：Aria 初始化挂在哪个阶段、`shutdown` 何时触发
+- [Asteroid NMS](/docs/blink/09-asteroid-nms)：同款共享宿主模型的另一处应用
+- [配置](/docs/blink/06-config)：仓库列表与 `blink.yml`
+- [日志](/docs/blink/07-logging)：启动/排错日志怎么读
+- [Proteus 混淆](/docs/blink/10-obfuscation)：relocate 与混淆对共享宿主的影响

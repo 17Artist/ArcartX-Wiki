@@ -1,0 +1,347 @@
+---
+title: 配置
+description: 用 BlinkConfig 子类 + 注解描述 YAML，含 Section 嵌套、动态条目与多文件目录。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Blink 用一个普通 Kotlin 类描述一份 YAML 配置：定义 `var` 字段、写好默认值，框架负责读文件、回填字段、生成带注释的默认模板。
+
+读完本篇你能：
+
+- 写一个 `BlinkConfig` 子类，使用 `@Comment` / `@ConfigKey` / `@Ignore`
+- 用 `BlinkSection` 表达嵌套、用 `Map<String, Section>` 表达动态条目
+- 用 `BlinkConfigFolder` 管理一个目录下的多份配置
+- 理解 `load` / `reload` / `save` 的行为、文件位置与 JAR 内默认模板
+
+---
+
+## 1. 最小例子
+
+一份配置就是一个继承 `BlinkConfig` 的类，构造参数是「插件实例 + 文件路径」：
+
+```kotlin
+import priv.seventeen.artist.blink.bukkitPlugin
+import priv.seventeen.artist.blink.config.BlinkConfig
+import priv.seventeen.artist.blink.config.Comment
+import priv.seventeen.artist.blink.config.ConfigKey
+
+class Settings : BlinkConfig(bukkitPlugin, "config") {
+
+    @Comment("欢迎消息，支持 & 颜色代码")
+    @ConfigKey("welcome-message")
+    var welcomeMessage: String = "&b欢迎来到服务器!"
+
+    @Comment("标题持续时间（tick）")
+    @ConfigKey("title-duration")
+    var titleDuration: Int = 60
+
+    @Comment("调试模式")
+    var debug: Boolean = false
+}
+```
+
+`bukkitPlugin` 是 Blink 启动时注入的全局插件实例（见 [`Blink.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/Blink.kt)），任何地方可直接引用。
+
+加载与使用：
+
+```kotlin
+val settings = Settings()
+settings.load()          // 文件不存在时按默认值生成模板，然后读入
+
+println(settings.welcomeMessage)
+```
+
+<Callout type="info">
+Blink 不会自动实例化或注册配置类，没有 `@AutoXxx` 注解。配置的创建与 `load()` 时机由你掌控，通常放在 `@Awake(LifeCycle.ENABLE)` 的初始化代码里（见 [生命周期 @Awake](/docs/blink/03-lifecycle)）。
+</Callout>
+
+---
+
+## 2. 字段规则：为什么必须是 `var`
+
+字段能否参与配置绑定，由 `BlinkConfig` 内部的 `collectFields()` 决定（见 [`BlinkConfig.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/BlinkConfig.kt)）。它沿继承链收集字段，过滤掉以下情况：
+
+- `final` 字段——**Kotlin 的 `val` 编译成 final 字段，因此 `val` 不参与配置**，写了也读不进来
+- `transient` 字段
+- 合成字段（`isSynthetic`）、名为 `INSTANCE` 的字段
+- `static` 字段——除非类本身是 Kotlin `object`（带 `INSTANCE` 单例时才放行其静态字段）
+
+**配置项一律用 `var`**。要存放不写进 YAML 的运行期状态，用 `@Ignore`（下节）。
+
+字段类型在 `loadPrimitive()` 中按默认值的类型分发，源码支持：
+
+| 类型                                  | 说明                                             |
+|-------------------------------------|------------------------------------------------|
+| `Int` / `Long` / `Double` / `Float` | 从 YAML 的 `Number` 安全转换，读不到时回退默认值               |
+| `Boolean`                           | 直接读布尔                                          |
+| `String`                            | 读字符串；读入时把字面 `</n/>` 替换成换行 `\n`                 |
+| `List<*>`                           | 读列表；若 YAML 写成单个字符串，会包成单元素列表                    |
+| `BlinkSection` 子类                   | 当作子节点递归读取（见第 5 节）                              |
+| `Map<String, 某 BlinkSection 子类>`    | 动态条目映射（见第 6 节）                                 |
+| 其它                                  | 走 `else` 分支，按 `section.get(key, default)` 原样写回 |
+
+默认值同时决定**用哪条类型分支解析**，并在解析失败时作为兜底，所以每个字段都要给出合理默认值。
+
+---
+
+## 3. 三个注解：`@Comment` / `@ConfigKey` / `@Ignore`
+
+### `@ConfigKey` — 自定义 YAML 键名
+
+```kotlin
+@ConfigKey("welcome-message")
+var welcomeMessage: String = "hello"
+```
+
+不写 `@ConfigKey` 时，YAML 键直接用**字段名**（源码：`field.getAnnotation(ConfigKey::class.java)?.value ?: field.name`）。定义见 [`ConfigKey.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/ConfigKey.kt)。
+
+<Callout type="info">
+建议每个字段都显式写 `@ConfigKey`，原因见第 8 节「混淆」。
+</Callout>
+
+### `@Comment` — 生成注释行
+
+`@Comment` 可加在**字段**上，也可加在**类**上（类级注释写在该节点开头）。它是 `@Repeatable` 的，可叠多行：
+
+```kotlin
+@Comment("数据库连接配置")
+@Comment("修改后需要 /reload")
+class DatabaseSection : BlinkSection() {
+    @Comment("主机地址")
+    var host: String = "localhost"
+}
+```
+
+生成模板时每个 `@Comment` 输出一行 `# ...`。定义见 [`Comment.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/Comment.kt)。注释只在 Blink **生成/写出**文件时产生（`writeDefaults` / `save`），读取已存在文件不依赖注释。
+
+### `@Ignore` — 排除字段
+
+```kotlin
+@Ignore
+var runtimeCache: MutableMap<String, Any> = mutableMapOf()
+```
+
+`@Ignore` 字段既不读也不写，适合放运行期缓存、句柄等。定义见 [`Ignore.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/Ignore.kt)。`BlinkConfig` 自带的 `configFile` 字段本身就标了 `@Ignore`。
+
+---
+
+## 4. load / reload / save 与文件位置
+
+`BlinkConfig` 暴露三个方法（见 [`BlinkConfig.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/BlinkConfig.kt)）：
+
+```kotlin
+fun load()    // 解析路径 → 建目录 → 文件不存在则释放模板 → reload()
+fun reload()  // 从磁盘 YAML 把值回填到字段
+fun save()    // 把当前字段值（含注释）写回 YAML 文件
+```
+
+### 文件路径与后缀
+
+构造参数 `pathName` 会被规整：反斜杠统一成 `/`，没有 `.yml` 后缀时自动补上。下面两种写法等价指向 `plugins/你的插件/config.yml`：
+
+```kotlin
+BlinkConfig(bukkitPlugin, "config")
+BlinkConfig(bukkitPlugin, "config.yml")
+```
+
+支持子目录，例如 `"messages/zh_cn"` → `plugins/你的插件/messages/zh_cn.yml`，`load()` 会自动 `mkdirs()` 建好父目录。最终文件由 `File(plugin.dataFolder, pathName)` 决定，始终落在插件数据目录下。
+
+### JAR 内默认模板优先
+
+`load()` 在文件不存在时有两条路（源码逻辑）：
+
+1. 先找 JAR 内资源 `assets/<pathName>`（如 `assets/config.yml`），找到就直接释放到磁盘，初始内容、排版与注释由你控制。
+2. 找不到资源，才调用 `writeDefaults()`：用字段默认值 + `@Comment` 自动生成模板。
+
+把一份 `src/main/resources/assets/config.yml` 放进 JAR，即可覆盖自动生成的默认模板。两种方式择一即可。
+
+### reload 的容错
+
+`reload()` 内部 try/catch，出错通过 `BlinkLog.error("加载配置 ... 失败", e)` 记录而不抛出（日志见 [日志](/docs/blink/07-logging)）。单个字段解析失败也只记录该字段，不影响其它字段。
+
+### 典型封装
+
+把实例和重载收进 `companion object`，对外只暴露读取入口：
+
+```kotlin
+class Settings : BlinkConfig(bukkitPlugin, "config") {
+    @ConfigKey("debug") var debug: Boolean = false
+
+    companion object {
+        lateinit var instance: Settings
+            private set
+
+        fun load() {
+            instance = Settings()
+            instance.load()
+        }
+
+        fun reload() = instance.reload()
+    }
+}
+```
+
+在 `LifeCycle.ENABLE` 调 `Settings.load()`，在 `/reload` 命令里调 `Settings.reload()`（命令见 [命令](/docs/blink/05-commands)）。
+
+---
+
+## 5. 嵌套结构：BlinkSection
+
+需要分组（YAML 子节点）时，定义一个 `BlinkSection` 子类，作为 `var` 字段持有：
+
+```kotlin
+import priv.seventeen.artist.blink.config.BlinkSection
+
+class DatabaseSection : BlinkSection() {
+    @Comment("主机地址")
+    var host: String = "localhost"
+    var port: Int = 3306
+    var name: String = "mydb"
+}
+
+class Settings : BlinkConfig(bukkitPlugin, "config") {
+    @ConfigKey("database")
+    var database: DatabaseSection = DatabaseSection()
+}
+```
+
+`BlinkSection` 本身是空的 `open class`（见 [`BlinkSection.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/BlinkSection.kt)）。框架检测到字段当前值是 `BlinkSection` 时，进入该节点递归读/写它的字段，规则与顶层一致（同样要求 `var`，同样支持 `@Comment` / `@ConfigKey` / `@Ignore`），可多层嵌套。
+
+生成的 YAML：
+
+```yaml
+database:
+  # 主机地址
+  host: "localhost"
+  port: 3306
+  name: "mydb"
+```
+
+---
+
+## 6. 动态条目：`Map<String, Section>`
+
+当条目个数不固定、键由用户在 YAML 里自定义时，用 `Map<String, 某 BlinkSection 子类>`：
+
+```kotlin
+class KitSection : BlinkSection() {
+    var displayName: String = "未命名礼包"
+    var cooldown: Int = 60
+}
+
+class Settings : BlinkConfig(bukkitPlugin, "config") {
+    @ConfigKey("kits")
+    var kits: MutableMap<String, KitSection> = linkedMapOf()
+}
+```
+
+读取时框架对该子节点下的每个键，**用反射调用值类型的无参构造器**新建实例，逐字段填充后放进 map（源码 `loadSectionMap`：`vType.getConstructor()` + `loadFields(inst, ...)`）。
+
+两条硬性约束：
+
+1. map 的 key 必须是 `String`，value 必须是 `BlinkSection` 的子类（`isMapOfSection` 检查泛型实参）。
+2. value 类型必须有**公开无参构造器**——给所有字段默认值即可满足。
+
+对应 YAML：
+
+```yaml
+kits:
+  starter:
+    displayName: "新手礼包"
+    cooldown: 0
+  vip:
+    displayName: "VIP 礼包"
+    cooldown: 3600
+```
+
+<Callout type="info">
+`reload()` 会先 `clear()` 这个 map 再重建，所以删掉 YAML 里某个键，重载后对应条目也会消失。
+</Callout>
+
+---
+
+## 7. 多文件：BlinkConfigFolder
+
+要管理「一个目录下任意多份同结构配置」（如每个怪物 / 每个 GUI 一个文件），用 `BlinkConfigFolder`（见 [`BlinkConfigFolder.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/config/BlinkConfigFolder.kt)）：
+
+```kotlin
+import org.bukkit.plugin.java.JavaPlugin
+import priv.seventeen.artist.blink.bukkitPlugin
+import priv.seventeen.artist.blink.config.BlinkConfig
+import priv.seventeen.artist.blink.config.BlinkConfigFolder
+
+class KitConfig(plugin: JavaPlugin, path: String) : BlinkConfig(plugin, path) {
+    @ConfigKey("display-name") var displayName: String = "礼包"
+    @ConfigKey("cooldown")     var cooldown: Int = 60
+}
+
+class KitFolder : BlinkConfigFolder<KitConfig>(bukkitPlugin, "kits") {
+    override fun createConfig(plugin: JavaPlugin, filePath: String) =
+        KitConfig(plugin, filePath)
+
+    // 可选：目录首次被创建时回调，用来释放内置示例文件
+    override fun onCreateFolder(plugin: JavaPlugin, folderPath: String) {
+        // 例如把 JAR 内的默认 kit 拷进去
+    }
+}
+```
+
+使用：
+
+```kotlin
+val folder = KitFolder()
+folder.load()                       // 扫描 kits/ 目录，逐个 load
+val starter = folder.configs["starter"]   // key 是去掉 .yml 的相对路径
+```
+
+要点（均来自源码）：
+
+- 构造参数 `folderName` 末尾自动补 `/`，目录落在 `plugin.dataFolder` 下。
+- `load()`：目录不存在则 `mkdirs()`，**仅在这次新建成功时**回调一次 `onCreateFolder(...)`，然后 `reload()`。
+- `reload()`：清空 `configs`，**递归**扫描目录下所有 `.yml`（含子目录），对每个文件 `createConfig(...)` + `c.load()` 装入。
+- `configs` 是 `LinkedHashMap<String, T>`，键为相对路径去掉 `.yml`、分隔符统一成 `/`（如 `melee/zombie.yml` → key `melee/zombie`）。
+- 单个文件加载失败只记日志，不影响其它文件。
+
+抽象成员只有 `createConfig` 必须实现，`onCreateFolder` 可选重写。
+
+---
+
+## 8. 字段映射基于反射 —— 与 Proteus 混淆的关系（重要）
+
+`BlinkConfig` 的读写**完全基于反射**：用 `collectFields()` 拿到 `java.lang.reflect.Field`，再用 `MethodHandles.privateLookupIn(...).unreflectGetter/Setter(field)` 取值/赋值；`Map<String, Section>` 还会反射调用值类型的无参构造器。
+
+由此带来一个与混淆相关的隐患：若 `fieldStrategy = "o0"` 把字段名改成乱码，而 YAML 键在**没有 `@ConfigKey` 时回退到字段名**，键就会变成 `o0Oo...` 之类的乱码，与手写或旧版生成的 YAML 对不上。
+
+<Callout type="info">
+Blink 已自动处理这个隐患。`blinkGenerate` 在编译期扫描类时（见 [`AnnotationScanner.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/AnnotationScanner.kt)），自动识别所有 `BlinkConfig` / `BlinkSection` 子类（含传递继承），并把它们**整体排除出混淆**（写入 `build/blink-obfuscate-exclude.txt`，由 `configureProteus` 追加进 Proteus `exclude`）。因此开混淆时配置类的字段名不会被改写，config.yml 的键保持正常——已在真机（Paper 1.20.1）实测验证，详见 [Proteus 混淆 · 稳定性测试结果](/docs/blink/10-obfuscation)。构建日志会打印 `检测到 N 个配置类……将自动排除`。
+</Callout>
+
+实践建议：
+
+1. 仍建议**给配置字段写 `@ConfigKey`**：键名与字段名解耦，可读性更好；万一手动改混淆策略把配置类放回混淆，显式 key 也不受影响。
+2. 用 `Map<String, Section>` 时值类型是 `BlinkSection` 子类，已被自动排除覆盖（含其无参构造器），无需额外配置。
+3. 若用 **Gson / kotlinx.serialization 按字段名序列化自己的数据类**（非 `BlinkConfig`/`BlinkSection`），框架无从识别，仍需自己 `obfuscateExclude` 排除或加显式注解 key。配置见 [Proteus 混淆](/docs/blink/10-obfuscation)。
+
+<Callout type="info">
+`BlinkConfig` / `BlinkSection` 在混淆下无需手动 keep/exclude；`@ConfigKey` 从「混淆必需」降级为「推荐习惯」。
+</Callout>
+
+---
+
+## 9. 速查
+
+- 配置类继承 `BlinkConfig(plugin, pathName)`，目录配置继承 `BlinkConfigFolder<T>(plugin, folderName)`
+- 字段一律 `var` 并带默认值；`val` 不参与
+- `@ConfigKey("key")` 固定键名（务必写）、`@Comment("...")` 生成注释（可叠加、可加类上）、`@Ignore` 排除字段
+- 嵌套用 `BlinkSection` 子类；动态条目用 `Map<String, BlinkSection 子类>`（值类型需无参构造器）
+- `load()` 建目录 + 释放 `assets/<path>` 模板或自动生成 + `reload()`；`reload()` 回填；`save()` 写回
+- 文件始终在 `plugin.dataFolder` 下；映射基于反射，开混淆时框架自动排除配置类（无需手动 keep/exclude），`@ConfigKey` 为推荐习惯
+
+---
+
+## 下一步
+
+- [日志](/docs/blink/07-logging)：`reload` 失败时的错误输出、`BlinkLog` 用法
+- [命令](/docs/blink/05-commands)：实现 `/reload` 子命令重载配置
+- [Proteus 混淆](/docs/blink/10-obfuscation)：keep / exclude 配置，保护反射用到的类

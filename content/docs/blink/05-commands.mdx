@@ -1,0 +1,369 @@
+---
+title: 命令
+description: BlinkCommand 链式 DSL 与 @SubCommand 注解风格：参数、SenderType、CommandContext、Tab 补全、分组。
+---
+
+Blink 用一套链式 DSL + 注解的命令系统取代 Bukkit 原生的 `CommandExecutor`/`TabCompleter` 样板，自带子命令分组、参数声明、Sender 校验和 Tab 补全。
+
+读完本篇你能：
+
+- 用 `BlinkCommand` 链式构建并注册根命令与子命令
+- 声明参数、用 `SenderType` 与 `permission` 做校验
+- 在 `CommandContext` 里取参、回复，并提供自定义 Tab 补全
+- 在 Lambda 风格与 `@SubCommand` 注解风格之间选择或混用
+
+## 一分钟上手
+
+命令通常在 `@Awake(LifeCycle.ENABLE)` 阶段构建并注册（生命周期见 [生命周期 @Awake](/docs/blink/03-lifecycle)）：
+
+```kotlin
+import priv.seventeen.artist.blink.bukkitPlugin
+import priv.seventeen.artist.blink.command.BlinkCommand
+import priv.seventeen.artist.blink.command.BlinkCommandRegistrar
+import priv.seventeen.artist.blink.command.SenderType
+import priv.seventeen.artist.blink.lifecycle.Awake
+import priv.seventeen.artist.blink.lifecycle.LifeCycle
+
+object MainCommand {
+
+    @Awake(LifeCycle.ENABLE)
+    fun register() {
+        val cmd = BlinkCommand("myplugin", "mp")
+            .command("reload", "重载配置", permission = "myplugin.reload") { ctx ->
+                ctx.reply("§a配置已重载")
+            }
+            .command("info", "查看插件信息") { ctx ->
+                ctx.reply("§bMyPlugin §fv1.0.0")
+            }
+
+        BlinkCommandRegistrar.register(bukkitPlugin, cmd)
+    }
+}
+```
+
+注册后即可在游戏里输入 `/myplugin reload` 或别名 `/mp reload`。无需在 `plugin.yml` 里声明 `commands`，`BlinkCommandRegistrar` 直接把命令注册进服务器的 `CommandMap`。
+
+## BlinkCommand：根命令与别名
+
+`BlinkCommand` 继承自 Bukkit 的 `Command`，构造时传命令名与可变别名：
+
+```kotlin
+class BlinkCommand(name: String, vararg aliases: String)
+    : Command(name, "", "/$name", aliases.toList())
+```
+
+源码见 [`BlinkCommand.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/BlinkCommand.kt)。
+
+```kotlin
+BlinkCommand("blinktest", "bt")   // 根命令 blinktest，别名 bt
+```
+
+它内部维护三类东西：
+
+- `rootCommands`：直接挂在根命令下的子命令（如 `/myplugin reload`）
+- `groups`：命令分组，多一层前缀（如 `/myplugin admin welcome`）
+- `tabProviders`：自定义参数名 → 补全候选的映射
+
+### .command(...)：注册一个子命令
+
+Lambda 风格的核心方法，完整签名（来自源码）：
+
+```kotlin
+fun command(
+    name: String,
+    description: String = "",
+    permission: String = "",
+    args: Array<String> = emptyArray(),
+    sender: SenderType = SenderType.ALL,
+    handler: (CommandContext) -> Unit
+): BlinkCommand
+```
+
+返回 `this`，可链式追加：
+
+```kotlin
+BlinkCommand("myplugin", "mp")
+    .command("reload", "重载配置", permission = "myplugin.reload") { ctx ->
+        ctx.reply("§a已重载")
+    }
+    .command("give", "给物品",
+        args = arrayOf("player", "item", "?amount"),
+        sender = SenderType.OP
+    ) { ctx ->
+        val player = ctx.argPlayer(0) ?: return@command ctx.reply("§c玩家不存在")
+        ctx.reply("§a给了 ${player.name} ${ctx.argInt(2, 1)}x ${ctx.arg(1)}")
+    }
+```
+
+各参数含义：
+
+| 参数            | 说明                                        |
+|---------------|-------------------------------------------|
+| `name`        | 子命令名，匹配时大小写不敏感                            |
+| `description` | 帮助列表里显示的描述                                |
+| `permission`  | 权限节点，空字符串表示不校验                            |
+| `args`        | 参数名数组，用于用法提示、必填校验与补全（见下文）                 |
+| `sender`      | 允许的发送者类型，见 [SenderType](#sendertype发送者校验) |
+| `handler`     | 命令体，接收一个 `CommandContext`                 |
+
+## 参数声明 args
+
+`args` 是参数名数组，框架据此做三件事：用法提示、必填数量校验、Tab 补全匹配。
+
+### 可选参数：? 前缀
+
+参数名以 `?` 开头表示可选，否则必填。`ResolvedCommand` 据此计算必填数量：
+
+```kotlin
+val requiredArgs: Int = args.count { !it.startsWith("?") }
+```
+
+（见 [`ResolvedCommand.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/ResolvedCommand.kt)）
+
+执行前若实际参数少于 `requiredArgs`，框架自动拦截并给出用法提示，不进入 handler：
+
+```
+§c参数不足: §6<player> §6<item> §7[amount]
+```
+
+可选参数渲染为 `[amount]`，必填渲染为 `<player>`。`args = arrayOf("player", "item", "?amount")` 即 player、item 必填，amount 可选。
+
+`args` 只校验数量，不校验类型。把字符串解析成 int/player 等由你在 handler 里用 `CommandContext` 的取参方法完成。
+
+### player 参数：内建在线玩家补全
+
+参数名（去掉 `?` 前缀后、小写）恰好是 `player` 时，框架自动用在线玩家名做 Tab 补全，无需额外配置：
+
+```kotlin
+// completeArgs 内部
+if (argName == "player") return filter(Bukkit.getOnlinePlayers().map { it.name }.toSet(), args.last())
+```
+
+`?player` 同样享受此补全（前缀经 `removePrefix("?")` 去掉后再比较）。其它参数名要补全需用 `tabComplete` 注册，见后文。
+
+## SenderType：发送者校验
+
+`SenderType` 是一个四值枚举 [`SenderType.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/SenderType.kt)：
+
+```kotlin
+enum class SenderType { PLAYER, OP, CONSOLE, ALL }
+```
+
+执行前框架按下表校验，不通过则回复提示并终止：
+
+| 取值        | 允许的发送者                           | 不通过时提示  |
+|-----------|----------------------------------|---------|
+| `ALL`（默认） | 任何人                              | —       |
+| `PLAYER`  | `sender is Player`               | §c仅限玩家  |
+| `OP`      | `sender.isOp`                    | §c仅限 OP |
+| `CONSOLE` | `sender is ConsoleCommandSender` | §c仅限控制台 |
+
+`SenderType` 与 `permission` 是两道独立的关卡：先过 `sender` 校验，再过权限校验，任一不过即终止。`OP` 按 `isOp` 判定（控制台的 `isOp` 通常为 true），与权限插件的节点机制无关；细粒度授权请用 `permission`。
+
+```kotlin
+.command("eval", "执行 JS 脚本",
+    args = arrayOf("script"),
+    permission = "myplugin.eval",
+    sender = SenderType.OP
+) { ctx -> /* ... */ }
+```
+
+## CommandContext：取参与回复
+
+handler 收到的 `CommandContext` 封装了发送者、命令标签和已剥离子命令名的参数数组，即 `ctx.arg(0)` 是子命令后的第一个参数，不含子命令名本身。
+
+源码见 [`CommandContext.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/CommandContext.kt)。
+
+### 发送者与元信息
+
+| 成员         | 类型              | 说明                        |
+|------------|-----------------|---------------------------|
+| `sender`   | `CommandSender` | 原始发送者                     |
+| `isPlayer` | `Boolean`       | 发送者是否为玩家                  |
+| `player`   | `Player?`       | 发送者转 `Player`，非玩家为 `null` |
+| `label`    | `String`        | 实际使用的命令名（可能是别名）           |
+| `size`     | `Int`           | 参数数量                      |
+
+### 取参方法
+
+所有 `index` 从 0 开始，对应子命令之后的参数。越界或解析失败时返回默认值，不抛异常：
+
+| 方法                                      | 返回        | 说明                                        |
+|-----------------------------------------|-----------|-------------------------------------------|
+| `arg(index)`                            | `String`  | 越界返回 `""`                                 |
+| `argInt(index, default = 0)`            | `Int`     | 解析失败回退；会先取小数点前部分再解析                       |
+| `argLong(index, default = 0L)`          | `Long`    |                                           |
+| `argDouble(index, default = 0.0)`       | `Double`  |                                           |
+| `argFloat(index, default = 0f)`         | `Float`   |                                           |
+| `argBoolean(index, default = false)`    | `Boolean` | 识别 `true/yes/1` 与 `false/no/0`            |
+| `argPlayer(index)`                      | `Player?` | `Bukkit.getPlayerExact`，离线返回 `null`       |
+| `argUUID(index)`                        | `UUID?`   | 解析失败返回 `null`                             |
+| `argJoined(fromIndex, separator = " ")` | `String`  | 从某下标起拼接剩余参数，适合自由文本                        |
+| `reply(message)`                        | `Unit`    | `sender.sendMessage(message)`，支持 §ode 颜色码 |
+
+`argJoined` 适用于「最后一个参数是整句话」的场景，如封禁理由、聊天广播、脚本片段：
+
+```kotlin
+.command("eval", "执行脚本", args = arrayOf("script"), sender = SenderType.OP) { ctx ->
+    val script = ctx.argJoined(0)   // 把 script 之后所有 token 合并成一行
+    ctx.reply("§a结果: §f${runScript(script)}")
+}
+```
+
+`argInt` 有小数兜底：`argInt(2, 1)` 在输入 `"3.9"` 时返回 `3`（取小数点前），输入非数字时返回默认值 `1`。
+
+## tabComplete：自定义参数补全
+
+`player` 参数有内建补全；其它参数名要补全，用 `tabComplete(argName, provider)`，按参数名（大小写不敏感）注册一个返回候选集合的 lambda：
+
+```kotlin
+fun tabComplete(argName: String, provider: () -> Collection<String>): BlinkCommand
+```
+
+```kotlin
+BlinkCommand("myplugin", "mp")
+    .command("give", "给物品", args = arrayOf("player", "item", "?amount")) { ctx -> /* ... */ }
+    .tabComplete("item") { listOf("diamond", "gold", "iron") }
+```
+
+要点：
+
+- `provider` 每次按 Tab 时调用，可返回动态内容（如当前已加载的配置项名）。
+- 补全按参数名匹配，不按位置。多个子命令里只要参数名都叫 `item`，就共用同一个 provider。
+- 框架自动按玩家已输入的前缀过滤候选（大小写不敏感），你只需返回全集。
+- 第一段（子命令/分组名）的补全由框架自动给出，无需注册。
+
+## 命令分组 group + 子命令注解
+
+子命令较多时，可把它们收进一个 `BlinkCommandGroup`，多出一层前缀：`/myplugin admin welcome`。
+
+### 定义分组
+
+继承 `BlinkCommandGroup(groupName, groupDescription)`，用 `@SubCommand` 标注方法。源码见 [`BlinkCommandGroup.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/BlinkCommandGroup.kt) 与 [`SubCommand.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/SubCommand.kt)。
+
+```kotlin
+import priv.seventeen.artist.blink.command.BlinkCommandGroup
+import priv.seventeen.artist.blink.command.CommandContext
+import priv.seventeen.artist.blink.command.SenderType
+import priv.seventeen.artist.blink.command.SubCommand
+
+class AdminCommands : BlinkCommandGroup("admin", "管理命令") {
+
+    @SubCommand(
+        name = "welcome",
+        description = "手动发送欢迎消息",
+        args = ["player"],
+        permission = "myplugin.admin",
+        sender = SenderType.OP
+    )
+    fun welcome(ctx: CommandContext) {
+        val target = ctx.argPlayer(0) ?: return ctx.reply("§c玩家不在线")
+        ctx.reply("§a已向 ${target.name} 发送欢迎")
+    }
+
+    @SubCommand(name = "debug", description = "切换调试模式", permission = "myplugin.admin")
+    fun toggleDebug(ctx: CommandContext) {
+        ctx.reply("§7调试模式已切换")
+    }
+}
+```
+
+`@SubCommand` 的字段与 `.command(...)` 的参数一一对应：
+
+```kotlin
+annotation class SubCommand(
+    val name: String,
+    val description: String = "",
+    val permission: String = "",
+    val args: Array<String> = [],
+    val sender: SenderType = SenderType.ALL
+)
+```
+
+约束（构造分组实例时由框架扫描校验，违反会抛异常）：
+
+- 方法必须恰好一个 `CommandContext` 参数，否则 `init` 阶段报错：`@SubCommand X#y 参数必须为 (CommandContext)`。
+- 扫描发生在 `BlinkCommandGroup` 的 `init {}` 里，通过 `MethodHandles` 反射方法句柄，所以方法可以是 `private`。
+
+### 挂载分组
+
+用 `.group(...)` 把分组挂到根命令上，分组名成为一级前缀：
+
+```kotlin
+BlinkCommand("myplugin", "mp")
+    .group(AdminCommands())
+// /myplugin admin welcome <player>
+// /myplugin admin debug
+```
+
+输入 `/myplugin admin` 会打印该分组下所有子命令的用法。
+
+### group 与 sub 的区别
+
+`BlinkCommand` 提供两个挂载分组的方法，行为不同：
+
+```kotlin
+fun group(g: BlinkCommandGroup): BlinkCommand   // 保留分组前缀
+fun sub(executor: BlinkCommandGroup): BlinkCommand  // 把分组里的子命令“摊平”到根
+```
+
+- `.group(g)`：保留一层前缀，命令为 `/myplugin <分组名> <子命令>`。
+- `.sub(g)`：把分组里每个 `@SubCommand` 直接拍平到根命令下，变成 `/myplugin <子命令>`（丢掉分组名前缀）。适合用注解风格组织代码、但不想要额外前缀的场景。
+
+```kotlin
+BlinkCommand("myplugin", "mp")
+    .sub(AdminCommands())   // 直接 /myplugin welcome <player>、/myplugin debug
+```
+
+## 两种风格混用
+
+Lambda 风格和注解风格可在同一个根命令上自由叠加，链式返回的都是同一个 `BlinkCommand`：
+
+```kotlin
+val cmd = BlinkCommand("blinktest", "bt")
+    .command("reload", "重载配置", permission = "blinktest.reload") { ctx ->
+        ctx.reply("§a配置已重载")
+    }
+    .command("info", "查看插件信息") { ctx ->
+        ctx.reply("§bBlinkTest §fv1.0.0")
+    }
+    .group(AdminCommands())              // /blinktest admin ...
+    .tabComplete("item") { listOf("diamond", "gold") }
+
+BlinkCommandRegistrar.register(bukkitPlugin, cmd)
+```
+
+选择建议：
+
+- 简单、少量、与某个 service 紧耦合的命令 → Lambda 风格，写在注册处一目了然。
+- 数量多、需要 `private` 辅助方法、想按职责拆类 → `BlinkCommandGroup` + `@SubCommand`。
+
+## 注册：BlinkCommandRegistrar
+
+`BlinkCommandRegistrar` 是一个 `object`，把 `BlinkCommand` 注册进服务器 `CommandMap`：
+
+```kotlin
+fun register(plugin: JavaPlugin, command: BlinkCommand, fallbackPrefix: String = plugin.description.name)
+```
+
+源码见 [`BlinkCommandRegistrar.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/command/BlinkCommandRegistrar.kt)。它沿服务器类的继承链反射查找 `getCommandMap()`，因此兼容 Arclight 等混合端。`fallbackPrefix` 是命令冲突时的命名空间前缀（如 `myplugin:reload`），默认用插件名。
+
+`plugin` 参数一般直接传顶层 `bukkitPlugin`（`priv.seventeen.artist.blink.bukkitPlugin`，由 Blink 在启动时赋值的当前插件实例）。
+
+## 执行流程小结
+
+一次 `/myplugin admin welcome Steve` 的处理顺序：
+
+1. 第一段 `admin` 先匹配 `rootCommands`，未命中则匹配 `groups`。
+2. 命中分组后，第二段 `welcome` 在分组内解析出子命令。
+3. Sender 校验 → 权限校验 → 必填参数数量校验，任一不过即回复提示并终止，不进入你的方法。
+4. 进入 handler；handler 内抛出的异常会被框架捕获，向发送者回复 `§c命令执行出错`，并通过 [日志](/docs/blink/07-logging) 的 `BlinkLog.error` 记录堆栈。
+
+无参数（`/myplugin`）或只给分组名（`/myplugin admin`）时，框架自动打印对应的帮助列表。
+
+## 下一步
+
+- [生命周期 @Awake](/docs/blink/03-lifecycle)：命令一般在 ENABLE 阶段注册
+- [事件 @AutoListener](/docs/blink/04-events)：配合事件做交互逻辑
+- [配置](/docs/blink/06-config)：handler 里读取的配置来源
+- [日志](/docs/blink/07-logging)：命令出错的记录与排查

@@ -1,0 +1,45 @@
+---
+title: 介绍与设计理念
+description: Blink 最小示例、编译期字节码生成，以及三个模块的职责划分。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 最小示例
+```kotlin
+object MyPlugin {
+    @Awake(LifeCycle.ENABLE)
+    fun onEnable() {
+        bukkitPlugin.logger.info("Hello from Blink!")
+    }
+}
+```
+
+构建时，Blink 的 Gradle 插件扫描注解、用 ASM 生成入口类字节码，并写出与配置一致的 `plugin.yml`。产物就是一个能被 Bukkit 正常加载的标准插件。
+
+## 编译期生成
+
+- **零运行时反射开销**——服务器加载插件时，入口类已经是直接调用你业务方法的字节码。
+- **混淆兼容**——生成的字节码引用的是真实代码，混淆器（Proteus）能追踪并同步重命名；运行时的字符串反射做不到这点。
+- **配置即真相**——`plugin.yml` 与入口类同源于 `blink { }` 配置加注解扫描结果，不会出现 `main` 写错、事件漏注册的失配。
+
+<Callout type="info">
+三者关系：**注解是输入，编译期生成的入口类是粘合层，`blink-common` 是运行时实现**。你的代码自始至终不接触 `JavaPlugin`。
+</Callout>
+
+## 三个模块
+
+| 模块                                                                                       | 角色  | 职责                                                                    |
+|------------------------------------------------------------------------------------------|-----|-----------------------------------------------------------------------|
+| [`blink-gradle-plugin`](https://github.com/17Artist/Blink/tree/main/blink-gradle-plugin) | 构建期 | 提供 `blink { }` DSL，扫描注解、用 ASM 生成入口类与 `plugin.yml`。只在构建那一刻运行，不进你的 jar。 |
+| [`blink-common`](https://github.com/17Artist/Blink/tree/main/blink-common)               | 运行时 | 随插件一起发布的库，提供日志、命令、配置、事件分发、脚本与 NMS 桥接等 API——生成的入口类调用的就是它。              |
+| [`test-plugin`](https://github.com/17Artist/Blink/tree/main/test-plugin)                 | 示例  | 可直接抄的端到端样例，把脚本、Aria、Asteroid、混淆全部打开，用来对照验证。                           |
+
+## 一次构建发生了什么
+
+`./gradlew build` 时大致是这条链：**编译 Kotlin → 扫描注解 → ASM 生成三个入口类（主类 / 生命周期注册 / 事件注册）→ 拼出 `plugin.yml` → Shadow 打包**。服务器加载后，生成的主类依次引导 Kotlin stdlib、运行时依赖、脚本与 NMS，再触发 `LOAD → ENABLE → ACTIVE` 生命周期。
+
+## 下一步
+
+- [快速开始与 blink&#123;&#125; 配置](/docs/blink/02-getting-started)
+- [生命周期 @Awake](/docs/blink/03-lifecycle)

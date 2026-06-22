@@ -1,0 +1,149 @@
+---
+title: 构建与发布
+description: 把 Blink 插件构建成可投放 Jar：构建命令、产物路径、打包内容与 blinkGenerate 任务依赖链。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+本篇讲如何在本地把 Blink 插件构建成可投放的 Jar：构建命令、产物路径与文件名、打包进 jar 的内容，以及 `blinkGenerate` 任务的依赖顺序。
+
+读完本篇你能：
+
+- 用 `gradlew build` / `shadowJar` 产出插件 Jar，知道产物路径与文件名的来历。
+- 看懂 `blinkGenerate` 任务及其与各 Jar 任务的依赖顺序。
+- 明白 fat jar 里打进了什么、没打进什么（Kotlin stdlib 排除、Blink relocate、Aria/Asteroid 运行时共享）。
+
+---
+
+## 构建你的插件
+
+### 1.1 把 shadowJar 挂进 build
+
+Blink Gradle 插件在 `afterEvaluate` 阶段自动应用 `com.github.johnrengelman.shadow` 插件（见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt) 的 `apply`），但不会把 `shadowJar` 接到 `build` 上。在构建脚本末尾补一行：
+
+```kotlin
+tasks.named("build") {
+    dependsOn("shadowJar")
+}
+```
+
+这样 `./gradlew build` 会一并产出 fat jar，否则需显式跑 `./gradlew shadowJar`。
+
+### 1.2 两种构建命令
+
+```bash
+# 仅打 fat jar（最常用）
+./gradlew shadowJar
+
+# 完整构建（编译 + 测试 + 上面挂进来的 shadowJar）
+./gradlew build
+```
+
+Windows 下用 `gradlew.bat`，参数相同。
+
+### 1.3 产物路径与文件名
+
+Shadow 插件默认把产物写到 `build/libs/`，文件名形如：
+
+```
+build/libs/<archiveBaseName>-<version>-all.jar
+```
+
+- `<archiveBaseName>` 默认取项目名（`settings.gradle.kts` 里 `rootProject.name` 或子模块名）。
+- `<version>` 取 Gradle 工程的 `version`。
+- `-all` 是 Shadow 给 `shadowJar` 任务的默认 `archiveClassifier`。
+
+<Callout type="info">
+Blink 插件未改写 `archiveClassifier`，沿用 Shadow 默认值 `all`。普通 `jar` 任务产出 `<name>-<version>.jar`（无 classifier，不含依赖），`shadowJar` 产出带 `-all` 的 fat jar（含已合并依赖）。部署到服务器的是 `-all.jar`。若不想要 `-all` 后缀，可在脚本里覆盖：
+
+```kotlin
+tasks.shadowJar {
+    archiveClassifier.set("")   // 产物变成 <name>-<version>.jar
+}
+```
+</Callout>
+
+### 1.4 fat jar 里有什么、没有什么
+
+Blink Gradle 插件在 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt) 里做了三件影响打包内容的事：
+
+1. **排除 Kotlin stdlib**。`configurations.runtimeClasspath` 上 `exclude` 掉 `org.jetbrains.kotlin` 和 `org.jetbrains:annotations`：
+
+   ```kotlin
+   config.exclude(mapOf("group" to "org.jetbrains.kotlin"))
+   config.exclude(mapOf("group" to "org.jetbrains", "module" to "annotations"))
+   ```
+
+   Kotlin 运行时由 Blink 的 `KotlinBootstrap` 在运行期动态加载，不进 Jar，减小体积并避免多插件 stdlib 冲突。
+
+2. **relocate Blink 自身**。`configureShadow` 把 `priv.seventeen.artist.blink` 重定位到 `<你的包名>.blink`：
+
+   ```kotlin
+   relocateMethod.invoke(task, "priv.seventeen.artist.blink", "$pkgName.blink")
+   ```
+
+   `pkgName` 取 `blink { packageName }`，为空时回退到 `project.group`。多个 Blink 插件共存时不会因同名类冲突。
+
+3. **Aria / Asteroid 不打包**。两者在运行时由各自的 SharedHost（`AriaSharedHost` / `AsteroidSharedHost`）部署为全 JVM 共享的单份实例，既不打包也不 relocate。依赖中应是 `compileOnly`（启用 `enableAria` / `enableAsteroid` 时插件自动以 `compileOnly` 注入，见 `configureAria` / `configureAsteroid`）。
+
+### 1.5 blinkGenerate 与 Jar 任务的依赖关系
+
+`blinkGenerate` 是 Blink 的核心代码生成任务，在 `configureCodeGeneration` 中注册（见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt)）：
+
+```kotlin
+val generateTask = project.tasks.register("blinkGenerate", BlinkGenerateTask::class.java) { task ->
+    task.group = "blink"
+    task.description = "Scan annotations and generate Blink entry classes"
+    ...
+}
+project.tasks.withType(Jar::class.java).configureEach {
+    it.dependsOn(generateTask)
+    it.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+```
+
+要点：
+
+- `blinkGenerate` 依赖 `compileKotlin`（无 Kotlin 时退化为 `compileJava`），读取 `build/classes/kotlin/main` 下的已编译字节码做注解扫描。
+- 所有 `Jar` 类型任务都 `dependsOn(blinkGenerate)`，`shadowJar` 作为 `Jar` 子类型同样纳入。执行顺序：
+
+  ```
+  compileKotlin → blinkGenerate → jar / shadowJar
+  ```
+
+- 每个 Jar 任务设 `duplicatesStrategy = EXCLUDE`，避免生成类与原始类重复报错。
+
+`BlinkGenerateTask` 的产出（见 [`BlinkGenerateTask.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkGenerateTask.kt) 的 `generate()`）：
+
+- 扫描 `@Awake` / `@AutoListener` 注解，用 ASM 生成三个入口类并写回 classes 目录：
+  - `BlinkGeneratedLifeCycle.class`
+  - `BlinkGeneratedEvents.class`
+  - `BlinkGeneratedMain.class`（`plugin.yml` 里的 `main`）
+- 生成 `plugin.yml`（同时写到 `resources/main` 和 classes 目录），字段来自 `blink { }` DSL：`name` / `version` / `api-version` / `description` / `authors` / `depend` / `softdepend` / `folia-supported` / `blink-libraries` / `blink-log-prefix`。
+- 写一份 `blink-scan-result.txt` 到 `build/` 供排查。
+
+<Callout type="warn">
+入口类是字节码生成、写回 classes 目录的，因此任何 Jar 打包都必须排在 `blinkGenerate` 之后——这是上面 `dependsOn` 的目的。Jar 里缺少 `BlinkGeneratedMain`，多半是绕过了 `blinkGenerate`。
+</Callout>
+
+### 1.6 启用混淆时的额外一环
+
+当 `blink { obfuscate = true }` 且已应用 Proteus 插件时，`configureProteus` 让 `obfuscate` 任务 `dependsOn("shadowJar")`，并把 `shadowJar` 的输出作为 `inputFile`。完整链路：
+
+```
+compileKotlin → blinkGenerate → shadowJar → obfuscate
+```
+
+混淆细节见 [Proteus 混淆](/docs/blink/10-obfuscation)。
+
+---
+
+## 小结
+
+- 你的插件：`./gradlew build`（`build` 挂 `shadowJar`）→ `build/libs/<name>-<version>-all.jar`，部署这个 `-all.jar`。
+- 打包链路：`compileKotlin → blinkGenerate → shadowJar`（开混淆再 `→ obfuscate`）。Kotlin stdlib 不打包、Blink 被 relocate、Aria/Asteroid 运行时共享。
+
+## 下一步
+
+- 开启 `obfuscate` 后的完整配置：[Proteus 混淆](/docs/blink/10-obfuscation)。
+- `blink { }` 字段如何影响 `plugin.yml` 与构建：[快速开始与 blink&#123;&#125; 配置](/docs/blink/02-getting-started)。

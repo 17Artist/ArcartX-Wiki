@@ -1,0 +1,279 @@
+---
+title: 快速开始
+description: 从环境要求到 Gradle 脚本模板，逐字段讲解 blink 配置 DSL，写出第一个能加载的插件。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+本篇从零搭建 Blink 工程：配置环境、编写两个 Gradle 脚本、逐字段说明 `blink { }` DSL，构建第一个插件。跟着抄一遍，你就有了一个能被服务器加载的插件骨架。
+
+读完本篇你能：
+- 准备正确的 JDK / Kotlin / spigot-api 版本组合
+- 写出 `settings.gradle.kts` 与 `build.gradle.kts`
+- 理解 `blink { }` 各字段含义与默认值
+- 仅靠注解完成一个可加载的插件（不写 `JavaPlugin` 子类、不写 `plugin.yml`）
+
+---
+
+## 1. 环境要求
+
+Blink 的代码生成与运行时基于固定版本基线，请严格对齐以避免编译期或运行期不兼容。
+
+| 组件            | 版本                                      | 说明                                                                                                                                                                                                                        |
+|---------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| JDK           | 17                                      | 生成的入口类字节码版本为 `V17`（见 [`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 的 `cw.visit(V17, ...)`），低于 17 无法运行 |
+| Kotlin        | 1.8.22                                  | `blink { }` 中 `kotlinVersion` 默认即 `1.8.22`，Kotlin stdlib 运行时由框架动态加载，不打包进 JAR                                                                                                                                              |
+| Gradle Shadow | `com.github.johnrengelman.shadow` 8.1.1 | Blink 在 `afterEvaluate` 阶段自动 apply，但建议显式声明以锁定版本                                                                                                                                                                           |
+| spigot-api    | 与目标服务端匹配（如 `1.20.4-R0.1-SNAPSHOT`）      | 仅 `compileOnly`，不打包                                                                                                                                                                                                       |
+| Proteus（可选）   | `priv.seventeen.artist.proteus` 1.0.10  | 仅当 `obfuscate = true` 时需要                                                                                                                                                                                                 |
+
+这里要分清两个容易混淆的概念，`apiVersion` 与 `spigot-api` 并不是一回事：
+
+- `apiVersion` 写进 `plugin.yml` 的 `api-version` 字段（默认 `"1.20"`），声明插件按哪个 API 代际编写。
+- `spigot-api` 是 `dependencies { }` 里声明的编译依赖，决定 import 哪些类。
+
+两者通常对应同一大版本，但互不强制；`spigot-api` 用 `compileOnly` 声明即可，运行时由服务端提供。
+
+<Callout type="info">
+关于 Kotlin runtime：[`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt) 在 `apply` 时对 `runtimeClasspath` 做了 `exclude(group = "org.jetbrains.kotlin")`，stdlib 不进 JAR，而由 `KotlinBootstrap` 运行时动态加载。你无需手动添加 stdlib 依赖。
+</Callout>
+
+---
+
+## 2. settings.gradle.kts 模板
+
+`pluginManagement` 必须能解析到 `priv.seventeen.artist.blink` 插件，因此要加入 ArcartX 仓库。
+
+```kotlin
+pluginManagement {
+    repositories {
+        mavenLocal()
+        maven("https://repo.arcartx.com/repository/maven-public/")
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "my-plugin"
+```
+
+可参考 [`test-plugin/settings.gradle.kts`](https://github.com/17Artist/Blink/blob/main/test-plugin/settings.gradle.kts)。
+
+---
+
+## 3. build.gradle.kts 模板
+
+下面是最小可用模板（不含混淆）。`group` 决定包名与 relocate 目标，见下文。
+
+```kotlin
+plugins {
+    kotlin("jvm") version "1.8.22"
+    id("priv.seventeen.artist.blink") version "1.3.11"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
+
+group = "com.example.myplugin"
+version = "1.0.0"
+
+repositories {
+    mavenLocal()
+    maven("https://repo.arcartx.com/repository/maven-public/")
+    mavenCentral()
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+}
+
+blink {
+    name.set("MyPlugin")
+    version.set("1.0.0")
+    description.set("My first Blink plugin")
+    authors.set(listOf("YourName"))
+    apiVersion.set("1.20")
+    packageName.set("com.example.myplugin")
+}
+
+dependencies {
+    implementation("priv.seventeen.artist.blink:blink-common:1.3.11")
+    compileOnly("org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT")
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+tasks.named("build") {
+    dependsOn("shadowJar")
+}
+```
+
+带混淆 / Aria / Asteroid 的完整示例见 [`test-plugin/build.gradle.kts`](https://github.com/17Artist/Blink/blob/main/test-plugin/build.gradle.kts)。
+
+- [`blink-common`](https://github.com/17Artist/Blink/tree/main/blink-common) 用 `implementation`：包含注解（`@Awake`、`@AutoListener` 等）与运行时支撑类，注解扫描与生成的入口类都依赖它，需打包进 JAR。其中 `priv.seventeen.artist.blink` 包会被 relocate 到 `<packageName>.blink`，见下文。
+- `spigot-api` 用 `compileOnly`，运行时由服务端提供。
+- `jvmToolchain(17)` 确保用 JDK 17 编译，匹配字节码基线。
+
+---
+
+## 4. blink { } 字段逐条说明
+
+DSL 定义在 [`BlinkExtension.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkExtension.kt)，全部字段为 Gradle `Property` / `ListProperty`，统一用 `.set(...)` 赋值。下表默认值取自该文件 `init { }` 块的 `convention(...)`。
+
+### 4.1 plugin.yml 元数据
+
+这些字段最终写进生成的 `plugin.yml`（见 [`BlinkGenerateTask.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkGenerateTask.kt) 的 `buildPluginYml`）。
+
+| 字段               | 类型             | 默认值       | 说明                                                                                                                                                                                          |
+|------------------|----------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`           | String         | `""`      | 插件名。为空时回退为 Gradle 项目名 `project.name`                                                                                                                                                        |
+| `version`        | String         | `"1.0.0"` | 插件版本，写入 `version`                                                                                                                                                                           |
+| `description`    | String         | `""`      | 插件描述。非空时才写入 `description`                                                                                                                                                                   |
+| `authors`        | `List<String>` | `[]`      | 作者列表。非空时写入 `authors`                                                                                                                                                                        |
+| `apiVersion`     | String         | `"1.20"`  | 写入 `api-version`，YAML 中带引号输出                                                                                                                                                                |
+| `depend`         | `List<String>` | `[]`      | 硬依赖插件，非空时写入 `depend`                                                                                                                                                                        |
+| `softDepend`     | `List<String>` | `[]`      | 软依赖插件，非空时写入 `softdepend`                                                                                                                                                                    |
+| `foliaSupported` | Boolean        | `false`   | 为 `true` 时写入 `folia-supported: true`                                                                                                                                                        |
+| `logPrefix`      | String         | `""`      | 自定义控制台日志前缀，非空时写入 `blink-log-prefix`，运行时由 `BlinkLog` 读取（见 [`BlinkLog.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/BlinkLog.kt)） |
+
+### 4.2 包名与构建行为
+
+| 字段              | 类型             | 默认值        | 说明                                                                                                                                                |
+|-----------------|----------------|------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `packageName`   | String         | `""`       | 生成入口类的目标包，也是 Shadow relocate 与 Proteus `defaultPackage` 的目标。为空时按编译产物推断（取第一个 class 文件的包），推断不出会报错。建议显式设置。                                           |
+| `kotlinVersion` | String         | `"1.8.22"` | 运行时加载的 Kotlin stdlib 版本基线                                                                                                                         |
+| `libraries`     | `List<String>` | `[]`       | 运行期由框架动态下载/加载的依赖（Maven 坐标）。写入 `plugin.yml` 的 `blink-libraries` 段，由 `DependencyLoader` 加载，不打包进 JAR。例如 `listOf("com.google.code.gson:gson:2.10.1")` |
+
+<Callout type="info">
+    `packageName` 一处定三事：生成的 `BlinkGeneratedMain` 等入口类放在此包下、Shadow 把 `priv.seventeen.artist.blink` relocate 成 `<packageName>.blink`、Proteus 把所有类归并到此包。三者用同一值，留空则统一回退到 `project.group`。建议与 `group` 设成一致。
+</Callout>
+
+### 4.3 功能开关
+
+| 字段               | 类型      | 默认值     | 说明                                                                                                                 |
+|------------------|---------|---------|--------------------------------------------------------------------------------------------------------------------|
+| `enableScript`   | Boolean | `false` | 启用内置 Nashorn JS 脚本引擎（`ScriptManager`）                                                                              |
+| `enableAria`     | Boolean | `false` | 启用 Aria 脚本引擎。开启后插件在 `afterEvaluate` 自动以 `compileOnly` 引入 Aria（版本构建期自动解析最新 release，兜底见 `BlinkPlugin.configureAria`） |
+| `enableAsteroid` | Boolean | `false` | 启用 Asteroid 跨版本 NMS 桥接，同样自动以 `compileOnly` 引入 `asteroid-nms`                                                       |
+
+<Callout type="info">
+Aria 与 Asteroid 都是 `compileOnly`：编译时可用，运行时由各自的 `SharedHost` 部署到全 JVM 共享的 ClassLoader，既不打包也不 relocate。详见 [`AriaSharedHost.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/aria/AriaSharedHost.kt) 与 [`AsteroidSharedHost.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/nms/AsteroidSharedHost.kt)。
+</Callout>
+
+### 4.4 混淆相关
+
+| 字段                 | 类型             | 默认值     | 说明                                                                                                      |
+|--------------------|----------------|---------|---------------------------------------------------------------------------------------------------------|
+| `obfuscate`        | Boolean        | `false` | 为 `true` 且已 apply Proteus 插件时，Blink 自动配置一整套混淆策略（名称/字符串/控制流/Kotlin 感知等，见 `BlinkPlugin.configureProteus`） |
+| `obfuscateKeep`    | `List<String>` | `[]`    | 追加到 Proteus `keepClasses`，这些类不被重命名。生成的三个入口类已自动 keep                                                     |
+| `obfuscateExclude` | `List<String>` | `[]`    | 追加到 Proteus `exclude`，这些类完全不处理。`META-INF/**` 与 `<packageName>.blink.**` 已自动 exclude                     |
+
+混淆细节与可覆盖的 `proteus { }` 字段见 [Proteus 混淆](/docs/blink/10-obfuscation)。
+
+---
+
+## 5. 写第一个插件
+
+Blink 不需要你写 `JavaPlugin` 子类，也不需要写 `plugin.yml`。框架在编译后扫描注解，用 ASM 生成 `BlinkGeneratedMain`（继承 `JavaPlugin`）及 `plugin.yml`。你只写带注解的方法。
+
+### 5.1 入口：用 @Awake 接管生命周期
+
+`@Awake` 定义在 [`Awake.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/Awake.kt)：
+
+```kotlin
+annotation class Awake(
+    val value: LifeCycle,
+    val priority: Int = 0
+)
+```
+
+`LifeCycle` 枚举有四个阶段（见 [`LifeCycle.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/LifeCycle.kt)）：`LOAD`、`ENABLE`、`ACTIVE`、`DISABLE`。被注解的方法必须无参无返回（`()V`），否则扫描器会跳过并打印警告。推荐放在 `object` 单例里，框架直接静态调用。
+
+```kotlin
+package com.example.myplugin
+
+import org.bukkit.Bukkit
+import priv.seventeen.artist.blink.bukkitPlugin
+import priv.seventeen.artist.blink.lifecycle.Awake
+import priv.seventeen.artist.blink.lifecycle.LifeCycle
+
+object Bootstrap {
+
+    @Awake(LifeCycle.LOAD)
+    fun onLoad() {
+        bukkitPlugin.logger.info("Loading MyPlugin...")
+    }
+
+    @Awake(LifeCycle.ENABLE)
+    fun onEnable() {
+        bukkitPlugin.logger.info("MyPlugin enabled — ${Bukkit.getVersion()}")
+    }
+
+    // priority 越大越晚执行，可用于排序同阶段的多个方法
+    @Awake(LifeCycle.ENABLE, priority = 10)
+    fun afterEnable() {
+        bukkitPlugin.logger.info("late init done")
+    }
+
+    @Awake(LifeCycle.DISABLE)
+    fun onDisable() {
+        bukkitPlugin.logger.info("MyPlugin disabled")
+    }
+}
+```
+
+`bukkitPlugin` 是框架在 `onLoad` 阶段注入的全局 `JavaPlugin` 引用（见 [`Blink.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/Blink.kt)），随处可用。多阶段示例见 [`Bootstrap.kt`](https://github.com/17Artist/Blink/blob/main/test-plugin/src/main/kotlin/com/example/testplugin/Bootstrap.kt)。
+
+### 5.2 加事件监听：@AutoListener
+
+`@AutoListener` 定义在 [`AutoListener.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/event/AutoListener.kt)，方法的**第一个参数类型**即被监听的事件：
+
+```kotlin
+package com.example.myplugin
+
+import org.bukkit.event.player.PlayerJoinEvent
+import priv.seventeen.artist.blink.event.AutoListener
+
+object JoinListener {
+
+    @AutoListener
+    fun onJoin(event: PlayerJoinEvent) {
+        event.joinMessage = "§a+ §e${event.player.name}"
+    }
+}
+```
+
+`@AutoListener` 另有 `priority`（默认 `EventPriority.NORMAL`）和 `ignoreCancelled`（默认 `false`）两个可选参数。事件细节见 [事件 @AutoListener](/docs/blink/04-events)。
+
+<Callout type="info">
+无需 `implements Listener`，也无需手动 `registerEvents`：扫描器读到方法签名后会生成对应的注册代码。
+</Callout>
+
+---
+
+## 6. 构建
+
+编译 → 注解扫描 → 生成入口类与 `plugin.yml` → 打包，整条链由 Gradle 任务串起。生成任务 `blinkGenerate` 依赖编译任务，所有 `Jar` 任务又依赖 `blinkGenerate`（见 `BlinkPlugin.configureCodeGeneration`），因此只需运行打包命令：
+
+```bash
+# Windows
+gradlew.bat shadowJar
+
+# 类 Unix
+./gradlew shadowJar
+```
+
+产物在 `build/libs/` 下。其中 `priv.seventeen.artist.blink` 已 relocate 到 `<packageName>.blink`，Kotlin stdlib、Aria、Asteroid 均未打包。
+
+开启 `obfuscate = true` 时再运行混淆任务：
+
+```bash
+gradlew.bat obfuscate
+```
+
+构建产物与发布流程见 [构建与发布](/docs/blink/11-build-and-release)。
+
+---
+
+## 下一步
+
+- [生命周期 @Awake](/docs/blink/03-lifecycle)
+- [事件 @AutoListener](/docs/blink/04-events)
+- [配置](/docs/blink/06-config)

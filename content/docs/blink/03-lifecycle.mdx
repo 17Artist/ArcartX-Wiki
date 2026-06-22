@@ -1,0 +1,324 @@
+---
+title: 生命周期 @Awake
+description: "@Awake 的函数约束、LOAD/ENABLE/ACTIVE/DISABLE 四阶段触发时机与 priority 排序。"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Blink 用注解 `@Awake` 把初始化/清理逻辑挂到插件生命周期上，编译期扫描、运行期按优先级触发，无需继承 `JavaPlugin`，也不用手写 `onEnable`。跟着本篇读，你就能把开机、关机要做的事安排到正确的阶段。
+
+读完本篇你能：
+
+- 在 `object` 或顶层函数上正确使用 `@Awake`。
+- 区分 `LOAD` / `ENABLE` / `ACTIVE` / `DISABLE` 四个阶段的触发时机。
+- 用 `priority` 控制同阶段执行顺序。
+- 理解 `LifeCycleManager` 如何注册、触发、清理，以及 reload 后 handler 为何不重复累积。
+
+---
+
+## 1. 最小示例
+
+`@Awake` 标在无参、无返回值的函数上，传入目标阶段：
+
+```kotlin
+import priv.seventeen.artist.blink.lifecycle.Awake
+import priv.seventeen.artist.blink.lifecycle.LifeCycle
+import priv.seventeen.artist.blink.BlinkLog
+
+object MyModule {
+
+    @Awake(LifeCycle.ENABLE)
+    fun setup() {
+        BlinkLog.info("MyModule 已启用")
+    }
+
+    @Awake(LifeCycle.DISABLE)
+    fun teardown() {
+        BlinkLog.info("MyModule 正在卸载")
+    }
+}
+```
+
+无需 `extends JavaPlugin`，无需手动注册。构建时 Blink 扫描所有编译产物里的 `@Awake`，生成调用桥接，运行期由插件主类在对应阶段触发。
+
+<Callout type="info">
+日志 API（`BlinkLog.info/warn/error`）见 [日志](/docs/blink/07-logging)。
+</Callout>
+
+---
+
+## 2. 注解定义
+
+注解只有两个参数（来源：[`Awake.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/Awake.kt)）：
+
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Awake(
+    val value: LifeCycle,
+    val priority: Int = 0
+)
+```
+
+- `value`：必填，目标阶段，取 `LifeCycle` 枚举之一。
+- `priority`：可选，同阶段内执行顺序，默认 `0`。
+
+阶段枚举（来源：[`LifeCycle.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/LifeCycle.kt)）：
+
+```kotlin
+enum class LifeCycle {
+    LOAD, ENABLE, ACTIVE, DISABLE
+}
+```
+
+---
+
+## 3. 函数约束
+
+Blink 在编译期用 ASM 扫描字节码（[`AnnotationScanner.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/AnnotationScanner.kt)），生成的桥接代码对被标注函数有硬性要求。
+
+<Callout type="warn">
+不满足约束时，该函数会被**静默跳过或打印警告**，不会编译报错。所以请留意构建日志，别让钩子悄悄失效。
+</Callout>
+
+### 3.1 必须无参、无返回值
+
+扫描器要求方法描述符严格为 `()V`，否则跳过并告警：
+
+```kotlin
+// AnnotationScanner.kt 中的校验
+if (methodDesc != "()V") {
+    System.err.println("[Blink] WARNING: @Awake method ... expected ()V — skipping")
+    return
+}
+```
+
+```kotlin
+@Awake(LifeCycle.ENABLE)
+fun ok() { }                      // OK
+
+@Awake(LifeCycle.ENABLE)
+fun bad(plugin: JavaPlugin) { }   // 被跳过：有参数
+
+@Awake(LifeCycle.ENABLE)
+fun alsoBad(): Boolean = true     // 被跳过：有返回值
+```
+
+需要插件实例时，不要加参数，改用 Blink 的全局访问入口，或在函数体内自取。
+
+### 3.2 接收者必须是可静态访问的单例
+
+生成的 lambda 调用你的函数时，需要一个能在静态上下文拿到的接收者。扫描器据此把方法归为三类（来源：[`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 的 `generateLifeCycleClass`）：
+
+| 写法                             | 字节码接收者                                 | 是否支持        |
+|--------------------------------|----------------------------------------|-------------|
+| 顶层函数（编译进 `XxxKt`，方法为 `static`） | `INVOKESTATIC`                         | 支持          |
+| `object` 单例（有 `INSTANCE` 静态字段） | `GETSTATIC INSTANCE` 后 `INVOKEVIRTUAL` | 支持          |
+| `companion object` 内的函数        | 从外层类的 companion 字段取实例                  | 支持          |
+| 普通 `class` 的实例方法               | 无法静态获取实例                               | **不支持，被跳过** |
+
+判定逻辑（`generateLifeCycleClass`）：
+
+```kotlin
+if (!entry.isStatic && !entry.hasInstance && entry.companionAccess == null) continue
+```
+
+不是静态、不是 object 单例、也不是 companion，就被跳过。
+
+把生命周期函数放进 `object`，或写成顶层函数，这两种最稳妥：
+
+```kotlin
+// 写法一：object（便于聚合一个模块的多个钩子）
+object DatabaseModule {
+    @Awake(LifeCycle.ENABLE)  fun connect() { /* ... */ }
+    @Awake(LifeCycle.DISABLE) fun close()   { /* ... */ }
+}
+
+// 写法二：顶层函数（适合零散的单个钩子）
+@Awake(LifeCycle.LOAD)
+fun preloadAssets() { /* ... */ }
+```
+
+<Callout type="info">
+顶层函数会被 Kotlin 编译进文件级类 `文件名Kt`，方法是 `static`，天然满足要求。
+</Callout>
+
+---
+
+## 4. 四个阶段的触发时机
+
+四个阶段由生成的插件主类 `BlinkGeneratedMain` 触发，时机固定（来源：[`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 的 `generateOnLoad` / `generateOnEnable` / `generateOnDisable`）：
+
+```
+onLoad()
+    KotlinBootstrap.bootstrap(this)
+    setBukkitPlugin(this)
+    BlinkLog.initPrefix()
+    DependencyLoader.loadAll() / [脚本/Aria/Asteroid 各自 init]
+    BlinkGeneratedLifeCycle.registerAll()   ← 此时所有 @Awake 才完成注册
+    LifeCycleManager.trigger(LOAD)          ← LOAD 阶段
+
+onEnable()
+    BlinkGeneratedEvents.registerAll()      ← @AutoListener 在此注册
+    LifeCycleManager.trigger(ENABLE)        ← ENABLE 阶段
+    scheduler.runTask { trigger(ACTIVE) }   ← ACTIVE 延后到下一 tick
+
+onDisable()
+    LifeCycleManager.trigger(DISABLE)       ← DISABLE 阶段
+    EventManager.unregisterAll()
+    LifeCycleManager.clear()
+    [脚本/Aria/Asteroid 各自 shutdown]
+```
+
+### 4.1 `LOAD` — 服务器加载阶段（onLoad）
+
+对应 Bukkit 的 `JavaPlugin.onLoad()`，在所有插件 `onEnable` 之前。此时：
+
+- 依赖已加载、`BlinkLog` 已初始化、脚本/NMS 等子系统已 `init`。
+- `@Awake` 的注册刚刚完成（`registerAll()` 在 `trigger(LOAD)` 之前一行），所以 `LOAD` 自身能被触发。
+- 还不能注册命令、监听事件，世界也尚未加载。
+
+适合：注册 WorldGuard flag 之类要求在 `onLoad` 完成的早期 hook、预读配置、声明只读静态资源。
+
+### 4.2 `ENABLE` — 插件启用阶段（onEnable）
+
+对应 `JavaPlugin.onEnable()`。事件监听（`@AutoListener`）已在本阶段触发**前**注册完成。
+
+适合：绝大多数初始化——打开数据库连接、加载配置、注册调度任务、初始化管理器单例。这是默认且最常用的阶段。
+
+<Callout type="info">
+`@AutoListener` 见 [事件](/docs/blink/04-events)。
+</Callout>
+
+### 4.3 `ACTIVE` — 服务器就绪后的第一个 tick
+
+`ACTIVE` 不在 `onEnable` 同步执行，而是通过 `server.scheduler.runTask(...)` 调度到启用后的第一个服务器 tick（见 `generateOnEnable` 里的 `lambda$onEnable$0`）。
+
+该 tick 到来时，所有插件都已 `onEnable` 完毕、世界已加载，因此 `ACTIVE` 是做**跨插件交互**和**访问已加载世界/在线实体**的安全点。
+
+适合：读取/对接其他插件提供的服务、扫描已加载世界中的方块或实体、依赖"所有插件都已就绪"的逻辑。
+
+```kotlin
+@Awake(LifeCycle.ACTIVE)
+fun hookOtherPlugins() {
+    // 此处其他插件保证已经 onEnable
+}
+```
+
+### 4.4 `DISABLE` — 插件卸载阶段（onDisable）
+
+对应 `JavaPlugin.onDisable()`，且是 `onDisable` 中**最先**执行的步骤——在事件注销和 `LifeCycleManager.clear()` 之前。所以 `DISABLE` 钩子运行时，事件监听和其它生命周期注册仍然有效。
+
+适合：保存数据、关闭连接、取消自己创建的调度任务、释放外部资源。
+
+```kotlin
+@Awake(LifeCycle.DISABLE)
+fun flush() {
+    // 持久化未保存的状态
+}
+```
+
+---
+
+## 5. priority：控制同阶段顺序
+
+同一阶段内，多个 `@Awake` 按 `priority` **升序**执行（数字小的先跑）。排序逻辑在 `LifeCycleManager.trigger` 里：
+
+```kotlin
+handlers[lifeCycle]?.sortedBy { it.priority } ?: emptyList()
+```
+
+来源：[`LifeCycleManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/LifeCycleManager.kt)。
+
+```kotlin
+object Boot {
+    @Awake(LifeCycle.ENABLE, priority = -100)
+    fun first() { /* 最先：比如初始化配置 */ }
+
+    @Awake(LifeCycle.ENABLE, priority = 0)
+    fun normal() { /* 默认优先级 */ }
+
+    @Awake(LifeCycle.ENABLE, priority = 100)
+    fun last() { /* 最后：依赖前面已就绪 */ }
+}
+```
+
+要点：
+
+- 越小越早，需要某段逻辑先跑就给它更小的 `priority`（可用负数）。
+- `priority` 只在同一阶段内比较，不跨阶段；阶段先后由四个枚举的固定顺序决定。
+- 未指定时为 `0`；相同 `priority` 的相对顺序不保证稳定，不要依赖。
+
+---
+
+## 6. 运行期：LifeCycleManager
+
+`LifeCycleManager` 是 `object` 单例（[`LifeCycleManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/lifecycle/LifeCycleManager.kt)），负责注册、触发、清理。日常开发不需要直接调用它——所有注册由生成代码完成；以下说明其行为，便于排查。
+
+### 6.1 注册
+
+每个有效的 `@Awake` 会被生成代码翻译成一次 `register` 调用：
+
+```kotlin
+fun register(lifeCycle: LifeCycle, priority: Int, action: Runnable, name: String = "")
+```
+
+`action` 是封装了你函数调用的 `Runnable`，`name` 形如 `类名#方法名`（生成代码用 `${entry.ownerInternal.substringAfterLast('/')}#${entry.methodName}` 拼出），仅用于出错时定位。注册发生在 `onLoad` 里的 `BlinkGeneratedLifeCycle.registerAll()`。
+
+### 6.2 触发与排序缓存
+
+```kotlin
+fun trigger(lifeCycle: LifeCycle) {
+    val list = sortedCache.getOrPut(lifeCycle) {
+        handlers[lifeCycle]?.sortedBy { it.priority } ?: emptyList()
+    }
+    for (handler in list) {
+        try {
+            handler.action.run()
+        } catch (e: Throwable) {
+            BlinkLog.error("@Awake(${lifeCycle.name}) ${handler.name} 执行出错", e)
+        }
+    }
+}
+```
+
+两个关键行为：
+
+- 排序结果缓存在 `sortedCache`，首次触发某阶段时排一次序，之后复用。
+- 每个 handler 单独 try/catch：一个 `@Awake` 抛异常不会中断同阶段其余 handler，只打一条带 `类名#方法名` 的错误日志。某模块初始化失败，其它模块仍正常初始化。
+
+### 6.3 清理与幂等
+
+```kotlin
+fun clear() {
+    handlers.clear()
+    sortedCache.clear()
+}
+```
+
+`clear()` 在两处被调用：
+
+1. `BlinkGeneratedLifeCycle.registerAll()` 开头先 `clear()` 一次（幂等保障）。
+2. `onDisable` 触发完 `DISABLE` 后调用 `clear()`。
+
+这保证服务器 `reload`（重新走 `onLoad`/`onEnable`）时，旧 handler 先清空再重新注册，不会重复累积。事件侧由 `EventManager.unregisterAll()` 兜底。
+
+---
+
+## 7. 排错清单
+
+`@Awake` 没生效时，按顺序自查：
+
+- 构建日志里有没有 `[Blink] 扫描到 N 个 @Awake`？数字是否对得上钩子数。
+- 函数是否无参无返回（`()V`）？有参/有返回会被跳过，留意 stderr 里的 `expected ()V — skipping` 警告。
+- 函数是否在 `object` / 顶层 / `companion object` 里？普通 `class` 的实例方法会被静默跳过。
+- 阶段选对了吗？需要其它插件就绪请用 `ACTIVE` 而非 `ENABLE`。
+- 同阶段顺序不对？检查 `priority`（越小越先）。
+- 运行期某钩子报错但其它正常？这是设计行为，去日志里找 `@Awake(阶段) 类名#方法名 执行出错`。
+
+---
+
+## 下一步
+
+- [事件 @AutoListener](/docs/blink/04-events)
+- [快速开始与 blink&#123;&#125; 配置](/docs/blink/02-getting-started)

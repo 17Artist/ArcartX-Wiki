@@ -1,0 +1,369 @@
+---
+title: Proteus 混淆
+description: obfuscate=true 自动配置的策略、入口类 keep 与运行时 exclude，以及如何定制。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Blink 通过 `obfuscate.set(true)` 开关把 Proteus 混淆器接入构建流水线，无需手写 `proteus { }` 配置。本篇拆解这套自动配置做了什么、哪些类被保护、以及如何在其上定制。
+
+读完本篇你能：
+
+- 了解 `obfuscate=true` 替你设置了 Proteus 的哪些参数。
+- 理解入口类被 keep、Blink 运行时被 exclude 的原因及其与 relocate 的关系。
+- 用 `obfuscateKeep` / `obfuscateExclude` 追加保护项，或退回手写 `proteus { }` 做精细控制。
+
+## 前提：插件与依赖关系
+
+自动配置只在两个条件同时满足时生效：
+
+1. `blink { obfuscate.set(true) }`；
+2. 工程已应用 Proteus 插件 `priv.seventeen.artist.proteus`。
+
+如果开了 `obfuscate` 却没应用 Proteus 插件，Blink 不报错中断，只打印警告并跳过：
+
+```
+[Blink] obfuscate=true 但未应用 Proteus 插件，跳过混淆配置
+```
+
+参见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt) 的 `configureProteus` 开头判断。
+
+完整的 `plugins { }`（版本以工程实际为准），见 [`test-plugin/build.gradle.kts`](https://github.com/17Artist/Blink/blob/main/test-plugin/build.gradle.kts)：
+
+```kotlin
+plugins {
+    kotlin("jvm") version "1.8.22"
+    id("priv.seventeen.artist.blink") version "1.3.11"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("priv.seventeen.artist.proteus") version "1.0.10"
+}
+
+blink {
+    name.set("BlinkTest")
+    packageName.set("com.example.testplugin")
+    // ……其它配置
+    obfuscate.set(true)
+}
+```
+
+<Callout type="info">
+Shadow 插件由 Blink 在 `afterEvaluate` 自动 apply（见 `BlinkPlugin.apply`），但 Proteus 插件需你自己在 `plugins { }` 声明。
+</Callout>
+
+## `obfuscate=true` 做了什么
+
+`obfuscate` 字段定义在 [`BlinkExtension.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkExtension.kt)，默认 `false`：
+
+```kotlin
+abstract val obfuscate: Property<Boolean>
+abstract val obfuscateKeep: ListProperty<String>
+abstract val obfuscateExclude: ListProperty<String>
+// convention: obfuscate=false, obfuscateKeep/obfuscateExclude=emptyList()
+```
+
+为 `true` 时，`BlinkPlugin.apply` 在生命周期最后调用 `configureProteus(project, extension)`。该方法通过反射拿到 Proteus 的 `proteus` extension，逐个写入属性（用 `setProperty` / `addListProperty` 反射工具，先试 `set`，失败再试 `convention`）。以下按源码顺序说明。
+
+## 包名解析与「用户已接管」检测
+
+混淆目标包名取自 `blink { packageName }`，为空时回退到 `project.group`：
+
+```kotlin
+val pkgName = extension.packageName.get().ifEmpty { project.group.toString() }
+val blinkPkg = "$pkgName.blink"
+```
+
+`blinkPkg` 是 Blink 运行时被 relocate 到的目标包（见 `configureShadow`，把 `priv.seventeen.artist.blink` 重定位到 `$pkgName.blink`）。
+
+如果你已手动设置 Proteus 的 `configFile`（YAML 配置文件模式），Blink 检测到后完全跳过自动配置：
+
+```
+[Blink] Proteus configFile 已手动设置，跳过自动配置
+```
+
+`configFile` 与 Blink 自动配置互斥——切到 YAML 模式后所有参数由你自己负责。
+
+## 与 shadowJar 的依赖关系
+
+混淆输入必须是 shadow 重打包并 relocate 之后的胖 jar，而非原始 jar。Blink 据此建立任务依赖：
+
+```kotlin
+val obfuscateTask = project.tasks.findByName("obfuscate")
+val shadowJarTask = project.tasks.findByName("shadowJar")
+if (obfuscateTask != null && shadowJarTask != null) {
+    obfuscateTask.dependsOn(shadowJarTask)
+    // 把 shadowJar 的 archiveFile 作为 Proteus 的 inputFile
+    setProperty(extClass, proteusExt, "inputFile", file.absolutePath)
+}
+```
+
+效果：
+
+- `obfuscate` 任务依赖 `shadowJar`，运行 `obfuscate` 会先触发 `shadowJar`。
+- Proteus 的 `inputFile` 指向 `shadowJar` 的输出文件（绝对路径）。
+
+发布命令直接运行 `gradle obfuscate`，它会自动跑完 `compileKotlin → blinkGenerate → shadowJar → obfuscate`。
+
+<Callout type="warn">
+不要拿 `jar`（未 relocate 的瘦 jar）去混淆，混淆的输入必须是 `shadowJar` 产出的胖 jar。
+</Callout>
+
+## 名称混淆（rename）
+
+每个命名维度都有独立策略与最小长度：
+
+| 参数                    | 值              | 含义                     |
+|-----------------------|----------------|------------------------|
+| `rename`              | `true`         | 启用名称混淆总开关              |
+| `packageStrategy`     | `"underscore"` | 包名用 `_`/`$` 组合         |
+| `packageLength`       | `30`           | 包名最小长度                 |
+| `forceDefaultPackage` | `true`         | 把所有类压到同一个包下            |
+| `defaultPackage`      | `pkgName`      | 目标包 = 你的 `packageName` |
+| `classStrategy`       | `"keyword"`    | 类名伪装成 Java 关键字（西里尔字符）  |
+| `classLength`         | `25`           | 类名最小长度                 |
+| `methodStrategy`      | `"il"`         | 方法名用 `I`/`l` 视觉混淆      |
+| `methodLength`        | `20`           | 方法名最小长度                |
+| `fieldStrategy`       | `"o0"`         | 字段名用 `O`/`o`/`0` 视觉混淆  |
+| `fieldLength`         | `15`           | 字段名最小长度                |
+| `localVariables`      | `"remove"`     | 移除局部变量名                |
+| `updateResources`     | `true`         | 同步更新资源文件里的类引用          |
+
+可选策略全集（见 [`test-plugin/build.gradle.kts`](https://github.com/17Artist/Blink/blob/main/test-plugin/build.gradle.kts) 注释）：`short` / `alphabet` / `il` / `o0` / `underscore` / `keyword` / `unicode` / `prefix`。Blink 默认给类用 `keyword`、方法用 `il`、字段用 `o0`、包用 `underscore`，是一套激进、可读性最差的组合。
+
+`forceDefaultPackage=true` + `defaultPackage=pkgName` 使混淆后所有类塌缩到根包下，打乱原有包层级。`updateResources=true` 确保 `plugin.yml` 等资源里的类引用同步改写。
+
+## 字符串加密
+
+```kotlin
+stringEncryption = true
+stringEncryptionAlgorithm = "aes"   // 可选 xor / aes / rc4
+perClassKey = true                  // 每个类独立密钥
+```
+
+默认 AES + 每类独立密钥。字符串加密会在运行时增加解密开销，热点路径上的大量字符串常量可能带来可感知的性能成本，必要时可关掉换性能。
+
+## 控制流混淆
+
+```kotlin
+controlFlow = true   // 不透明谓词注入
+```
+
+通过插入不透明谓词（运行时恒真/恒假但静态难以判定的条件）打乱控制流图，增加反编译阅读成本。Blink 没有默认开启 `antiDebug` / `debuggerDetection` / `timingCheck` / `methodInline` / `fieldMerge`，它们保持 Proteus 自身默认值（多为关闭），需要可在 `proteus { }` 单独追加。
+
+## 调试信息移除
+
+```kotlin
+debugRemoval = true
+lineNumbers   = "remove"   // remove / keep / scramble
+sourceFile    = "remove"   // remove / keep / rename
+generics      = "remove"   // remove / keep
+innerClasses  = "remove"   // remove / keep
+```
+
+行号、源文件名、泛型签名、内部类元数据全部移除。副作用：异常堆栈不再带行号，崩溃日志可读性大幅下降。需要保留可定位堆栈时，在 `proteus { }` 把 `lineNumbers.set("keep")` 覆盖回去（见下文「覆盖单项」）。
+
+## 类结构重组（restructure）
+
+```kotlin
+restructure   = true
+memberReorder = true   // 随机打乱方法/字段声明顺序
+```
+
+打乱成员声明顺序，破坏按原始顺序对照阅读的可能。`methodInline` / `fieldMerge` 等更激进的重组项默认未开。
+
+## Kotlin 感知
+
+Blink 工程基本都是 Kotlin，这三项默认全开，避免混淆破坏 Kotlin 运行时语义：
+
+```kotlin
+kotlinMetadataRewrite = true   // 重写 @kotlin.Metadata 中的类名引用
+kotlinCoroutineAware  = true   // 协程状态机感知
+kotlinStructureAware  = true   // companion/data/sealed/object 识别
+```
+
+- `kotlinMetadataRewrite`：类被重命名后，同步改写 `@kotlin.Metadata` 注解里残留的旧类名，防止反射/反序列化按元数据找类失败。
+- `kotlinCoroutineAware`：识别协程编译生成的状态机结构，避免破坏挂起函数。
+- `kotlinStructureAware`：识别 `companion object`、`data class`、`sealed class`、`object` 等 Kotlin 特有结构。
+
+## 映射表（mapping）
+
+```kotlin
+mappingFile = "<buildDir>/mapping.txt"
+```
+
+混淆后在 `build/mapping.txt` 写出「原名 → 混淆名」映射。Proteus 还支持 `mappingInput`（读取上次映射做增量混淆，保持两次构建命名一致），Blink 默认不设置，需要时在 `proteus { }` 补。
+
+<Callout type="warn">
+**务必把 `build/mapping.txt` 和发布产物一起归档**：线上崩溃日志里的混淆类名只有靠这份映射才能还原。
+</Callout>
+
+## keep：哪些类不被重命名
+
+Blink 自动 keep 三个生成的入口类，再追加你的 `obfuscateKeep`：
+
+```kotlin
+val keeps = mutableListOf(
+    "$pkgName.BlinkGeneratedMain",
+    "$pkgName.BlinkGeneratedLifeCycle",
+    "$pkgName.BlinkGeneratedEvents"
+)
+keeps.addAll(extension.obfuscateKeep.get())
+addListProperty(extClass, proteusExt, "keepClasses", keeps)
+```
+
+这三个类由 `blinkGenerate` 任务生成在根包 `pkgName` 下（见 [`BlinkGenerateTask.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkGenerateTask.kt) 的 `writeClass`，以及 [`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 里的类名常量）。它们必须 keep 的原因：
+
+- `BlinkGeneratedMain` 是 `plugin.yml` 声明的 `main` 入口（`main: $pkg.BlinkGeneratedMain`），Bukkit 按全限定名反射加载，改名后服务器找不到主类。
+- `BlinkGeneratedLifeCycle` / `BlinkGeneratedEvents` 的 `registerAll()` 由主类按固定名调用，同样不能改名。
+
+`keepClasses` 里的类不会被重命名，但仍会被其它处理（字符串加密、调试信息移除等）影响——keep 只针对命名维度。
+
+## exclude：哪些内容完全不处理
+
+```kotlin
+val excludes = mutableListOf("META-INF/**", "$blinkPkg.**")
+excludes.addAll(extension.obfuscateExclude.get())
+addListProperty(extClass, proteusExt, "exclude", excludes)
+```
+
+默认排除两类：
+
+- `META-INF/**`：清单、服务声明、签名等，混淆它们会破坏 jar 结构。
+- `$blinkPkg.**`：即 `$pkgName.blink.**`，被 relocate 进来的 Blink 运行时本体。它是经过验证的框架代码，再混淆可能破坏框架内部按名查找的逻辑，因此整体排除。
+
+<Callout type="info">
+Aria / Asteroid 在运行时由各自的 SharedHost 部署为全局共享插件，不会打包进消费者 jar，无需为它们写 exclude。Kotlin stdlib 也由 KotlinBootstrap 运行时动态加载、不打包（见 `apply` 里对 `runtimeClasspath` 的 `exclude`）。
+</Callout>
+
+`exclude` 与 `keepClasses` 的区别：`exclude` 是完全不碰（不重命名、不加密、不动控制流），`keepClasses` 仅仅是不改名字。
+
+## 在自动配置之上做定制
+
+### 追加保护项：obfuscateKeep / obfuscateExclude
+
+不用写 `proteus { }`，直接在 `blink { }` 追加，Blink 会把它们 append 到自动生成的列表后面：
+
+```kotlin
+blink {
+    packageName.set("com.example.myplugin")
+    obfuscate.set(true)
+
+    // 这些类/成员不被重命名（例如对外暴露的 API、被反射调用的类）
+    obfuscateKeep.set(listOf(
+        "com.example.myplugin.api.**",
+        "com.example.myplugin.PublicEntryPoint"
+    ))
+
+    // 这些内容完全不处理（例如第三方资源、需要反射的配置类）
+    obfuscateExclude.set(listOf(
+        "com.example.myplugin.model.**"
+    ))
+}
+```
+
+典型需要 keep/exclude 的场景：
+
+- 被 Bukkit/其它插件按名反射调用的类。
+- 用 Gson/kotlinx.serialization 按字段名序列化的数据类（否则字段改名后 JSON 字段对不上）。
+- 对外发布、供别的插件 `depend` 的 API 类。
+
+### 覆盖单项：手写 proteus &#123; &#125; 块
+
+`obfuscateKeep` / `obfuscateExclude` 只能追加，改不了 Blink 已设的标量参数（如 `lineNumbers`、`controlFlow`）。要覆盖具体某项，直接写 `proteus { }`——它在 Blink 自动配置之后应用，会覆盖默认值（只要不是 `configFile` 模式）：
+
+```kotlin
+blink {
+    obfuscate.set(true)
+}
+
+proteus {
+    // 保留行号，方便线上排查崩溃堆栈
+    lineNumbers.set("keep")
+    // 关闭字符串加密以换取热点路径性能
+    stringEncryption.set(false)
+    // 给序列化注解类型挂 keepAnnotations，避免逐个写类名
+    keepAnnotations.addAll(
+        "kotlinx.serialization.Serializable",
+        "com.google.gson.annotations.SerializedName"
+    )
+}
+```
+
+[`test-plugin/build.gradle.kts`](https://github.com/17Artist/Blink/blob/main/test-plugin/build.gradle.kts) 第 36 行起的注释列出了 `proteus { }` 的全部可用字段及取值，是最权威的字段参考。只需写想改的部分，不必把 Blink 已设的值全部重抄。
+
+<Callout type="warn">
+一旦设置 `proteus { configFile.set(...) }` 走 YAML 模式，Blink 的整套自动配置被跳过，上述默认值全部失效，所有参数（含 keep/exclude/inputFile/依赖链）都由你在 YAML 里负责。
+</Callout>
+
+## 注意事项小结
+
+- 必须应用 Proteus 插件，否则 `obfuscate=true` 只是空转加一条警告。
+- 混淆输入是 shadowJar，发布走 `gradle obfuscate`，别拿瘦 jar。
+- 保存 `build/mapping.txt`，否则线上崩溃日志无法还原。
+- 默认移除行号，堆栈不带行号；需要排查就 `lineNumbers.set("keep")`。
+- 反射/序列化的类记得 keep 或 exclude，否则改名后按名查找会失败。
+- 字符串加密有运行时开销，热点路径酌情关闭。
+- 入口三件套与 `$pkgName.blink.**` 已被自动保护，不要重复处理，也不要把它们排除出 keep/exclude（会破坏加载）。
+
+## 稳定性测试结果
+
+> 实测环境：Paper 1.20.1（build 196）+ JDK 17。测试插件开启 `obfuscate=true`（Proteus 默认全档：rename + AES 字符串加密 + 控制流 + restructure + 调试移除 + Kotlin 感知），以完全相同代码的未混淆版本作为对照（control），用同一套控制台脚本驱动，覆盖生命周期 / 事件 / 命令 / 配置四个面。
+
+### 结论速览
+
+| 维度                                       | 未混淆（对照）                   | 混淆后                       | 是否受混淆影响                                      |
+|------------------------------------------|---------------------------|---------------------------|----------------------------------------------|
+| 插件加载 / 启用                                | ✅ 正常                      | ✅ 正常                      | 否（入口类 keep 生效，无 VerifyError / ClassNotFound） |
+| 生命周期 `@Awake`（ENABLE / ACTIVE / DISABLE） | ✅ 三阶段均触发                  | ✅ 三阶段均触发                  | 否                                            |
+| 事件 `@AutoListener`                       | ✅ 捕获 `ServerCommandEvent` | ✅ 捕获 `ServerCommandEvent` | 否                                            |
+| 命令注册                                     | ✅ 注册日志正常                  | ✅ 注册日志正常                  | 否（两版行为一致，见下「命令说明」）                           |
+| 配置 · `@ConfigKey` 显式 key                 | ✅ `max-count`             | ✅ `max-count`             | 否（注解字符串不受字段重命名影响）                            |
+| 配置 · 字段名推导 key                           | ✅ `greeting` / `debug`    | ✅ `greeting` / `debug`    | 否（已由框架自动排除修复，详见下节）                           |
+
+整体结论：Blink 核心机制在 Proteus 默认混淆档位下稳定可用——编译期生成的入口三件套、生命周期、事件、Kotlin `object`/lambda 执行、AES 加密后的命令名与日志字符串全部正常，无加载失败、无字节码校验错误、无异常堆栈。测试最初暴露的「配置类按字段名推导 YAML key 被混淆破坏」问题（此前已在 [配置 · 第 8 节](/docs/blink/06-config) 由源码分析预测到）现已由框架在编译期自动修复，见下节。
+
+### 配置类字段名 → 已由框架自动修复
+
+`fieldStrategy = "o0"` 会把 Kotlin 属性名重命名为 `O`/`o`/`0` 视觉混淆名。`BlinkConfig` 按属性名反射推导 YAML key，因此没有 `@ConfigKey` 的字段，其 key 会变成乱码。最初实测复现了这个问题：
+
+```yaml
+# 修复前 · 混淆后生成的 config.yml（坏）
+# greeting message
+OOOOOOOOOOOOOOO: "DEFAULT-greeting"   # greeting 字段被改名
+max-count: 1                          # @ConfigKey 显式 key，存活
+O0O0O0O0O0O0O0O: false                # debug 字段被改名
+```
+
+框架修复：`blinkGenerate` 在编译期扫描类时（见 [`AnnotationScanner.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/AnnotationScanner.kt)）会识别所有 `BlinkConfig` / `BlinkSection` 子类（含传递继承），把全限定名写到 `build/blink-obfuscate-exclude.txt`；`configureProteus` 再以惰性 `Provider` 把这份清单追加进 Proteus 的 `exclude`（见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt)）。于是配置类整体不参与混淆，字段名得以保留。构建时会看到一行日志：
+
+```
+[Blink] 检测到 1 个配置类（BlinkConfig/BlinkSection 子类），混淆时将自动排除: com.example.obftest.Settings
+```
+
+修复后同一份配置类、同样开混淆，实测生成的 config.yml 恢复正常：
+
+```yaml
+# 修复后 · 混淆后生成的 config.yml（好）
+# greeting message
+greeting: "DEFAULT-greeting"
+max-count: 1
+debug: false
+```
+
+<Callout type="info">
+这是「按字段名反射」类被混淆破坏的典型。Blink 只能自动识别自己框架内的反射类型（`BlinkConfig` / `BlinkSection`）。如果你用 Gson / kotlinx.serialization 按字段名序列化自定义数据类，框架无从得知，仍需自己用 `obfuscateExclude` 排除，或给字段加显式注解 key。
+</Callout>
+
+可选补充：
+
+- 给配置字段加 `@ConfigKey("显式key")` 仍是好习惯：即便将来手动改了混淆策略把配置类放回混淆，显式 key 也不受影响。
+- 第三方反射/序列化类：`obfuscateExclude.set(listOf("com.example.yourplugin.model.**"))`。
+- `Map<String, BlinkSection>` 的值类型已随上述自动排除被覆盖（它们是 `BlinkSection` 子类）。
+
+### 命令说明（与混淆无关）
+
+测试中从控制台执行 `/obftest ping`，在混淆版与未混淆版上表现一致（都回 `Unknown command`）。这是「无客户端 + 运行期动态注册命令到控制台分发链路」的测试局限，与混淆无关——两版字节码行为一致，足以证明混淆未对命令路径引入回归；命令注册本身在两版都正常打出日志。后续若要在文档中验证命令执行，应以在线玩家身份触发。
+
+## 下一步
+
+- [构建与发布](/docs/blink/11-build-and-release)：先打出胖 jar 再混淆。
+- [快速开始与 blink&#123;&#125; 配置](/docs/blink/02-getting-started)：`packageName` 等 `blink { }` 字段来源。

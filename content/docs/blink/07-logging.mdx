@@ -1,0 +1,287 @@
+---
+title: 日志
+description: BlinkLog 分级方法、输出拼装规则、logPrefix 自定义前缀与品牌前缀规范。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`BlinkLog` 是统一的控制台日志门面，自带分级配色和可定制前缀。你不用自己拼颜色码，也不用关心控制台是否可用——它都替你处理好了。
+
+读完本篇你能：
+
+- 用 5 个分级方法（`info` / `success` / `warn` / `error` / `detail`）输出带颜色的日志
+- 通过 `blink {}` 的 `logPrefix` 自定义前缀，理解其流转链路与 `initPrefix()` 时机
+- 遵循 ArcartX 附属插件的品牌前缀规范
+
+---
+
+## 1. BlinkLog 是什么
+
+`BlinkLog` 是 Kotlin `object`（单例），位于
+[`BlinkLog.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/BlinkLog.kt)，封装向控制台发送彩色消息的逻辑，所有输出带统一前缀和分级颜色。
+
+它的设计目标有三点：
+
+- **统一前缀**：所有日志行以同一品牌前缀开头，便于在控制台识别。
+- **分级配色**：普通、成功、警告、错误、细节用不同颜色区分严重程度。
+- **降级安全**：控制台不可用时（如测试环境）自动去掉颜色码用 `println` 兜底。
+
+Blink 框架内部（依赖加载、脚本引擎、NMS 桥接等）也全部走 `BlinkLog`，所以你的业务日志会与框架日志保持一致的风格。
+
+---
+
+## 2. 五个分级方法
+
+每个方法对应一种语义和一个颜色：
+
+| 方法                 | 颜色码  | 颜色 | 适用场景           |
+|--------------------|------|----|----------------|
+| `info(message)`    | `§f` | 白色 | 普通信息、常规进度      |
+| `success(message)` | `§a` | 绿色 | 操作成功、初始化完成     |
+| `warn(message)`    | `§e` | 黄色 | 警告、可恢复的异常情况    |
+| `error(message)`   | `§c` | 红色 | 错误、失败          |
+| `detail(message)`  | `§7` | 灰色 | 细节、调试性提示（弱化显示） |
+
+调用方式：
+
+```kotlin
+import priv.seventeen.artist.blink.BlinkLog
+
+BlinkLog.info("正在加载模块...")
+BlinkLog.success("模块加载完成")
+BlinkLog.warn("配置项 maxPlayers 缺失，使用默认值 20")
+BlinkLog.error("无法连接数据库")
+BlinkLog.detail("使用本地缓存 v1.2.3")
+```
+
+### error 的异常重载
+
+`error` 有一个重载，同时打印红色消息并把异常堆栈交给 Bukkit 的 `Logger`（以 `Level.WARNING` 输出）：
+
+```kotlin
+try {
+    loadDatabase()
+} catch (e: Exception) {
+    BlinkLog.error("加载数据库失败", e)
+}
+```
+
+签名（见 [`BlinkLog.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/BlinkLog.kt)）：
+
+```kotlin
+fun error(message: String, throwable: Throwable)
+```
+
+它先 `send` 一条 `§c` 红色消息，再调用 `bukkitPlugin.logger.log(Level.WARNING, "", throwable)` 打印完整堆栈。框架内部用它报告初始化失败，例如 `AsteroidManager` 在 NMS 初始化异常时调用 `BlinkLog.error("Asteroid 初始化失败", e)`。
+
+---
+
+## 3. 输出格式的拼装规则
+
+`info` 的实现：
+
+```kotlin
+fun info(message: String) {
+    send("$prefix§f$message")
+}
+```
+
+一条完整日志行 = **前缀 + 级别颜色码 + 消息**：
+
+```
+<prefix>§f你的消息
+```
+
+`prefix` 默认值（注意末尾的分隔符和空格）：
+
+```kotlin
+private const val DEFAULT_PREFIX = "§9◆ §bBlink §8| "
+```
+
+解码后：
+
+```
+§9◆ §bBlink §8|
+```
+
+- `§9◆`：深蓝色（dark_blue）菱形符号 `◆`
+- `§bBlink`：青色（aqua）名称
+- `§8|`：深灰色（dark_gray）竖线分隔符
+
+默认 `info` 输出在控制台为（前缀蓝青、消息白色）：
+
+```
+◆ Blink | 你的消息
+```
+
+级别颜色码（如 `info` 的 `§f`）紧跟在前缀后，消息颜色由级别决定，前缀颜色固定。
+
+### 降级输出
+
+发送逻辑在私有方法 `send`：
+
+```kotlin
+private fun send(message: String) {
+    try {
+        Bukkit.getConsoleSender().sendMessage(message)
+    } catch (_: Exception) {
+        println(message.replace(COLOR_PATTERN, ""))
+    }
+}
+```
+
+正常走 `Bukkit.getConsoleSender().sendMessage(...)`，颜色码由服务端渲染。取不到控制台（抛异常）时，用正则 `COLOR_PATTERN`（即 `§[0-9a-fk-or]`）剥掉颜色码后 `println` 兜底。
+
+---
+
+## 4. 自定义前缀：logPrefix
+
+默认前缀显示 “Blink”，但你的插件应该显示自己的名字。Blink 通过构建期 DSL 字段 `logPrefix` 让你覆盖它。
+
+### 在 blink {} 中设置
+
+在 `build.gradle.kts` 的 `blink {}` 块设置 `logPrefix`（字段定义见 [`BlinkExtension.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkExtension.kt)，默认值为空字符串）：
+
+```kotlin
+blink {
+    name.set("MyPlugin")
+    version.set("1.0.0")
+    packageName.set("com.example.myplugin")
+    logPrefix.set("§1◆ §bMyPlugin")   // 自定义前缀，空则用默认 Blink 前缀
+}
+```
+
+`logPrefix` 是 `Property<String>`，`convention` 为 `""`。
+
+<Callout type="warn">
+**只填到名称为止，不要自加结尾分隔符**——分隔符由运行时自动追加（见下文）。
+</Callout>
+
+### 流转到运行时
+
+`logPrefix` 经下面这条链路生效：
+
+1. **`BlinkExtension.logPrefix`**（DSL 字段）
+   → [`BlinkExtension.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkExtension.kt)
+2. **`BlinkPlugin`** 把它绑定到生成任务：`task.logPrefix.set(extension.logPrefix)`
+   → [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt)
+3. **`BlinkGenerateTask`** 生成 `plugin.yml` 时写入 `blink-log-prefix` 字段（仅当非空）：
+   → [`BlinkGenerateTask.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkGenerateTask.kt)
+
+   ```kotlin
+   val prefix = logPrefix.get()
+   if (prefix.isNotEmpty()) {
+       sb.appendLine("blink-log-prefix: '$prefix'")
+   }
+   ```
+4. **运行时** `BlinkLog.initPrefix()` 从 `plugin.yml` 读回 `blink-log-prefix`。
+
+---
+
+## 5. initPrefix 的时机与回退逻辑
+
+前缀生效发生在 `initPrefix()`：
+
+```kotlin
+fun initPrefix() {
+    try {
+        val yml = bukkitPlugin.getResource("plugin.yml") ?: return
+        val yaml = YamlConfiguration()
+        yaml.loadFromString(yml.bufferedReader().use { it.readText() })
+        val custom = yaml.getString("blink-log-prefix")
+        if (!custom.isNullOrEmpty()) {
+            // 用户自定义前缀，追加分隔符
+            prefix = "$custom §8| "
+        }
+    } catch (_: Exception) { }
+}
+```
+
+要点：
+
+- **追加分隔符**：自定义前缀只到名称，`initPrefix` 自动补上 ` §8| `（空格、深灰竖线、空格）。`logPrefix.set("§1◆ §bMyPlugin")` 最终渲染为 `◆ MyPlugin | 你的消息`，与默认前缀视觉结构一致。
+- **静默回退**：若 `plugin.yml` 无 `blink-log-prefix`（构建期没设 `logPrefix`），或读取抛异常，`prefix` 保持初始值 `DEFAULT_PREFIX`，退回默认的 `◆ Blink |`。
+- **线程安全**：`prefix` 字段标了 `@Volatile`，可跨线程安全读取。
+
+### 调用时机：onLoad 阶段自动调用
+
+<Callout type="info">
+无需手动调用 `initPrefix()`。Blink 在构建期生成的插件主类 `BlinkGeneratedMain.onLoad()` 会自动调用它，时机在设置 `bukkitPlugin` 引用之后、加载依赖之前。
+</Callout>
+
+字节码生成器 [`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 的 `generateOnLoad` 中的调用顺序：
+
+```kotlin
+// 1) 设置全局 bukkitPlugin 引用
+mv.visitMethodInsn(INVOKESTATIC, BLINK_KT, "setBukkitPlugin", "(L$JAVA_PLUGIN;)V", false)
+
+// 2) 初始化日志前缀
+mv.visitFieldInsn(GETSTATIC, BLINK_LOG, "INSTANCE", "L$BLINK_LOG;")
+mv.visitMethodInsn(INVOKEVIRTUAL, BLINK_LOG, "initPrefix", "()V", false)
+
+// 3) 加载依赖、脚本/Aria/Asteroid 等
+```
+
+`initPrefix()` 依赖全局变量 `bukkitPlugin`（定义于 [`Blink.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/Blink.kt)）读取 `plugin.yml`，故必须排在 `setBukkitPlugin` 之后。框架已保证该顺序，因此你在 `@Awake(LifeCycle.LOAD)` 及之后的任何生命周期调用 `BlinkLog`，前缀都已就绪。
+
+`onLoad` / `@Awake` 的完整生命周期顺序见 [生命周期 @Awake](/docs/blink/03-lifecycle)。
+
+---
+
+## 6. ArcartX 附属插件品牌前缀规范
+
+默认前缀 `§9◆ §bBlink §8|` 体现 ArcartX 生态的视觉语言。如果你写的是 ArcartX 附属/配套插件，建议沿用同一结构，只替换名称：
+
+- **结构固定为**：`§<符号色>◆ §<名称色><插件名>`
+- **符号**统一用菱形 `◆`，保持系列识别度。
+- **分隔符不要自己写**，由 `initPrefix` 自动追加 ` §8| `（深灰竖线）。
+
+推荐三色配色（与默认前缀一致的视觉层级）：
+
+| 元素     | 颜色码                | 含义                      |
+|--------|--------------------|-------------------------|
+| 符号 `◆` | `§9`（深蓝 dark_blue） | 品牌主色                    |
+| 插件名    | `§b`（青色 aqua）      | 名称高亮                    |
+| 分隔符 `  | `                  | `§8`（深灰 dark_gray，自动追加） | 弱化的结构线 |
+
+示例：
+
+```kotlin
+blink {
+    name.set("ArcartXShop")
+    logPrefix.set("§9◆ §bArcartXShop")
+}
+```
+
+运行时控制台输出（青蓝前缀 + 按级别着色的消息）：
+
+```
+◆ ArcartXShop | 商店模块已加载
+```
+
+用自己的品牌色时，只替换符号色和名称色这两个 `§x`，但保留菱形符号和深灰分隔符的结构，即可与 Blink/ArcartX 系列协调。
+
+<Callout type="warn">
+颜色码必须用 `§` 做前缀，不能用 `&`。Blink 不做 `&` → `§` 的转译，`logPrefix` 里的字符串会原样写进 `plugin.yml` 并直接发给控制台。
+</Callout>
+
+---
+
+## 7. 何时用 BlinkLog，何时用 plugin.logger
+
+`BlinkLog` 面向**控制台展示**：彩色、带品牌前缀，适合输出插件关键状态（加载、就绪、配置告警等）。
+
+需要标准 Java 日志能力——被日志框架捕获、按 `Level` 过滤、记录完整堆栈——则用 `bukkitPlugin.logger`（`java.util.logging.Logger`）。`BlinkLog.error(message, throwable)` 内部即两者结合：彩色摘要走 `BlinkLog`，堆栈细节走 `bukkitPlugin.logger`。
+
+经验法则：
+
+- 给人看的状态摘要 → `BlinkLog.info/success/warn/error/detail`
+- 需要堆栈或被日志系统采集的错误 → `BlinkLog.error(msg, throwable)` 或 `bukkitPlugin.logger`
+
+---
+
+## 下一步
+
+- [快速开始与 blink&#123;&#125; 配置](/docs/blink/02-getting-started)：`logPrefix` 所在的 `blink {}` 块
+- [生命周期 @Awake](/docs/blink/03-lifecycle)：`initPrefix()` 所处的 `onLoad` 阶段
+- [构建与发布](/docs/blink/11-build-and-release)：`logPrefix` 如何写进 `plugin.yml`

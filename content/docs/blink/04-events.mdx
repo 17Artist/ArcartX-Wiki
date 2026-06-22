@@ -1,0 +1,275 @@
+---
+title: 事件 @AutoListener
+description: "用 @AutoListener 声明监听器、签名约束、priority/ignoreCancelled，以及 EventManager 动态监听。"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+用 `@AutoListener` 在普通方法上声明 Bukkit 事件监听器，无需手写 `Listener` 类、无需 `registerEvents`，构建期自动织入注册代码。下面带你从一个最小例子出发，把签名约束、参数语义到运行时动态监听逐一讲清。
+
+读完本篇你能：
+
+- 用 `@AutoListener` 把方法变成监听器，并正确放置（`object` / `companion object` / `@JvmStatic`）。
+- 掌握方法签名约束与 `priority`、`ignoreCancelled` 的语义。
+- 用 `EventManager.listen` / `unlisten` 在运行时动态增删监听器。
+- 理解 reload / `onDisable` 后框架如何自动清理，避免 handler 累积。
+
+## 一个最小例子
+
+```kotlin
+import org.bukkit.event.player.PlayerJoinEvent
+import priv.seventeen.artist.blink.event.AutoListener
+
+object JoinHandler {
+
+    @AutoListener
+    fun onJoin(event: PlayerJoinEvent) {
+        event.joinMessage = "欢迎 ${event.player.name}"
+    }
+}
+```
+
+没有 `implements Listener`、`@EventHandler`，也不必在 `onEnable` 里 `registerEvents`。构建时 Blink 的 Gradle 插件扫描注解，生成注册代码；插件 `onEnable` 统一注册，`onDisable` 统一注销。
+
+注解定义只有两个参数（[`AutoListener.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/event/AutoListener.kt)）：
+
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class AutoListener(
+    val priority: EventPriority = EventPriority.NORMAL,
+    val ignoreCancelled: Boolean = false
+)
+```
+
+## 方法签名的约束
+
+构建期扫描器（[`AnnotationScanner.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/AnnotationScanner.kt)）按字节码读取方法描述符，对签名有严格要求。
+
+<Callout type="warn">
+不满足约束的方法会被跳过并打印 WARNING，不会编译报错，请留意构建日志。
+</Callout>
+
+### 1. 恰好一个 Event 参数
+
+扫描器调用 `extractFirstParamType` 取方法第一个参数类型作为事件类型：
+
+```kotlin
+// AnnotationScanner.kt
+fun extractFirstParamType(desc: String): String? {
+    val start = desc.indexOf('(')
+    val end = desc.indexOf(')')
+    if (start < 0 || end < 0 || end <= start + 1) return null
+    val params = desc.substring(start + 1, end)
+    if (params.startsWith('L')) {           // 第一个参数必须是引用类型
+        val semi = params.indexOf(';')
+        if (semi > 0) return params.substring(1, semi)
+    }
+    return null
+}
+```
+
+由此推导出规则：
+
+- 必须至少有一个参数，且第一个参数是引用类型（基本类型如 `Int`、`Boolean` 会让 `extractFirstParamType` 返回 `null`，方法被跳过）。
+- 该类型直接用于注册，因此第一个参数必须是 `org.bukkit.event.Event` 的子类。框架不校验，但若不是，运行时注册会失败。
+- 应只声明一个参数。多参数时第一个虽仍被取出，但生成的调用 lambda 只传入事件实例，签名对不上会导致字节码不匹配。
+
+取不到合法事件类型时，构建日志会出现：
+
+```
+[Blink] WARNING: @AutoListener method <类>#<方法> has no valid Event parameter — skipping
+```
+
+### 2. 返回类型必须是 Unit
+
+生成的调用约定是 `(L事件类型;)V`（见 [`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) `generateEventsClass`），即返回 `void` / Kotlin `Unit`。监听方法保持 `Unit` 即可。
+
+### 3. 方法要可被静态访问到
+
+生成器需要拿到接收者实例才能调用方法，支持三种载体（[`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) 中的分支）：
+
+| 载体 | 写法 | 生成代码如何取实例 |
+| --- | --- | --- |
+| 顶层函数 / `@JvmStatic` | 静态方法 | 直接 `INVOKESTATIC` |
+| `object` 单例 | `object Foo { ... }` | 取 `Foo.INSTANCE` 字段 |
+| `companion object` | `class Foo { companion object { ... } }` | 从外层类取 companion 实例字段 |
+
+对应到扫描器，监听器只在 `isStatic`、`hasInstance`（是 `object` 单例）、或 `companionAccess != null`（在 companion 里）三者之一成立时才注册：
+
+```kotlin
+// BytecodeGenerator.generateEventsClass
+for ((index, entry) in entries.withIndex()) {
+    if (!entry.isStatic && !entry.hasInstance && entry.companionAccess == null) continue
+    ...
+}
+```
+
+<Callout type="warn">
+不要把 `@AutoListener` 放在需要 `new` 出来的普通类的实例方法上：框架没有实例，会静默跳过。推荐放在 `object` 里。
+</Callout>
+
+## priority 与 ignoreCancelled
+
+这两个参数原样透传给 Bukkit 的 `PluginManager.registerEvent`。
+
+### priority
+
+`priority` 用 `org.bukkit.event.EventPriority`，默认 `NORMAL`，语义同原生 Bukkit：`LOWEST → LOW → NORMAL → HIGH → HIGHEST → MONITOR`，数值越高越晚执行、越接近最终结果。`MONITOR` 用于只读观察，不要在其中修改事件。
+
+```kotlin
+import org.bukkit.event.EventPriority
+
+object DamageWatcher {
+
+    @AutoListener(priority = EventPriority.MONITOR)
+    fun onDamage(event: EntityDamageEvent) {
+        // 只观察最终结果，不要在这里改动事件
+        BlinkLog.debug("最终伤害=${event.finalDamage}")
+    }
+}
+```
+
+### ignoreCancelled
+
+`ignoreCancelled` 默认 `false`。设为 `true` 时，若事件在你之前已被取消，你的监听器不会被调用，等价于原生 `@EventHandler(ignoreCancelled = true)`。
+
+```kotlin
+object ChatGuard {
+
+    @AutoListener(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onChat(event: AsyncPlayerChatEvent) {
+        // 只有未被取消的聊天事件才会进来
+        if (event.message.contains("badword")) event.isCancelled = true
+    }
+}
+```
+
+两值在构建期被读出（`AutoListenerAnnotationVisitor`），最终落到注册调用 `register(eventClass, priority, ignoreCancelled, executor)`，见下节 `EventManager`。
+
+## EventManager：底层注册与运行时动态监听
+
+所有静态声明（`@AutoListener`）和动态监听最终都走 `EventManager`（[`EventManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/event/EventManager.kt)）。它是一个 `object`，区分两类监听器：
+
+- **静态监听器**：一个共享的 `staticListener`，承载所有 `@AutoListener` 生成的注册。
+- **动态监听器**：按字符串 `key` 区分，存在 `ConcurrentHashMap<String, Listener>` 里，可单独注销。
+
+### 构建期生成的注册
+
+`@AutoListener` 最终生成对 `register(...)` 的调用：
+
+```kotlin
+fun register(
+    eventClass: Class<out Event>,
+    priority: EventPriority,
+    ignoreCancelled: Boolean,
+    executor: EventExecutor
+)
+```
+
+它把事件挂到共享的 `staticListener` 上。生成的 `EventExecutor` 内部还有一道 `instanceof` 守卫（见 `BytecodeGenerator` 的 `generateEventsClass`），事件类型不匹配时直接返回，避免父类 `HandlerList` 把不相关的子类事件分发进来导致 `ClassCastException`。
+
+### 运行时动态监听：listen
+
+在运行时临时注册监听器用 `EventManager.listen`，它有一个 reified 重载：
+
+```kotlin
+inline fun <reified T : Event> listen(
+    key: String,
+    priority: EventPriority = EventPriority.NORMAL,
+    ignoreCancelled: Boolean = false,
+    crossinline handler: (T) -> Unit
+)
+```
+
+用法：
+
+```kotlin
+import org.bukkit.event.player.PlayerMoveEvent
+import priv.seventeen.artist.blink.event.EventManager
+
+// 开启“移动追踪”
+EventManager.listen<PlayerMoveEvent>("move-tracker") { event ->
+    if (event.from.blockX != event.to?.blockX) {
+        // ... 处理跨方块移动
+    }
+}
+```
+
+关键点：
+
+- `key` 是身份标识，同 key 会先注销旧的再注册新的（`listen` 第一行就调用 `unlisten(key)`），重新注册天然幂等。
+- 每个动态监听用独立的匿名 `Listener` 实例，便于按 key 单独注销。
+- 内部同样有 `eventClass.isInstance(event)` 守卫，类型不符的事件被忽略。
+
+还有一个非内联重载，只有 `Class<T>` 而没有具体泛型时使用：
+
+```kotlin
+fun <T : Event> listen(
+    eventClass: Class<T>,
+    key: String,
+    priority: EventPriority = EventPriority.NORMAL,
+    ignoreCancelled: Boolean = false,
+    handler: (T) -> Unit
+)
+```
+
+### 取消动态监听：unlisten / unlistenAll
+
+```kotlin
+EventManager.unlisten("move-tracker")   // 注销单个，返回 Boolean（是否存在并被移除）
+EventManager.unlistenAll()              // 注销所有动态监听
+```
+
+`unlisten` 内部对该 key 的 `Listener` 调用 `HandlerList.unregisterAll(listener)`，从 Bukkit 摘除。
+
+### 查询辅助方法
+
+```kotlin
+EventManager.isListening("move-tracker")   // Boolean：该 key 是否在监听
+EventManager.keys()                         // Set<String>：当前所有动态监听的 key 快照
+```
+
+## reload 后的清理
+
+Bukkit 的 `/reload` 或插件管理器重载会重新走 `onLoad/onEnable/onDisable`，手写监听器最易出的 bug 是重复注册导致每个事件被处理多次。Blink 在生成的主类里做了双重保障。
+
+**注册前先清空**：生成的 `BlinkGeneratedEvents.registerAll()` 在注册任何监听器之前先调用一次 `EventManager.unregisterAll()`（[`BytecodeGenerator.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BytecodeGenerator.kt) `generateEventsClass` 顶部）：
+
+```kotlin
+// 幂等保障：先注销已有事件监听，防止 reload 后 handler 累积
+mv.visitFieldInsn(GETSTATIC, EVENT_MANAGER, "INSTANCE", ...)
+mv.visitMethodInsn(INVOKEVIRTUAL, EVENT_MANAGER, "unregisterAll", "()V", false)
+```
+
+**onDisable 时再清空**：生成的 `onDisable` 也会调用 `EventManager.unregisterAll()`（`generateOnDisable`）。
+
+`unregisterAll` 同时清掉静态和动态两类监听：
+
+```kotlin
+fun unregisterAll() {
+    HandlerList.unregisterAll(staticListener)
+    unlistenAll()
+}
+```
+
+由此得出两条实践结论：
+
+- `@AutoListener` 声明的监听器是托管的，reload 与插件停用都会自动清理。
+- 手动 `listen` 出来的动态监听同样会在 `onDisable` / 重新注册时被一并清掉（走同一个 `unlistenAll`）。
+
+<Callout type="info">
+若希望某个动态监听在重载后继续存在，应在合适的生命周期回调里重新 `listen`，参见 [生命周期 @Awake](/docs/blink/03-lifecycle) 选择 `ENABLE` 或 `ACTIVE` 时机。
+</Callout>
+
+## 小结清单
+
+- 把方法放进 `object`（或 companion / `@JvmStatic`），加 `@AutoListener`，参数恰好一个 `Event` 子类，返回 `Unit`。
+- 用 `priority` / `ignoreCancelled` 控制时机与是否处理已取消事件，语义同原生 Bukkit。
+- 运行时临时监听用 `EventManager.listen(key) { ... }`，同 key 自动替换；用 `unlisten(key)` 摘除。
+- reload 安全由框架负责：注册前与 `onDisable` 都会 `unregisterAll`，不会累积。
+
+## 下一步
+
+- [生命周期 @Awake](/docs/blink/03-lifecycle)：监听器的注册时机由生命周期决定。
+- [命令](/docs/blink/05-commands)：做一条 `/track` 命令开关动态监听。

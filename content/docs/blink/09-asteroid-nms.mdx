@@ -1,0 +1,502 @@
+---
+title: Asteroid NMS
+description: enableAsteroid 共享宿主模型 + AsteroidAPI 完整参考：实体、数据包、ItemTag、属性、AI、序列化、Folia 调度等。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Asteroid 是 ArcartX 的跨版本 NMS 操作库，一套代码适配 MC 1.18.2 ～ 26.x（Spigot / Paper / Folia）。Blink 把它做成和 [Aria 脚本引擎](/docs/blink/08-scripting-aria) 相同的「全 JVM 唯一一份」共享中间件：构建时声明 `enableAsteroid = true`，运行期 Blink 自动下载 Asteroid、包装成 Bukkit 插件 `BlinkAsteroidHost` 部署，所有用了 Blink 的插件共用同一份 NMS 实现。
+
+读完本篇你能：
+
+- 说清 `enableAsteroid = true` 在构建期和运行期各做了什么。
+- 理解 `BlinkAsteroidHost` 共享宿主的下载 → 包装 → 部署、版本检测、离线回退流程。
+- 在代码里判断 NMS 是否就绪（`AsteroidManager.isAvailable`），并用 `AsteroidAPI` 操作实体、坐骑、数据包、ItemTag、属性、AI、序列化、头颅、发光、调度。
+- 从旧的「打包 + relocate」模型迁移时需要改的地方。
+
+---
+
+## 1. 模型
+
+Asteroid 在 Blink 里走「共享宿主」模型，和 Aria 同源：
+
+- **编译期**：Asteroid 以 `compileOnly` 依赖加入工程，可直接 `import priv.seventeen.artist.asteroid.*` 并享受补全，但不会被打进 JAR、也不会被 relocate。
+- **运行期**：第一个启动且开了 Asteroid 的 Blink 插件作为**部署者 (deployer)**，把 Asteroid 下载、包装成 `BlinkAsteroidHost` 插件并加载；其余插件作为**客户 (client)** 复用它。整个进程只有一份 Asteroid 实例、一份 `AsteroidAPI` 全局单例、一套 NMS 实现。
+
+目的：避免每个插件各打一份 Asteroid（体积、版本冲突），并让 NMS 的全局状态（数据包注入、`AsteroidAPI` 静态单例）真正全局共享、跨插件存活。
+
+---
+
+## 2. 构建期：`enableAsteroid = true`
+
+在 `build.gradle.kts` 的 `blink { }` 里开启：
+
+```kotlin
+blink {
+    name = "MyPlugin"
+    enableAsteroid.set(true)
+}
+```
+
+构建时 Blink Gradle 插件的 `configureAsteroid` 做两件事（见 [`BlinkPlugin.kt`](https://github.com/17Artist/Blink/blob/main/blink-gradle-plugin/src/main/kotlin/priv/seventeen/artist/blink/gradle/BlinkPlugin.kt)）：
+
+1. **解析最新版本**：从仓库的 `maven-metadata.xml` 读取 `asteroid-nms` 的最新 release（`repo.arcartx.com` → 阿里云 → Maven Central → 华为云依次尝试；全不可达则回退 `gradle.properties` 的 `asteroidVersion`，再不行用硬编码兜底）。
+2. **以 `compileOnly` 加入依赖**：`priv.seventeen.artist.asteroid:asteroid-nms:<version>`。
+
+```kotlin
+// configureAsteroid 核心：compileOnly，不打包不 relocate
+project.dependencies.add("compileOnly", "priv.seventeen.artist.asteroid:asteroid-nms:$asteroidVersion")
+```
+
+`configureShadow` 只 relocate 了 `priv.seventeen.artist.blink`，没有 relocate Asteroid——Asteroid 运行期由 `BlinkAsteroidHost` 部署为全局共享插件，不在你的 JAR 里：
+
+```kotlin
+relocateMethod.invoke(task, "priv.seventeen.artist.blink", "$pkgName.blink")
+// Aria / Asteroid 运行时由各自 SharedHost 部署为全局共享插件，不打包、不 relocate
+```
+
+混淆阶段同理：`configureProteus` 注释写明「Asteroid 已不打包进消费者 jar，无需 exclude」。
+
+---
+
+## 3. 运行期：共享宿主部署流程
+
+入口在生成主类的 `onLoad()` 阶段：`AsteroidManager.init(plugin)` → `AsteroidSharedHost.acquire(plugin)`（见 [`AsteroidManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/nms/AsteroidManager.kt) 与 [`AsteroidSharedHost.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/nms/AsteroidSharedHost.kt)）。
+
+`acquire` 是 `@Synchronized` 且幂等的，分三种情况：
+
+1. **已部署**：检测到 Bukkit 已存在启用的 `BlinkAsteroidHost`，复用它的 `PluginClassLoader`，记录版本，返回。后启动的插件都走这条路。
+2. **首次部署（本插件当部署者）**：进入 `ensureUpToDateAndLoad`：
+   - 从 hosted 仓库 `maven-releases` 解析 `asteroid-nms` 最新 release（固定走 hosted 仓库，避免 Nexus group 缓存不同步）。
+   - 对比 `plugins/.blink-shared/BlinkAsteroidHost.jar` 内嵌的版本（读 `plugin.yml` 的 `version`）。
+   - 决策：本地没有就下载；本地落后就升级重下；仓库不可达就用本地缓存；已是最新就直接用。
+3. **下载并包装**：`downloadAndWrap` 下载 `asteroid-nms-<version>.jar` 到临时文件，再 `wrapAsteroidIntoHostJar` 重新打包成 `BlinkAsteroidHost.jar`：复制原 jar 全部 entry（跳过原 `plugin.yml` 和 `MANIFEST.MF`），追加新的 `plugin.yml`、`MANIFEST.MF` 和宿主入口类 `BlinkAsteroidHostPlugin.class`。
+
+最后 `loadHostJar` 调用 `PluginManager.loadPlugin(jar)` + `enablePlugin(loaded)` 把宿主插入插件体系。
+
+### 宿主 onEnable：NMSLoader.load(host)
+
+宿主入口类（base64 内嵌字节码，源码注释在 `AsteroidSharedHost`）等价于：
+
+```java
+public class BlinkAsteroidHostPlugin extends JavaPlugin {
+    @Override public void onEnable() {
+        NMSLoader.load(this); // 全局数据包注入 + Bukkit 事件监听都绑定到「宿主」
+        getLogger().info("Asteroid host loaded (MC " + AsteroidAPI.getMcVersion() + ")");
+    }
+}
+```
+
+`NMSLoader.load(host)` 把全局数据包注入和 Bukkit 事件监听绑定到长生命周期的宿主，而非任何消费插件。因此单个消费插件 `disable` 不会拆掉 NMS 注入，这是共享模型的核心保证。
+
+<Callout type="warn">
+所以在 Blink 里你**永远不要自己调 `NMSLoader.load`**，直接用 `AsteroidAPI` 即可。
+</Callout>
+
+<Callout type="info">
+字节码内嵌而非直接 import 宿主类：宿主类全限定名（`priv.seventeen.artist.blink.nms.host.BlinkAsteroidHostPlugin`）和它在 jar 里的路径以 base64 内嵌、运行时解码。否则 Shadow 的 relocate 会把字面量改写成用户的 relocate 目标包，导致 jar 内类路径与 class 文件 `this_class` 不一致，Bukkit 加载失败。
+</Callout>
+
+### 每次部署都检测最新版
+
+部署者每次启动都会比对 `maven-releases` 最新 release 与本地缓存版本，落后就自动重下、替换 `.blink-shared/BlinkAsteroidHost.jar`。升级 Asteroid 不用改代码，重启服务器即可。
+
+### 离线回退
+
+仓库不可达但 `.blink-shared/BlinkAsteroidHost.jar` 已存在时，跳过版本检查直接用本地缓存。只有「本地无缓存 + 仓库不可达」时才会失败，此时 `AsteroidManager.isAvailable` 为 `false`。
+
+---
+
+## 4. 判断是否就绪
+
+`AsteroidManager`（见 [`AsteroidManager.kt`](https://github.com/17Artist/Blink/blob/main/blink-common/src/main/kotlin/priv/seventeen/artist/blink/nms/AsteroidManager.kt)）暴露几个只读入口：
+
+| 成员                                                | 含义                                        |
+|---------------------------------------------------|-------------------------------------------|
+| `AsteroidManager.isAvailable: Boolean`            | NMS 桥接是否就绪                                |
+| `AsteroidManager.version: String?`                | 当前共享 Asteroid 版本，未就绪为 `null`              |
+| `AsteroidManager.sharedClassLoader: ClassLoader?` | 共享宿主的 ClassLoader，动态加载 Asteroid 扩展类型时才用得到 |
+
+`init` / `shutdown` 由生成主类自动调用，不需手动调。使用前先判断可用性：
+
+```kotlin
+import priv.seventeen.artist.asteroid.AsteroidAPI
+import priv.seventeen.artist.blink.bukkitPlugin
+import priv.seventeen.artist.blink.lifecycle.Awake
+import priv.seventeen.artist.blink.lifecycle.LifeCycle
+import priv.seventeen.artist.blink.nms.AsteroidManager
+
+@Awake(LifeCycle.ENABLE, priority = 10)
+fun initNMS() {
+    if (!AsteroidManager.isAvailable) {
+        bukkitPlugin.logger.warning("Asteroid not available")
+        return
+    }
+    bukkitPlugin.logger.info("Asteroid ready — MC ${AsteroidAPI.getMcVersion()}, v${AsteroidManager.version}")
+}
+```
+
+<Callout type="info">
+`disable` 时生成主类自动调 `AsteroidManager.shutdown()`，但它只释放本插件本地引用——共享宿主 `BlinkAsteroidHost` 与全局数据包注入跨插件存活，不会被单个插件卸载拆掉。
+</Callout>
+
+---
+
+## 5. Asteroid API 完整参考
+
+Asteroid 全部 API 的完整参考（与 `asteroid-nms` 同源，已转写为 Kotlin、并按 Blink 用法调整）。统一约定：
+
+- **不要手动 `NMSLoader.load`**——宿主已加载；调用前确认 `AsteroidManager.isAvailable`。
+- 一切从静态门面 `AsteroidAPI` 进入。
+- 跨版本透明：1.20.4 及以下走旧实现（NBTTagCompound / UUID 属性标识），1.20.5+、1.21+ 走新实现（DataComponent / ResourceLocation），API 层一致。
+
+### 5.1 版本
+
+```kotlin
+val mc = AsteroidAPI.getMcVersion()   // 例如 "1.20.4"
+```
+
+### 5.2 自定义实体（Ability 组合）
+
+基于 LivingEntity 的自定义实体，按需组合能力。
+
+**创建**
+
+```kotlin
+val entity = AsteroidAPI.createCustomEntity(player, 2.0, 1.5)     // 绑定 owner（可跟随），width, height
+val entity2 = AsteroidAPI.createCustomEntity(location, 2.0, 1.5)  // 在位置创建
+```
+
+**能力**
+
+```kotlin
+import priv.seventeen.artist.asteroid.entity.ability.*
+
+// 碰撞箱 + 偏移
+val hitbox = HitboxAbility(2.0, 1.5)
+hitbox.setOffset(0.0, 1.0, 2.0)
+entity.addAbility(hitbox)
+
+entity.addAbility(DamageAbility { attacker, damage -> false })   // 返回 true 取消伤害
+entity.addAbility(InteractAbility { interactor, mainHand -> interactor.sendMessage("右键交互") })
+entity.addAbility(RemoveAbility { /* 清理 */ })
+entity.addAbility(FollowOwnerAbility())                          // 跟随 owner
+entity.addAbility(CustomTickAbility { e ->                       // 自定义 tick
+    e.bukkitEntity.world.spawnParticle(org.bukkit.Particle.FLAME, e.location, 1)
+})
+entity.addAbility(ResizeAbility())                              // 运行时改尺寸
+
+entity.hasAbility(HitboxAbility::class.java)
+entity.removeAbility(HitboxAbility::class.java)
+entity.abilities          // 已挂载的全部能力
+entity.bukkitEntity       // 对应的 Bukkit LivingEntity
+entity.remove()           // 触发 RemoveAbility 回调、清理座位
+```
+
+**坐骑（5 模式）+ 多座位**
+
+模式：`GROUND`（地面）、`FLY`（飞行）、`BOAT`（船：惯性、A/D 转向、水面浮力）、`CAR`（载具式地面）、`DIVING`（潜艇：空格上浮、Shift 下潜）。
+
+```kotlin
+val mount = AsteroidAPI.createCustomEntity(player, 1.5, 1.0)
+
+mount.addAbility(MountAbility(MountAbility.MountType.FLY, 0.5f))
+mount.addAbility(MountAbility(MountAbility.MountType.BOAT, 0.4f, 0.08f, 0.06f, 3.5f))
+mount.addAbility(MountAbility(MountAbility.MountType.DIVING, 0.3f))
+
+val seats = SeatAbility()
+mount.addAbility(seats)
+seats.addSeat(0.0, 0.0, 0.0)        // 驾驶位
+seats.addSeat(0.8, 0.0, -0.5)       // 右后
+seats.addSeat(-0.8, 0.0, -0.5)      // 左后
+seats.addPassenger(mount, player)
+```
+
+### 5.3 数据包
+
+**监听**——Blink 下注入挂在宿主、跨插件存活，所以**必须自行 add / remove**（框架不代管）。
+
+```kotlin
+import priv.seventeen.artist.asteroid.packet.*
+
+val listener = object : PacketListener {
+    override fun onReceive(event: PacketEvent) {   // 客户端 → 服务端
+        if (event.`is`(PacketType.Play.Client.INTERACT)) {
+            val entityId = event.read("entityId", Int::class.java)
+        }
+        if (event.packetName.contains("MovePlayer")) {
+            val x = event.fields().readDouble(0)   // 按字段索引读，不依赖 PacketType
+        }
+    }
+    override fun onSend(event: PacketEvent) {       // 服务端 → 客户端
+        if (event.`is`(PacketType.Play.Server.ENTITY_DESTROY)) event.isCancelled = true
+    }
+}
+
+// 第一个参数是「你自己的插件」，不是宿主
+AsteroidAPI.addPacketListener(bukkitPlugin, listener)
+
+// onDisable 必须清理
+AsteroidAPI.removePacketListener(bukkitPlugin, listener)
+```
+
+（Kotlin 中 `is` 是关键字，调 `PacketEvent.is(...)` 要写成 `` event.`is`(...) ``。）
+
+**构造与发送**
+
+```kotlin
+import priv.seventeen.artist.asteroid.packet.Packets
+
+// 工厂方法
+Packets.sendEntityDestroy(player, 12345)
+Packets.sendEntityVelocity(player, entityId, 0, 8000, 0)
+Packets.sendEntityHeadRotation(player, entityId, 90f)
+Packets.sendSetPassengers(player, vehicleId, passengerId1, passengerId2)
+Packets.sendSetCamera(player, entityId)
+
+// 语义化构造（字段跨版本稳定的包）
+val packet = PacketBuilder.create(PacketType.Play.Server.ENTITY_HEAD_ROTATION)
+    .writeSemantic("entityId", entityId)
+    .writeSemantic("headYaw", 64.toByte())
+    .packet
+AsteroidAPI.getPacketHandler().sendPacket(player, packet)
+
+// 底层字段读写
+val fields = PacketFields.of(nmsPacket)
+val id = fields.readInt(0)
+fields.writeInt(0, newId)
+```
+
+<Callout type="warn">
+实体速度包在 1.20.5+ / 26.x 已把 x/y/z 合并为单个 Vec3 字段，不能再用 `writeSemantic("velocityX")` 逐分量写。直接用 `Packets.sendEntityVelocity(...)`（已自动适配新旧两种结构）。
+</Callout>
+
+**手动注入**
+
+```kotlin
+AsteroidAPI.getPacketHandler().inject(player)
+AsteroidAPI.getPacketHandler().uninject(player)
+```
+
+### 5.4 ItemTag —— 跨版本 NBT / DataComponent
+
+1.20.4 及以下走 `NBTTagCompound`，1.20.5+ 走 `DataComponent`（custom_data），API 透明。
+
+```kotlin
+import priv.seventeen.artist.asteroid.item.ItemTag
+import priv.seventeen.artist.asteroid.item.ItemTagData
+
+val tag = ItemTag.fromItemStack(item)
+
+// 基本类型
+tag.putString("id", "my_sword")
+tag.putInt("level", 5)
+tag.putBoolean("enchanted", true)
+tag.putDouble("damage", 15.5)
+
+// 深路径（自动创建中间节点）
+tag.putDeep("stats.attack", ItemTagData.of(15.5))
+tag.putDeep("stats.defense", ItemTagData.of(8))
+
+// 写回（返回新 ItemStack）
+val newItem = tag.saveTo(item)
+
+// 读取
+val id = tag.getString("id")
+val level = tag.getInt("level")
+val attack = tag.getDeep("stats.attack")?.asDouble() ?: 0.0
+
+// 删除 / 任意类型 / 深拷贝
+tag.removeDeep("stats.attack")
+tag.putAny("key", anyObject)
+tag.putDeepAny("path.to.key", anyObject)
+val copy = tag.deepClone()
+```
+
+`ItemTagData.of(...)` 覆盖 byte/short/int/long/float/double/String/数组/嵌套 ItemTag/ItemTagList（另有 `ofBoolean`），取值用 `asInt()/asString()/asBoolean()/asDouble()` 等。`ItemTag` 也有便捷的 `putInt/getInt/putString/getString` 等直接方法。
+
+### 5.5 属性桥接（AttributeBridge）
+
+跨版本统一原版 AttributeModifier（1.20.4- 用 UUID，1.21+ 用 ResourceLocation，透明）。
+
+```kotlin
+val bridge = AsteroidAPI.getAttributeBridge()
+
+// 属性 ID：1.20.4- "minecraft:generic.max_health"；1.21+ "minecraft:max_health"
+// 用 getAvailableAttributes() 取当前版本完整列表
+bridge.setModifier(entity, "minecraft:max_health", "myplugin:bonus_hp", 10.0, 0)  // op: 0=加法 1=基础乘 2=最终乘
+
+bridge.getBaseValue(entity, "minecraft:max_health")
+bridge.getFinalValue(entity, "minecraft:max_health")
+bridge.hasAttribute(entity, "minecraft:max_health")
+
+bridge.removeModifier(entity, "minecraft:max_health", "myplugin:bonus_hp")
+bridge.removeAllModifiers(entity, "myplugin:")           // 按前缀批量移除
+
+val attrs: List<String> = bridge.getAvailableAttributes()
+```
+
+### 5.6 物品属性修饰符（IAttributeItemNMS）
+
+向物品 Meta 写入原版属性修饰符，穿戴 / 手持时生效。
+
+```kotlin
+val attrItem = AsteroidAPI.getAttributeItemNMS()
+val meta = item.itemMeta!!
+
+// attr / key / amount / operation(0=加法 1=基础乘 2=最终乘) / slot
+attrItem.addModifier(meta, "minecraft:generic.max_health", "myplugin:hp", 4.0, 0, "hand")
+// slot: "hand"/"head"/"chest"/"legs"/"feet"/"offhand"；传 null = 所有槽位
+attrItem.addModifier(meta, "minecraft:generic.attack_damage", "myplugin:dmg", 2.0, 0, null)
+
+attrItem.removeModifier(meta, "minecraft:generic.max_health")
+item.itemMeta = meta
+```
+
+### 5.7 实体 NMS 操作（IEntityNMS）
+
+```kotlin
+val nms = AsteroidAPI.getEntityNMS()
+
+nms.setSize(entity, 2.0f, 3.0f)        // 改碰撞箱
+nms.setPosition(entity, x, y, z)        // 设置位置（不触发 Bukkit 事件）
+nms.setRotation(entity, yaw, pitch)     // 设置朝向
+nms.isMoveKeyDown(player)               // 玩家是否按下移动键
+
+nms.doWithSeenBy(entity) { player ->    // 遍历能看到该实体的玩家
+    // 发自定义包等
+}
+```
+
+### 5.8 生物 AI（IMobAI）
+
+```kotlin
+val ai = AsteroidAPI.getMobAI()
+
+ai.clearGoals(mob)
+ai.clearTargetGoals(mob)
+ai.addGoal(mob, 1, nmsGoal)            // priority, NMS PathfinderGoal 对象
+ai.addTargetGoal(mob, 1, nmsGoal)
+ai.removeGoal(mob, goalClass)
+ai.removeTargetGoal(mob, goalClass)
+
+val nmsEntity = ai.getNMSEntity(mob)
+val goalSelector = ai.getGoalSelector(mob)
+val targetSelector = ai.getTargetSelector(mob)
+```
+
+### 5.9 物品序列化（IItemStackNMS）
+
+```kotlin
+val itemNms = AsteroidAPI.getItemStackNMS()
+val json = itemNms.item2Json(item)     // 物品 → JSON（SNBT）
+val restored = itemNms.json2Item(json) // JSON → 物品
+```
+
+### 5.10 头颅纹理（ISkullNMS）
+
+URL 或 Base64 自动识别，跨版本统一（自动处理 GameProfile / ResolvableProfile 差异）。
+
+```kotlin
+import org.bukkit.inventory.meta.SkullMeta
+
+val skull = AsteroidAPI.getSkullNMS()
+val meta = item.itemMeta as SkullMeta
+
+skull.setTexture(meta, "http://textures.minecraft.net/texture/<hash>")
+// skull.setTexture(meta, "eyJ0ZXh0dXJlcyI6ey...")   // 或 Base64
+item.itemMeta = meta
+
+val url = skull.getTexture(meta)        // 读取纹理 URL，无则 null
+```
+
+### 5.11 物品发光（IGlintNMS）
+
+无需附魔即可发光，跨版本统一（高版本用 glint override 组件，低版本用隐藏附魔）。
+
+```kotlin
+val glint = AsteroidAPI.getGlintNMS()
+val meta = item.itemMeta!!
+
+glint.setGlint(meta, true)
+glint.hasGlint(meta)
+glint.removeGlint(meta)
+item.itemMeta = meta
+```
+
+### 5.12 FakeOp —— 临时 OP 执行命令
+
+执行完自动恢复权限。
+
+```kotlin
+import priv.seventeen.artist.asteroid.util.FakeOp
+
+FakeOp.execute(player, "gamemode creative")        // 默认等级 4
+FakeOp.execute(player, "give @s diamond 64", 2)    // 指定等级
+```
+
+### 5.13 FoliaScheduler 与平台检测
+
+自动检测 Folia / Paper / Spigot，选对应调度；Folia 上走区域线程，普通服务端退化为 Bukkit 调度。返回的句柄可传给 `cancelTask`。
+
+```kotlin
+import priv.seventeen.artist.asteroid.util.FoliaScheduler
+import priv.seventeen.artist.asteroid.util.PaperCompat
+
+FoliaScheduler.runTask(bukkitPlugin) { }
+FoliaScheduler.runTaskLater(bukkitPlugin, { }, 20L)
+FoliaScheduler.runTaskTimer(bukkitPlugin, { }, 0L, 20L)
+FoliaScheduler.runEntityTask(bukkitPlugin, entity) { }      // Folia: 实体所在区域线程
+FoliaScheduler.runLocationTask(bukkitPlugin, location) { }  // Folia: 坐标所在区域线程
+FoliaScheduler.runAsync(bukkitPlugin) { }
+FoliaScheduler.runAsyncLater(bukkitPlugin, { }, 20L)
+val task = FoliaScheduler.runAsyncTimer(bukkitPlugin, { }, 0L, 20L)
+FoliaScheduler.cancelTask(task)
+
+PaperCompat.isPaper()
+PaperCompat.isFolia()
+PaperCompat.isSpigot()
+```
+
+---
+
+## 6. 从旧模型迁移
+
+从「Asteroid 被打包进 jar 并 relocate」的旧 Blink 版本升级时，注意这几处：
+
+1. **包名改回规范包名**。旧模型 relocate 后 import 的是 `你的包.asteroid.*` 等 relocated 路径；新模型下 Asteroid 是全局共享插件、不 relocate，所有 import 改回 `priv.seventeen.artist.asteroid.*`。
+
+2. **数据包监听需自行 add/remove**。新模型下注入绑定在宿主上、跨插件存活，所以你 `AsteroidAPI.addPacketListener(bukkitPlugin, ...)` 注册的监听器，必须在自己的 `onDisable` 调 `AsteroidAPI.removePacketListener(bukkitPlugin, ...)` 清理。`AsteroidManager.shutdown()` 只释放本地引用，不摘监听器。
+
+```kotlin
+@Awake(LifeCycle.DISABLE)
+fun cleanup() {
+    if (AsteroidManager.isAvailable) {
+        AsteroidAPI.removePacketListener(bukkitPlugin, listener)
+    }
+}
+```
+
+3. **首次需联网**。新模型首次部署要从仓库下载 `asteroid-nms`，因此首次启动需联网（或 `.blink-shared/BlinkAsteroidHost.jar` 已有缓存）。仓库不可达且无缓存时 `isAvailable` 为 `false`，NMS 调用前务必先判断。把可达的仓库配进 `blink.yml` 可避免下载失败。
+
+4. **`enableAsteroid = false` 时零成本**。不开就不部署宿主、不下载任何依赖。
+
+---
+
+## 7. 常见排错
+
+- **`AsteroidManager.isAvailable` 始终为 `false`**：看启动日志，多半是「本地无缓存 + 仓库不可达」。确认能访问 `repo.arcartx.com`，或在 `blink.yml` 配置可达的 `repositories`，让宿主能下载到 `asteroid-nms.jar`。
+- **编译能过、运行 `NoClassDefFoundError: .../asteroid/AsteroidAPI`**：`enableAsteroid` 没开（Asteroid 是 `compileOnly`，没开就没人在运行期部署它）。确认 `blink { enableAsteroid.set(true) }`。
+- **数据包监听器在插件 reload 后重复触发或泄漏**：忘了在 `onDisable` 调 `removePacketListener`。注入挂在宿主上、不随 disable 清理，必须自己摘。
+- **`writeSemantic("velocityX")` 在高版本不生效**：1.20.5+ 速度包已合并为 Vec3 字段，改用 `Packets.sendEntityVelocity(...)`。
+- **想升级 Asteroid**：不用改代码。部署者每次启动比对 `maven-releases` 最新 release，落后就自动重下、替换 `.blink-shared/BlinkAsteroidHost.jar`。多个插件版本不一致时，第一个部署者决定版本、后启动者复用；重启服务器可重新选举与解析。
+
+---
+
+## 下一步
+
+- [生命周期 @Awake](/docs/blink/03-lifecycle)：NMS 初始化挂在哪个阶段、`shutdown` 何时触发
+- [Aria 脚本引擎](/docs/blink/08-scripting-aria)：同款共享宿主模型的另一处应用
+- [配置](/docs/blink/06-config)：下载用到的仓库列表、`blink.yml` 配置
+- [日志](/docs/blink/07-logging)：启动 / 排错日志怎么读
+- [Proteus 混淆](/docs/blink/10-obfuscation)：relocate 与混淆如何影响共享宿主
