@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 /* ===================================================================
  * usePrefersReducedMotion: 监听用户「减少动态」系统偏好
@@ -381,155 +381,204 @@ export function CountUp({
 }
 
 /* ===================================================================
- * ProjectCard: 玻璃拟态 + 3D tilt + 鼠标跟随光斑 + 霓虹辉光边
+ * ProjectDirectory: 紧凑卡片网格 + 搜索 + 标签筛选
+ * 可扩展到几十个项目：脱离 scroll-snap，按需筛选/搜索。
  * =================================================================== */
 
-export function ProjectCard({
-  href,
-  title,
-  description,
-  tagline,
-  pageCount,
-  color,
-  icon,
-  updated,
-  index = 0,
-}: {
+export interface ProjectCardData {
+  slug: string;
   href: string;
   title: string;
-  description?: string;
   tagline?: string;
+  /** 仅用于搜索匹配，不展示 */
+  description?: string;
   pageCount: number;
   color?: string;
   icon?: ReactNode;
-  updated?: string;
-  index?: number;
-}) {
-  const accent = color ?? '#46d2ff';
-  const ref = useRef<HTMLAnchorElement | null>(null);
-  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
-  const [spot, setSpot] = useState({ x: -200, y: -200 });
+  tags?: { label: string; color?: string }[];
+}
 
-  function onMove(e: React.MouseEvent<HTMLAnchorElement>) {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width;
-    const py = (e.clientY - rect.top) / rect.height;
-    // 鼠标位置 (0..1) 映射到 ±6 度倾斜
-    setTilt({ rx: (py - 0.5) * -6, ry: (px - 0.5) * 6 });
-    setSpot({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  }
-  function onLeave() {
-    setTilt({ rx: 0, ry: 0 });
-    setSpot({ x: -200, y: -200 });
-  }
+export function ProjectDirectory({ projects }: { projects: ProjectCardData[] }) {
+  const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  // 收集所有出现过的标签（去重，每个记一个代表色）
+  const allTags = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of projects) {
+      for (const t of p.tags ?? []) {
+        if (!map.has(t.label)) map.set(t.label, t.color ?? p.color ?? '#46d2ff');
+      }
+    }
+    return Array.from(map, ([label, color]) => ({ label, color }));
+  }, [projects]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return projects.filter((p) => {
+      const hitQuery =
+        !q ||
+        p.title.toLowerCase().includes(q) ||
+        (p.tagline ?? '').toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q);
+      const hitTag = !activeTag || (p.tags ?? []).some((t) => t.label === activeTag);
+      return hitQuery && hitTag;
+    });
+  }, [projects, query, activeTag]);
 
   return (
-    <Reveal delay={index * 90} variant="fade-up">
-      <a
-        ref={ref}
-        href={href}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-        className="
-          group relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl
-          border border-white/10 bg-white/[0.035] p-7 backdrop-blur-xl
-          transition-[background-color] duration-300
-          hover:bg-white/[0.06]
-        "
-        style={
-          {
-            ['--accent' as string]: accent,
-            transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
-            transition: 'transform 200ms ease-out, background-color 300ms',
-          } as React.CSSProperties
-        }
-      >
-        {/* 顶部霓虹光带 */}
-        <div
-          className="absolute inset-x-0 top-0 h-px opacity-70"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
-          }}
-          aria-hidden
-        />
-
-        {/* hover 时的霓虹边框 + 外发光 */}
-        <div
-          className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            boxShadow: `inset 0 0 0 1px ${accent}66, 0 20px 55px -22px ${accent}88`,
-          }}
-          aria-hidden
-        />
-
-        {/* 跟随鼠标的光斑 */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            background: `radial-gradient(420px circle at ${spot.x}px ${spot.y}px, ${accent}28, transparent 45%)`,
-          }}
-          aria-hidden
-        />
-
-        <div className="relative flex items-start justify-between">
-          <div
-            className="
-              flex h-12 w-12 items-center justify-center rounded-xl
-              border border-white/10 bg-white/[0.04]
-              transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105
-            "
-            style={{
-              color: accent,
-              boxShadow: `0 0 22px -8px ${accent}`,
-            }}
+    <div>
+      {/* 搜索 + 标签筛选 */}
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="relative w-full md:max-w-xs">
+          <svg
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
           >
-            {icon ?? <DefaultProjectIcon />}
-          </div>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/60">
-            {pageCount} 篇
-          </span>
+            <circle cx="11" cy="11" r="7" strokeWidth={2} />
+            <path d="M21 21l-4.3-4.3" strokeWidth={2} strokeLinecap="round" />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索项目…"
+            maxLength={40}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-[#46d2ff]/50"
+          />
         </div>
 
-        <div className="relative">
-          <h3 className="text-xl font-semibold text-white">{title}</h3>
-          {tagline ? (
-            <p className="mt-1 text-xs text-white/55">{tagline}</p>
-          ) : null}
-        </div>
-
-        {description ? (
-          <p className="relative line-clamp-2 text-sm leading-relaxed text-white/60">
-            {description}
-          </p>
-        ) : null}
-
-        <div className="relative mt-auto flex items-center justify-between gap-2 pt-2 text-sm">
-          <span className="flex items-center gap-1 font-medium text-white/75 transition-colors">
-            <span className="transition-colors group-hover:text-[var(--accent)]">
-              进入项目
-            </span>
-            <svg
-              className="h-4 w-4 transition-transform group-hover:translate-x-1"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
+        {allTags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <FilterChip label="全部" active={activeTag === null} onClick={() => setActiveTag(null)} />
+            {allTags.map((t) => (
+              <FilterChip
+                key={t.label}
+                label={t.label}
+                color={t.color}
+                active={activeTag === t.label}
+                onClick={() => setActiveTag((cur) => (cur === t.label ? null : t.label))}
               />
-            </svg>
-          </span>
-          {updated ? (
-            <span className="text-[11px] text-white/50">文档更新于 {updated}</span>
-          ) : null}
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* 网格 */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((p) => (
+            <CompactProjectCard key={p.slug} p={p} />
+          ))}
         </div>
-      </a>
-    </Reveal>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-12 text-center text-sm text-white/50">
+          没有匹配的项目，换个关键词或筛选试试。
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterChip({
+  label,
+  color,
+  active,
+  onClick,
+}: {
+  label: string;
+  color?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const c = color ?? '#46d2ff';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? 'text-[#04121d]'
+          : 'border-white/15 text-white/60 hover:border-white/30 hover:text-white'
+      }`}
+      style={active ? { background: c, borderColor: c } : undefined}
+    >
+      {label}
+    </button>
+  );
+}
+
+function CompactProjectCard({ p }: { p: ProjectCardData }) {
+  const accent = p.color ?? '#46d2ff';
+  return (
+    <a
+      href={p.href}
+      className="group relative flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.06]"
+      style={{ ['--accent' as string]: accent } as React.CSSProperties}
+    >
+      {/* 顶部霓虹光带 */}
+      <div
+        className="absolute inset-x-0 top-0 h-px opacity-70"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+        aria-hidden
+      />
+      {/* hover 霓虹边 + 外发光 */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 0 1px ${accent}55, 0 16px 40px -22px ${accent}99` }}
+        aria-hidden
+      />
+
+      <div className="relative flex items-start justify-between">
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105"
+          style={{ color: accent, boxShadow: `0 0 18px -8px ${accent}` }}
+        >
+          {p.icon ?? <DefaultProjectIcon />}
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-white/55">
+          {p.pageCount} 篇
+        </span>
+      </div>
+
+      <div className="relative">
+        <h3 className="text-base font-semibold leading-snug text-white">{p.title}</h3>
+        {p.tagline ? (
+          <p className="mt-0.5 line-clamp-1 text-xs text-white/50">{p.tagline}</p>
+        ) : null}
+      </div>
+
+      {p.tags && p.tags.length > 0 ? (
+        <div className="relative mt-auto flex flex-wrap gap-1.5 pt-1">
+          {p.tags.map((t) => {
+            const c = t.color ?? accent;
+            return (
+              <span
+                key={t.label}
+                className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-tight"
+                style={{ color: c, borderColor: `${c}55`, background: `${c}1f` }}
+              >
+                {t.label}
+              </span>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="relative mt-auto flex items-center gap-1 pt-1 text-xs font-medium text-white/55 transition-colors group-hover:text-[var(--accent)]">
+          进入项目
+          <svg
+            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </div>
+      )}
+    </a>
   );
 }
 

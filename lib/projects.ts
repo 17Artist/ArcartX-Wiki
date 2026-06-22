@@ -4,6 +4,12 @@ import type { ReactNode } from 'react';
 import fs from 'fs';
 import path from 'path';
 
+/** 主页卡片标签：文字 + 颜色（hex，省略则用项目主题色）。 */
+export interface ProjectTag {
+  label: string;
+  color?: string;
+}
+
 export interface ProjectInfo {
   /** 项目根 slug，对应 content/docs/<slug>/ 目录名 */
   slug: string;
@@ -17,8 +23,10 @@ export interface ProjectInfo {
   color?: string;
   /** 入口 URL（绝对路径，已含 /docs/） */
   entry: string;
-  /** lucide-react 图标的 ReactNode（已解析） */
+  /** 已解析的图标 ReactNode（lucide 图标名，或 public 目录下的图片） */
   icon?: ReactNode;
+  /** 主页卡片标签（开源 / 闭源 / 付费等） */
+  tags?: ProjectTag[];
   /** 排序权重 */
   order: number;
   /** 是否隐藏 */
@@ -64,6 +72,7 @@ export function getProjects(): ProjectInfo[] {
       color: data.color,
       entry,
       icon: child.icon,
+      tags: data.tags,
       order: data.order ?? 999,
       hidden: false,
       pageCount: countPages(child),
@@ -131,6 +140,7 @@ interface ExtendedMeta {
   tagline?: string;
   order?: number;
   hidden?: boolean;
+  tags?: ProjectTag[];
 }
 
 function firstPageUrl(folder: PageTree.Folder): string | undefined {

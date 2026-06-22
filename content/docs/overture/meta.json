@@ -1,0 +1,20 @@
+{
+    "title": "Overture — 序曲",
+    "icon": "logo/overture-logo.svg",
+    "tags": [
+        { "label": "开源",     "color": "#22C55E" },
+        { "label": "免费", "color": "#2DD4BF" },
+        { "label": "RPG",  "color": "#FDE047" },
+        { "label": "API",  "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#58A6FF",
+    "entry": "overture",
+    "tagline": "自定义动态物品库",
+    "order": 6,
+    "defaultOpen": true,
+    "pages": [
+        "---ArcartX-核心教学---",
+        "index"
+    ]
+}

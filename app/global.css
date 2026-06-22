@@ -118,18 +118,16 @@ html[data-project] article a:not(.fd-card) {
 }
 
 /* 主页滚动吸附（仅 / 路由）：
-   - mandatory：每次滚动强制吸附到最近一幕
-   - scroll-snap-stop: always：每次滚动只走一幕，不会跨幕越过
+   - proximity：靠近一幕时柔和吸附；长区块（如项目目录有几十个项目）可自由滚动、停在中间
    - scroll-padding-top 给顶部 fixed nav 留出空间
    - reduce-motion 用户禁用 */
 html[data-snap='home'] {
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
   scroll-padding-top: 0px;
   scroll-behavior: smooth;
 }
 html[data-snap='home'] main > section {
   scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 @media (prefers-reduced-motion: reduce) {
   html[data-snap='home'] {

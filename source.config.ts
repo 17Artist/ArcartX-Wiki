@@ -18,6 +18,18 @@ const projectMetaSchema = metaSchema.extend({
   order: z.number().optional(),
   /** 暂时隐藏，不出现在主页和 RootToggle */
   hidden: z.boolean().optional(),
+  /**
+   * 主页卡片上的标签（可多个），用来标注「开源 / 闭源 / 付费」等。
+   * 每个标签：label 文字内容，color 颜色（hex，省略则用项目主题色）。
+   */
+  tags: z
+    .array(
+      z.object({
+        label: z.string(),
+        color: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const { docs, meta } = defineDocs({

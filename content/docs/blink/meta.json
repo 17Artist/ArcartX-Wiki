@@ -1,0 +1,29 @@
+{
+    "title": "Blink — 闪烁",
+    "icon": "logo/blink-logo.svg",
+    "root": true,
+    "color": "#279BFF",
+    "tags": [
+        { "label": "核心", "color": "#46D2FF" },
+        { "label": "开源", "color": "#22C55E" },
+        { "label": "API", "color": "#8B5CF6" }
+    ],
+    "entry": "blink",
+    "tagline": "轻量级Kotlin Spigot/Paper 插件开发框架",
+    "order": 2,
+    "defaultOpen": true,
+    "pages": [
+        "index",
+        "01-introduction",
+        "02-getting-started",
+        "03-lifecycle",
+        "04-events",
+        "05-commands",
+        "06-config",
+        "07-logging",
+        "08-scripting-aria",
+        "09-asteroid-nms",
+        "10-obfuscation",
+        "11-build-and-release"
+    ]
+}

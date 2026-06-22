@@ -1,9 +1,16 @@
 {
-    "title": "ArcartX v2 [施工中]",
+    "title": "ArcartX — 艾克特斯 [v2]",
     "description": "ArcartX 服务端插件 + 客户端 MOD 核心使用文档",
-    "icon": "Sparkles",
+    "icon": "logo.png",
+    "tags": [
+        { "label": "部分开源", "color": "#A3E635" },
+        { "label": "免费", "color": "#2DD4BF" },
+        { "label": "核心",     "color": "#46D2FF" },
+        { "label": "施工中", "color": "#F59E0B" },
+        { "label": "实验性", "color": "#C084FC" }
+    ],
     "root": true,
-    "color": "#6366f1",
+    "color": "#6495ED",
     "entry": "arcartx_v2",
     "tagline": "为您的服务器带来无限可能",
     "order": 1,

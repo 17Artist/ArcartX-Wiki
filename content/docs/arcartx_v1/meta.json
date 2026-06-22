@@ -1,9 +1,12 @@
 {
-    "title": "ArcartX v1",
-    "description": "ArcartX 服务端插件 + 客户端 MOD 核心使用文档(旧文档不再更新)",
-    "icon": "Sparkles",
+    "title": "ArcartX — 艾克特斯 [v1]",
+    "description": "ArcartX 服务端插件 + 客户端 MOD 核心使用文档",
+    "icon": "logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" }
+    ],
     "root": true,
-    "color": "#6366f1",
+    "color": "#6495ED",
     "entry": "arcartx_v1",
     "tagline": "为您的服务器带来无限可能",
     "order": 100,

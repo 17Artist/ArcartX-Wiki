@@ -4,7 +4,12 @@
     "defaultOpen": true,
     "pages": [
         "arcartx_v2",
+        "aria",
+        "rondo",
+        "symphony",
+        "overture",
         "arcartx_v1",
-        "chronos"
+        "chronos",
+        "blink"
     ]
 }

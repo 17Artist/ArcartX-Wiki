@@ -28,6 +28,9 @@ yarn-error.log*
 next-env.d.ts
 /.idea/
 
+# 本地参考：项目标签调色板模板（不提交）
+tags-template.json
+
 # OpenNext
 .open-next
 

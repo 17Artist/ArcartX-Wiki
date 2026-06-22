@@ -1,0 +1,21 @@
+{
+    "title": "Symphony — 交响乐",
+    "icon": "logo/symphony-logo.svg",
+    "tags": [
+        { "label": "开源",     "color": "#22C55E" },
+        { "label": "免费", "color": "#2DD4BF" },
+        { "label": "RPG",  "color": "#FDE047" },
+        { "label": "玩法", "color": "#EC4899" },
+        { "label": "API",  "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#8B5CF6",
+    "entry": "symphony",
+    "tagline": "ALL IN ONE 脚本驱动的属性",
+    "order": 6,
+    "defaultOpen": true,
+    "pages": [
+        "---ArcartX-核心教学---",
+        "index"
+    ]
+}

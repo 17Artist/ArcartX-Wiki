@@ -1,14 +1,15 @@
 import Link from 'next/link';
-import { getProjects, formatRelativeTime } from '@/lib/projects';
+import { getProjects } from '@/lib/projects';
 import {
   HeroBackground,
   HeroLogo,
-  ProjectCard,
+  ProjectDirectory,
   ScrollAwareNav,
   MobileMenu,
   Reveal,
   CountUp,
   type NavLink,
+  type ProjectCardData,
 } from '@/components/HomeClient';
 import { SnapBoot } from '@/components/SnapBoot';
 
@@ -34,6 +35,18 @@ export default function HomePage() {
     { label: 'QQ 群', href: QQ_GROUP_URL, external: true },
     { label: '爱发电', href: AFDIAN_URL, external: true },
   ];
+
+  const projectCards: ProjectCardData[] = projects.map((p) => ({
+    slug: p.slug,
+    href: p.entry,
+    title: p.title,
+    tagline: p.tagline,
+    description: p.description,
+    pageCount: p.pageCount,
+    color: p.color,
+    icon: p.icon,
+    tags: p.tags,
+  }));
 
   return (
     <main className="relative overflow-x-clip text-white">
@@ -238,11 +251,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============ 第二幕：项目目录 ============ */}
-      <section className={SECTION_CLASS}>
+      {/* ============ 第二幕：项目目录（脱离 snap、可滚动浏览几十个项目） ============ */}
+      <section className="relative min-h-[100svh] px-6 pt-24 pb-20 snap-section sm:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-7xl">
           <Reveal variant="slide-right">
-            <div className="mb-12 text-center md:mb-16">
+            <div className="mb-10 text-center md:mb-12">
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#7ee7ff]">
                 Project Directory
               </p>
@@ -250,28 +263,13 @@ export default function HomePage() {
                 项目目录
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
-                ArcartX 由多个相互独立又彼此协作的子项目构成，挑一个开始你的旅程。
+                ArcartX 以及同作者生态系列产品。
               </p>
             </div>
           </Reveal>
 
-          {projects.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((p, i) => (
-                <ProjectCard
-                  key={p.slug}
-                  index={i}
-                  href={p.entry}
-                  title={p.title}
-                  description={p.description}
-                  tagline={p.tagline}
-                  pageCount={p.pageCount}
-                  color={p.color}
-                  icon={p.icon}
-                  updated={formatRelativeTime(p.lastUpdated)}
-                />
-              ))}
-            </div>
+          {projectCards.length > 0 ? (
+            <ProjectDirectory projects={projectCards} />
           ) : (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-white/60">
               暂无项目，请在 content/docs 下创建项目目录并在 meta.json 设置 root: true
@@ -301,7 +299,7 @@ export default function HomePage() {
             <CommunityCard
               delay={0}
               href={QQ_GROUP_URL}
-              emoji="💬"
+              icon={<IconChat />}
               title="QQ 交流群"
               desc="实时交流，快速获取帮助"
               hoverColor="#46d2ff"
@@ -309,7 +307,7 @@ export default function HomePage() {
             <CommunityCard
               delay={120}
               href={COMMUNITY_URL}
-              emoji="🌐"
+              icon={<IconGlobe />}
               title="官方社区"
               desc="浏览资源，分享作品"
               hoverColor="#9b6bff"
@@ -317,7 +315,7 @@ export default function HomePage() {
             <CommunityCard
               delay={240}
               href={AFDIAN_URL}
-              emoji="❤️"
+              icon={<IconHeart />}
               title="支持我们"
               desc="您的支持是我们前进的动力"
               hoverColor="#ff5c9d"
@@ -408,14 +406,14 @@ function Stat({
 
 function CommunityCard({
   href,
-  emoji,
+  icon,
   title,
   desc,
   hoverColor,
   delay,
 }: {
   href: string;
-  emoji: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
   hoverColor: string;
@@ -451,8 +449,11 @@ function CommunityCard({
           aria-hidden
         />
         <div className="relative">
-          <div className="mb-4 text-4xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
-            {emoji}
+          <div
+            className="mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
+            style={{ color: hoverColor, filter: `drop-shadow(0 0 12px ${hoverColor}40)` }}
+          >
+            {icon}
           </div>
           <h3 className="mb-1.5 text-lg font-semibold text-white">
             <span className="group-hover:text-[var(--hover)]">{title}</span>
@@ -461,5 +462,50 @@ function CommunityCard({
         </div>
       </a>
     </Reveal>
+  );
+}
+
+/* ===================== 社区卡片：手写线性 SVG 图标 ===================== */
+
+const SVG_PROPS = {
+  className: 'h-9 w-9',
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+};
+
+/** 聊天气泡 + 三个点（QQ 交流群） */
+function IconChat() {
+  return (
+    <svg {...SVG_PROPS}>
+      <path d="M20.5 11.4c0 4.1-3.8 7.5-8.5 7.5-1.1 0-2.1-.2-3-.5L4 20l1.5-4.2a7 7 0 0 1-2-4.4C3.5 7.3 7.3 3.9 12 3.9s8.5 3.4 8.5 7.5Z" />
+      <circle cx="8.5" cy="11.4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="11.4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="11.4" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** 地球（官方社区） */
+function IconGlobe() {
+  return (
+    <svg {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <ellipse cx="12" cy="12" rx="4" ry="9" />
+    </svg>
+  );
+}
+
+/** 爱心（支持我们） */
+function IconHeart() {
+  return (
+    <svg {...SVG_PROPS}>
+      <path d="M12 20.5C12 20.5 3.8 15.3 3.8 9.3C3.8 6.6 5.9 4.8 8.1 4.8C9.8 4.8 11.2 5.8 12 7.2C12.8 5.8 14.2 4.8 15.9 4.8C18.1 4.8 20.2 6.6 20.2 9.3C20.2 15.3 12 20.5 12 20.5Z" />
+    </svg>
   );
 }

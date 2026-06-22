@@ -1,0 +1,20 @@
+{
+    "title": "Rondo — 回旋曲",
+    "icon": "logo/rondo-logo.svg",
+    "tags": [
+        { "label": "开源",     "color": "#22C55E" },
+        { "label": "免费", "color": "#2DD4BF" },
+        { "label": "经济", "color": "#EAB308" },
+        { "label": "API",  "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#FBBF24",
+    "entry": "rondo",
+    "tagline": "自定义多经济系统",
+    "order": 7,
+    "defaultOpen": true,
+    "pages": [
+        "---ArcartX-核心教学---",
+        "index"
+    ]
+}
