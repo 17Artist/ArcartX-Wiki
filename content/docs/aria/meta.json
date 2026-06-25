@@ -3,9 +3,18 @@
     "description": "ArcartX v2 系列脚本引擎",
     "icon": "logo/aria-logo.png",
     "tags": [
-        { "label": "开源",     "color": "#22C55E" },
-        { "label": "免费", "color": "#2DD4BF" },
-        { "label": "API",  "color": "#8B5CF6" }
+        {
+            "label": "开源",
+            "color": "#22C55E"
+        },
+        {
+            "label": "免费",
+            "color": "#2DD4BF"
+        },
+        {
+            "label": "API",
+            "color": "#8B5CF6"
+        }
     ],
     "root": true,
     "color": "#E11D48",
@@ -14,7 +23,9 @@
     "order": 3,
     "defaultOpen": true,
     "pages": [
-        "---ArcartX-核心教学---",
-        "index"
+        "index",
+        "/1_language",
+        "2_stdlib",
+        "/3_integration"
     ]
 }

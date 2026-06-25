@@ -1,0 +1,14 @@
+{
+    "title": "语言基础",
+    "defaultOpen": false,
+    "pages": [
+        "1_data-types",
+        "2_variables",
+        "3_operators",
+        "4_control-flow",
+        "5_functions",
+        "6_classes",
+        "7_error-handling",
+        "8_modules"
+    ]
+}

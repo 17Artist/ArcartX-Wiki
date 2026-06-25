@@ -4,6 +4,7 @@ import { transformerTwoslash } from 'fumadocs-twoslash';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { z } from 'zod';
 import { shimmerGrammar } from './plugin/shimmer';
+import { ariaGrammar } from './plugin/aria';
 
 // 扩展 meta.json 的 schema，让项目根目录可以声明额外的「项目元信息」
 // 这些字段供 lib/projects.ts、主页、RootToggle 读取。
@@ -50,10 +51,15 @@ export default defineConfig({
       inline: 'tailing-curly-colon',
       langs: [
         shimmerGrammar,
+        ariaGrammar,
         'java',
         'yaml',
         "json",
-        "kotlin"
+        "kotlin",
+        "bash",
+        "typescript",
+        "groovy",
+        "xml"
       ],
     },
   },
