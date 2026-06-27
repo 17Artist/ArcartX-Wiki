@@ -1,0 +1,42 @@
+---
+title: bedrockParticle:基岩粒子
+description: 基岩粒子调试指令
+---
+
+## 基岩粒子指令
+
+- 用于在世界中生成基岩版粒子效果。
+
+### `arcartx bedrockParticle world`
+
+- 在玩家所在世界的指定坐标生成基岩粒子
+
+| 属性  | 值                                                                       |
+|-----|-------------------------------------------------------------------------|
+| 用法  | `arcartx bedrockParticle world <player> <id> <x> <y> <z> <yaw> <pitch>` |
+| 权限  | `arcartx.command.admin.bedrockparticle`                                 |
+| 执行者 | 仅OP                                                                     |
+
+- `player`：目标玩家名（以该玩家所在世界为基准）
+- `id`：粒子ID
+- `x` `y` `z`：世界坐标
+- `yaw`：水平旋转角度
+- `pitch`：垂直旋转角度
+
+### `arcartx bedrockParticle player`
+
+- 在玩家身上生成基岩粒子，粒子会跟随玩家移动
+
+| 属性  | 值                                                                                                                        |
+|-----|--------------------------------------------------------------------------------------------------------------------------|
+| 用法  | `arcartx bedrockParticle player <player> <id> <xOffset> <yOffset> <zOffset> <yaw> <pitch> <isFollowYaw> <isFollowPitch>` |
+| 权限  | `arcartx.command.admin.bedrockparticle`                                                                                  |
+| 执行者 | 仅OP                                                                                                                      |
+
+- `player`：目标玩家名
+- `id`：粒子ID
+- `xOffset` `yOffset` `zOffset`：相对于玩家的偏移量
+- `yaw`：水平旋转角度
+- `pitch`：垂直旋转角度
+- `isFollowYaw`：是否跟随玩家水平朝向（布尔值）
+- `isFollowPitch`：是否跟随玩家垂直朝向（布尔值）

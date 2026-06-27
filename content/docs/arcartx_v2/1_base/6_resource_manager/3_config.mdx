@@ -1,0 +1,69 @@
+---
+title: 配置与对接
+description: config.yaml 配置说明、提供给插件端的绑定地址，以及 API 接入。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 绑定地址（提供给插件端）
+
+部署完成后，你只需要记住两件事：**绑定地址**与 **API 密钥**。绑定地址按部署形态分两种：
+
+- **纯 IP**（直接暴露 8080 端口）：`http://{服务器IP}:8080/`
+- **域名 + 反向代理 + SSL**（推荐，见[部署上线](/docs/arcartx_v2/1_base/6_resource_manager/2_deploy)）：`https://{你的域名}/`
+
+<Callout type="info">
+若使用**未备案域名**或**没有 80 / 443 端口**的主机，请根据实际网络环境自行处理——本质仍是上面两种形式的变体。
+</Callout>
+
+记录好「绑定地址 + API 密钥」后，即可在ArcartX插件端进行配置（记得配IP白名单）
+<img src="/base/res4.png"/>
+<img src="/base/res5.png"/>
+然后重启服务器，弹出以下内容说明正确，后续可使用 `a resourceSync update` 让服务端加载最新文件列表。
+<img src="/base/res6.png"/>
+
+## 资源后端配置文件
+
+配置文件是运行目录下的 `config.yaml`，**首次启动若不存在则使用内置默认值**。修改后需**重启服务**才能生效。
+
+```yaml
+server:
+  port: 8080                    # 监听端口
+  read_timeout: 30s
+  write_timeout: 60s
+
+auth:
+  jwt_secret: ""                # 留空则自动生成并持久化到 data/.jwt_secret
+  jwt_expiration: 1h            # 登录令牌（JWT）有效期
+  default_admin_user: admin
+  default_admin_pass: admin123  # 仅首次创建管理员时使用
+
+storage:
+  upload_dir: uploads           # 文件存储目录（相对于运行目录）
+  max_file_size: 536870912      # 单文件大小上限（字节），默认 512MB
+  allowed_extensions:
+    - zip                       # 仅允许上传的扩展名
+
+security:
+  cors_origins:
+    - "*"                       # 生产环境务必改为你的实际域名
+  rate_limit:
+    api: 100/m                  # API 调用：100 次/分钟
+    download: 30/m              # 下载：30 次/分钟
+    login: 10/h                 # 登录：10 次/小时
+
+signed_link:
+  max_expiration: 60m           # 签名链接最长有效期
+  max_downloads: 10             # 单条签名链接最大下载次数
+
+traffic:
+  daily_limit: 214748364800     # 全局每日流量上限（字节），默认 200GB
+
+database:
+  path: data/database.db        # SQLite 数据库路径
+```
+
+<Callout type="info">
+大部分参数也可在**管理后台 → 系统配置**中在线调整（流量上限、频率限制、文件大小上限、签名链接上限等），无需改文件重启。
+</Callout>
+

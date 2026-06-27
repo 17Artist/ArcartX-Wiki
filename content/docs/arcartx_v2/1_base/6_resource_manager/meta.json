@@ -1,0 +1,11 @@
+{
+    "title": "资源同步后端",
+    "defaultOpen": false,
+    "pages": [
+        "index",
+        "1_planning",
+        "2_deploy",
+        "3_config",
+        "4_maintenance"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "title": "基础篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_setup",
+        "2_setting",
+        "3_client_config",
+        "4_resource",
+        "5_command",
+        "6_resource_manager"
+    ]
+}

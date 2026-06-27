@@ -1,0 +1,46 @@
+---
+title: screen:界面
+description: UI界面调试指令
+---
+
+## 界面指令
+
+- 用于打开、关闭UI界面以及调试额外槽位。
+
+### `arcartx screen open`
+
+- 为玩家打开一个UI界面
+
+| 属性  | 值                                    |
+|-----|--------------------------------------|
+| 用法  | `arcartx screen open <id> [?player]` |
+| 权限  | `arcartx.command.admin.screen`       |
+| 执行者 | 仅OP                                  |
+
+- `id`：UI配置ID
+- `player`：可选，指定目标玩家，不填则为自己
+
+### `arcartx screen close`
+
+- 为玩家关闭一个UI界面
+
+| 属性  | 值                                     |
+|-----|---------------------------------------|
+| 用法  | `arcartx screen close <id> [?player]` |
+| 权限  | `arcartx.command.admin.screen`        |
+| 执行者 | 仅OP                                   |
+
+- `id`：UI配置ID
+- `player`：可选，指定目标玩家，不填则为自己
+
+### `arcartx screen slotDebug`
+
+- 开关额外槽位的调试模式
+
+| 属性  | 值                                       |
+|-----|-----------------------------------------|
+| 用法  | `arcartx screen slotDebug <true/false>` |
+| 权限  | `arcartx.command.admin.screen`          |
+| 执行者 | 仅OP                                     |
+
+- `true/false`：开启或关闭调试模式

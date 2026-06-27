@@ -1,0 +1,50 @@
+---
+title: 资源同步后端
+description: 独立部署的资源更新后端，配合 ArcartX 插件实现资源的上传、托管与按需下发。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn">
+动手部署之前，请**完整读完本章全部内容**。资源分发牵涉带宽成本与流量安全，先把机制理顺，能帮你避开很多坑。
+</Callout>
+
+## 它是什么
+
+资源同步后端是一个**独立部署的资源更新服务**，与游戏端的 **ArcartX 插件**配合，实现资源文件的上传、托管与按需下发。整条链路是这样运转的：
+
+1. 你在后端的管理后台上传资源包（`.zip`）。
+2. 后端为每个文件计算 CRC64 校验值，对外提供「文件清单」与「签名下载链接」两个接口。
+3. 游戏端 ArcartX 插件用 API 密钥拉取清单、比对本地文件，再通过签名链接下载有变更的资源。
+
+<Callout type="warn">
+**关于资源同步的重要警告**
+
+启用资源同步后，客户端 `ArcartX/resource` 目录下**所有 `.zip` 文件**都会与后端保持一致——也就是说，**后端没有的资源包，会在同步时从客户端被移除**。
+
+请务必先把正在开发的资源包上传到后端，避免因同步导致资源包被删、开发进度丢失。
+</Callout>
+
+## 下载
+
+- **可执行文件**：在 [ArcartX 社区资源页](https://arcartx.com/resources/225/) 下载（`arcartx-resource-linux-amd64`）。
+- **开源仓库**：[github.com/17Artist/ArcartXResourceSystem](https://github.com/17Artist/ArcartXResourceSystem)
+
+## 部署前必读
+
+<Callout type="warn">
+部署本后端需要你具备**基本的 Web 运维能力**（Linux、端口、反向代理、HTTPS、防火墙等）。如果不熟悉这些，请交给懂运维的人来操作，并由其持续维护安全策略。
+
+**我方不提供代搭建，也不接任何有偿 / 无偿的搭建协助。** 服务运维本身是需要长期投入的工作，代搭建无法解决根本问题。
+</Callout>
+
+## 免责声明
+
+<Callout type="warn">
+- 本后端的部署、运维与安全策略由使用者自行负责。
+- 后端虽内置签名链接、API 密钥、IP 白名单、流量与频率限制等保护，但**你仍须自建流量监控与防护机制**。
+- **若因流量盗刷或其他运维问题造成经济损失，我方概不负责。**
+- 我方不提供代搭建及搭建相关的有偿 / 无偿协助。
+</Callout>
+
+读完本页，继续 [部署规划](/docs/arcartx_v2/1_base/6_resource_manager/1_planning) 了解架构建议与系统要求。

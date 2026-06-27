@@ -1,0 +1,78 @@
+---
+title: 客户端资源目录
+description: 客户端资源目录结构说明
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
+## ArcartX 资源目录结构
+
+<Callout type="info">
+    ArcartX 的资源目录位于 `.minecraft/resourcepacks`
+</Callout>
+
+### 目录结构
+
+<Files>
+    <Folder name="ArcartX" defaultOpen>
+        <Folder name="expansion" defaultOpen>
+            <File name="xxx.jar" />
+        </Folder>
+        <Folder name="resource" defaultOpen>
+            <Folder name="model" defaultOpen>
+                <File name="xxx.bbmodel" />
+            </Folder>
+            <Folder name="particle" defaultOpen>
+                <File name="xxx.json" />
+                <File name="xxx.png" />
+            </Folder>
+            <Folder name="shader" defaultOpen>
+            </Folder>
+            <Folder name="item_icon" defaultOpen>
+                <File name="xxx.png" />
+            </Folder>
+            <Folder name="pack" defaultOpen>
+                <File name="xxx.zip" />
+            </Folder>
+            <File name="mouse.png" />
+        </Folder>
+        <Folder name="setting" defaultOpen>
+            <File name="xxx.json" />
+        </Folder>
+    </Folder>
+</Files>
+
+### 目录说明
+
+| 目录/文件               | 说明                           |
+|:--------------------|:-----------------------------|
+| resource/           | 资源文件根目录，存放贴图、模型、加密压缩包等       |
+| resource/model/     | 模型文件目录，详见模型章节                |
+| resource/particle/  | 基岩粒子文件目录，详见基岩粒子章节            |
+| resource/shader/    | 着色器文件目录，详见 Shader 章节         |
+| resource/item_icon/ | 物品图标文件目录，用于自定义物品贴图           |
+| resource/pack/      | 原版材质包目录，放入的材质包会强制加载且客户端内无法移除 |
+| mouse.png           | 鼠标贴图，可替换为自定义图片               |
+
+除 `mouse.png` 外，其余目录均可打包到加密压缩包中（路径保持一致即可）。加密压缩包放入 `resource` 目录下，仅支持 ZIP 格式且压缩格式为 AES256 加密。
+
+<Callout type="info">
+    如果图片资源包含三角形、圆形等像素不连续的贴图，可以将文件名添加 `_linear` 后缀（如 `xxx_linear.png`），该后缀的图像会进行多重采样以渲染更平滑的效果。
+</Callout>
+
+### 资源路径约定
+
+后续文档中，"资源路径"指 `resource/` 目录下的相对路径：
+- `abc.png` — 对应 `ArcartX/resource/abc.png`
+- `xxx/abc.png` — 对应 `ArcartX/resource/xxx/abc.png`
+- 网络资源直接填写直连地址，如 `https://arcartx.com/logo.png`
+
+### 资源加载说明
+
+- 为防止资源过多，ArcartX并非全量加载所有资源，而是根据不同文件类型或大小等因素进行冷热数据/持久数据处理，确保尽可能节省资源，且不会因为资源过多使客户端内存溢出。
+- 涉及原版资源包的功能（物品图标、Shader、强制加载的资源包）在无变动时不会触发 MC 资源包全量重载。但如果这些功能使用了加密资源，进入服务器时必定触发重载
+- 如果服务器安装了过多 MOD 导致资源加载缓慢，建议将涉及原版材质包功能的内容不进行加密
+
+<Callout type="warn">
+    使用压缩包加密时，路径和文件名不要使用中文。
+</Callout>

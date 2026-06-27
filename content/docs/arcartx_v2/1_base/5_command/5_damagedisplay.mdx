@@ -1,0 +1,36 @@
+---
+title: damageDisplay:伤害显示
+description: 伤害显示调试指令
+---
+
+## 伤害显示指令
+
+- 用于测试伤害数字显示效果。
+
+### `arcartx damageDisplay test`
+
+- 在指定坐标测试伤害显示
+
+| 属性  | 值                                                                      |
+|-----|------------------------------------------------------------------------|
+| 用法  | `arcartx damageDisplay test <configId> <x> <y> <z> <damage> [?player]` |
+| 权限  | `arcartx.command.admin.damagedisplay`                                  |
+| 执行者 | 仅玩家                                                                    |
+
+- `configId`：伤害显示配置ID
+- `x` `y` `z`：显示坐标
+- `damage`：伤害数值
+- `player`：可选，指定目标玩家，不填则为自己
+
+### `arcartx damageDisplay testSelf`
+
+- 在自身位置测试伤害显示
+
+| 属性  | 值                                                    |
+|-----|------------------------------------------------------|
+| 用法  | `arcartx damageDisplay testSelf <configId> <damage>` |
+| 权限  | `arcartx.command.admin.damagedisplay`                |
+| 执行者 | 仅玩家                                                  |
+
+- `configId`：伤害显示配置ID
+- `damage`：伤害数值

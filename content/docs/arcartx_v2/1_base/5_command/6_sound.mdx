@@ -1,0 +1,44 @@
+---
+title: sound:音效
+description: 音效播放调试指令
+---
+
+## 音效指令
+
+- 用于测试自定义音效的播放。
+
+### `arcartx sound location`
+
+- 在指定坐标定点播放音效
+
+| 属性  | 值                                                                                                            |
+|-----|--------------------------------------------------------------------------------------------------------------|
+| 用法  | `arcartx sound location <player> <resourcePath> <x> <y> <z> <soundCategory> <distOrRoll> <pitch> <keepTime>` |
+| 权限  | `arcartx.command.admin.sound`                                                                                |
+| 执行者 | 仅OP                                                                                                          |
+
+- `player`：目标玩家名
+- `resourcePath`：音效资源路径
+- `x` `y` `z`：播放坐标
+- `soundCategory`：音效类别（如 `master`、`music`、`ambient` 等）
+- `distOrRoll`：音效传播距离/衰减
+- `pitch`：音调
+- `keepTime`：持续时间（毫秒）
+
+### `arcartx sound entity`
+
+- 绑定实体播放音效，音效会跟随实体移动
+
+| 属性  | 值                                                                                                       |
+|-----|---------------------------------------------------------------------------------------------------------|
+| 用法  | `arcartx sound entity <player> <resourcePath> <soundCategory> <target> <distOrRoll> <pitch> <keepTime>` |
+| 权限  | `arcartx.command.admin.sound`                                                                           |
+| 执行者 | 仅OP                                                                                                     |
+
+- `player`：目标玩家名（接收音效的玩家）
+- `resourcePath`：音效资源路径
+- `soundCategory`：音效类别
+- `target`：绑定的实体（玩家名或UUID）
+- `distOrRoll`：音效传播距离/衰减
+- `pitch`：音调
+- `keepTime`：持续时间（毫秒）

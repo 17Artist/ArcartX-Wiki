@@ -1,0 +1,21 @@
+---
+title: resourceSync:资源同步
+description: 从后端同步资源校验信息
+---
+
+## 资源同步指令
+
+- 用于从后端服务同步文件校验信息。
+
+### `arcartx resourceSync update`
+
+- 从后端同步文件校验信息到服务端
+
+| 属性  | 值                                |
+|-----|----------------------------------|
+| 用法  | `arcartx resourceSync update`    |
+| 权限  | `arcartx.command.admin.resource` |
+| 执行者 | 仅OP                              |
+
+- 执行后会异步请求后端服务，同步完成后会提示更新的文件数量。
+- 需要在配置中启用资源客户端功能才能使用。

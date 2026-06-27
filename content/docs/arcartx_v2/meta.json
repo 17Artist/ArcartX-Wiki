@@ -16,7 +16,7 @@
     "order": 1,
     "defaultOpen": true,
     "pages": [
-        "---ArcartX-核心教学---",
-        "index"
+        "index",
+        "1_base"
     ]
 }
