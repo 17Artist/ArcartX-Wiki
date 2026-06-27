@@ -1,0 +1,96 @@
+---
+title: 全息基础数据
+description: 全息模板配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 前置知识
+
+从全息系列开始，将涉及 Shimmer 脚本。后续内容默认你已掌握 Shimmer 的基础用法。如果还不熟悉，请先阅读 Shimmer 文档。
+
+## 全息模板
+
+ArcartX 的全息功能基于"模板"机制。创建好模板后，可以在世界全息、实体血条等场景中反复调用。
+
+模板配置位于 `hologram/data` 目录下，支持创建多个配置文件。
+
+```yaml
+# 全息宽高，用于确定旋转轴和中心位置（非脚本）
+width: 500
+height: 500
+
+# 触发器配置
+action:
+  open:   # 全息打开时执行的 Shimmer 脚本
+  close:  # 全息关闭时执行的 Shimmer 脚本
+
+# 元素配置
+element:
+  # 可配置贴图和文字两种元素
+```
+
+<Callout type="warn">
+    全息的运算在客户端主线程执行，避免在全息中进行大量复杂运算，否则会导致客户端掉帧。
+</Callout>
+
+<Callout type="info">
+    每个全息实例都有独立的 Shimmer 上下文。例如生物 A 的血条和生物 B 的血条互不影响。
+</Callout>
+
+## 全息元素
+
+全息由贴图和文字两种元素组成，显示顺序由配置顺序决定，先配置的元素在底层。
+
+### 贴图元素
+
+```yaml
+texture:
+  type: "texture"
+  attribute:
+    x: "0"          # X 坐标（支持脚本）
+    y: "0"          # Y 坐标（支持脚本）
+    width: "500"    # 宽度（支持脚本）
+    height: "500"   # 高度（支持脚本）
+    alpha: "1.0"    # 透明度（支持脚本）
+    path: "emoji/test.png"  # 贴图路径（静态）
+```
+
+### 文字元素
+
+```yaml
+example:
+  type: "text"
+  attribute:
+    x: "0"          # X 坐标（支持脚本）
+    y: "0"          # Y 坐标（支持脚本）
+    alpha: "1"      # 透明度（支持脚本）
+    fontSize: 50    # 字号（静态）
+    lineSpace: 16   # 行距（静态）
+    texts:          # 文本内容（支持脚本）
+      - "~&1示例文字"  # 使用 ~ 开头表示纯文字内容
+```
+
+## 完整示例
+
+```yaml
+width: 1200
+height: 216
+
+action:
+  open:
+  close:
+
+element:
+  texture:
+    type: "texture"
+    attribute:
+      x: "0"
+      y: "0"
+      width: "1200"
+      height: "216"
+      alpha: "1.0"
+      path: "output.png"
+```
+
+如何将全息显示在世界中或作为血条显示在生物头顶，请参阅后续章节。

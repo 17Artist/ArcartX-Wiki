@@ -1,0 +1,16 @@
+{
+    "title": "简单功能篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_item_texture",
+        "2_font_texture",
+        "3_shader",
+        "4_sound",
+        "5_scripts",
+        "6_area",
+        "7_slot",
+        "8_waypoint",
+        "9_damage_display",
+        "10_item_effect"
+    ]
+}

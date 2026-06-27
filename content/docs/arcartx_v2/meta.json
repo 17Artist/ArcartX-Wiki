@@ -17,6 +17,10 @@
     "defaultOpen": true,
     "pages": [
         "index",
-        "1_base"
+        "1_base",
+        "2_simple",
+        "3_camera",
+        "4_hologram",
+        "5_key"
     ]
 }
