@@ -1,0 +1,844 @@
+---
+title: ArcartXPlayer:玩家管理对象
+description: ArcartX玩家管理对象API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXPlayer
+
+- `ArcartXPlayer` 继承自 `ArcartXEntity`，是ArcartX对玩家的完整管理对象。
+- 通过 `ArcartXAPI.getEntityManager().getPlayer(player)` 获取。
+- 除了继承自 `ArcartXEntity` 的所有方法外，还提供了大量玩家专属功能。
+- 本类的方法分为两种发送模式：
+  - **点对点** — 仅向该玩家自身的客户端发送数据包（如相机、着色器、特效等）
+  - **广播** — 向所有能看到该玩家的客户端发送数据包（如模型、控制器、状态、额外模型、时装、变体、动画包等）
+
+<Callout type="warn">
+模型管理、动画控制（setState / setController）、额外模型、时装、模型变体、动画包等方法是**广播模式**，会同步给所有能看到该玩家的客户端。相机、着色器、天空盒、特效等方法是**点对点模式**，仅发送给该玩家自身。
+</Callout>
+
+## 公开属性
+
+<Callout type="info">
+`ArcartXPlayer` 自身声明的公开属性如下（继承自父类的属性见 ArcartXEntity 页）：
+
+- `player`: Player — 该对象对应的 Bukkit 玩家实例（构造时传入，只读）
+- `encryptor`: AESEncryptor? — 与客户端通信使用的 AES 加密器，可能为 null
+- `key`: String? — 通信密钥，可能为 null
+- `alt`: boolean — 是否为小号（alt）客户端标记
+- `callbacks`: Map&lt;String, CallBack&gt; — 回调映射表，用于客户端异步回调
+- `crc64`: Set&lt;Long&gt; — 已发送资源的 CRC64 校验集合
+- `area`: Area? — 玩家当前所处的区域，可能为 null
+- `playerModel`: String — 当前玩家模型ID（只读，通过 setModel 更新）
+- `playerModelScale`: double — 当前玩家模型缩放比例（只读）
+- `variant`: PlayerModelVariant — 当前玩家模型变体（只读，DEFAULT_BBMODEL / CUSTOM_BBMODEL）
+- `animationPackId`: String — 当前玩家动画包ID（只读，空字符串表示无）
+- `sentResource`: boolean — 是否已向该玩家发送资源
+- `jumpTime`: long — 上一次跳跃的时间戳
+</Callout>
+
+## 模型管理
+
+### `setModel(modelID, scale){:java}`
+- 设置玩家模型，会触发 `PlayerModelUpdateEvent` 事件，并向所有能看到该玩家的其他玩家广播模型变更
+- 重写自 `ArcartXEntity.setModel`，额外记录 `playerModel` / `playerModelScale` 并派发玩家专属事件
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 模型ID
+    - `scale`: double — 模型缩放比例
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setModel("knight", 1.0);
+```
+</Callout>
+
+### `removeModel(){:java}`
+- 移除玩家模型，恢复默认外观，并重置 `playerModel` 与 `playerModelScale`
+- 重写自 `ArcartXEntity.removeModel`
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.removeModel();
+```
+</Callout>
+
+### `setDefaultModel(scale){:java}`
+- 将玩家模型设置为默认玩家模型（`__default_player__`），并将变体切换为 `DEFAULT_BBMODEL`
+- 会触发 `PlayerVariantChangeEvent` 事件（若被取消则不生效），并广播变体变更
+- `DEFAULT_BBMODEL` 变体会叠加原版附属物（盔甲/披风/鞘翅/时装）
+
+<Callout type="info">
+- **参数**：`scale`: double — 模型缩放比例（默认 1.0）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setDefaultModel(1.0);
+```
+</Callout>
+
+### `setCustomModel(modelID, scale){:java}`
+- 将玩家模型设置为自定义模型，并将变体切换为 `CUSTOM_BBMODEL`
+- 会触发 `PlayerVariantChangeEvent` 事件（若被取消则不生效），并广播变体变更
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 模型ID
+    - `scale`: double — 模型缩放比例（默认 1.0）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setCustomModel("knight", 1.0);
+```
+</Callout>
+
+### `tryModel(modelID, scale, time){:java}`
+- 临时将玩家模型切换为指定模型，持续 `time` 毫秒后自动恢复为原本的 `playerModel`
+- 不会修改 `playerModel` 记录，也不会触发变体/模型事件（仅底层临时切换）
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 临时模型ID
+    - `scale`: double — 模型缩放比例
+    - `time`: long — 临时持续时间（毫秒），到时后恢复原模型
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.tryModel("hurt_pose", 1.0, 1000);
+```
+</Callout>
+
+### `addExtraModel(locator, modelID){:java}`
+- 为玩家添加额外模型，挂载在指定定位器上
+
+<Callout type="info">
+- **参数**：
+    - `locator`: String — 定位器名称
+    - `modelID`: String — 模型ID
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.addExtraModel("back_extra", "wings_model");
+```
+</Callout>
+
+### `removeExtraModel(locator){:java}`
+- 移除玩家指定定位器上的额外模型
+
+<Callout type="info">
+- **参数**：`locator`: String — 定位器名称
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.removeExtraModel("back_extra");
+```
+</Callout>
+
+### `clearExtraModels(){:java}`
+- 清除玩家所有额外模型
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.clearExtraModels();
+```
+</Callout>
+
+## 时装管理
+
+<Callout type="info">
+时装为运行时内存态（不落库）。`CostumeSlot` 枚举可选值：`HEAD` / `BODY` / `LEGS` / `FEET` / `DECORATION`。装备套装（equipSuit）与装备单件（equipCostume）互斥：装备套装会清空单件槽位，装备单件会清除套装。相关操作会触发 `PlayerCostumeChangeEvent` 事件，若事件被取消则不生效。
+</Callout>
+
+### `equipSuit(modelID, hide){:java}`
+- 为玩家装备整套时装，并清空所有单件时装槽位
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 时装套装模型ID
+    - `hide`: boolean — 是否隐藏原版对应部位（默认 true）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.equipSuit("costume_suit_a", true);
+```
+</Callout>
+
+### `equipCostume(slot, modelID, hide){:java}`
+- 为玩家在指定槽位装备单件时装，并清除已装备的套装
+
+<Callout type="info">
+- **参数**：
+    - `slot`: CostumeSlot — 时装槽位（HEAD / BODY / LEGS / FEET / DECORATION）
+    - `modelID`: String — 时装模型ID
+    - `hide`: boolean — 是否隐藏原版对应部位（默认 false）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.equipCostume(ArcartXPlayer.CostumeSlot.HEAD, "hat_a", false);
+```
+</Callout>
+
+### `removeCostume(slot){:java}`
+- 移除玩家指定槽位的单件时装
+
+<Callout type="info">
+- **参数**：`slot`: CostumeSlot — 时装槽位
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.removeCostume(ArcartXPlayer.CostumeSlot.HEAD);
+```
+</Callout>
+
+### `clearCostume(){:java}`
+- 清除玩家所有时装（套装与单件槽位）
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.clearCostume();
+```
+</Callout>
+
+## 动画控制
+
+### `setAnimationPack(packId){:java}`
+- 为玩家设置动画包，会触发 `PlayerAnimationPackChangeEvent` 事件（若被取消则不生效），并广播给观察者
+
+<Callout type="info">
+- **参数**：`packId`: String — 动画包ID
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setAnimationPack("knight_anim");
+```
+</Callout>
+
+### `clearAnimationPack(){:java}`
+- 清除玩家的动画包（将 `animationPackId` 置空），会触发 `PlayerAnimationPackChangeEvent` 事件（若被取消则不生效）
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.clearAnimationPack();
+```
+</Callout>
+
+### `playFirstPersonAnimationByTime(animation, speed, keepTime){:java}`
+- 为玩家播放第一人称动画，按持续时间控制
+
+<Callout type="info">
+- **参数**：
+    - `animation`: String — 动画名称
+    - `speed`: double — 播放速度
+    - `keepTime`: int — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.playFirstPersonAnimationByTime("slash", 1.0, 500);
+```
+</Callout>
+
+### `playFirstPersonAnimationByCountOf(animation, speed, count){:java}`
+- 为玩家播放第一人称动画，按播放次数控制
+
+<Callout type="info">
+- **参数**：
+    - `animation`: String — 动画名称
+    - `speed`: double — 播放速度
+    - `count`: int — 播放次数
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.playFirstPersonAnimationByCountOf("swing", 1.5, 3);
+```
+</Callout>
+
+### `setState(controller, state){:java}`
+- 设置玩家动作控制器的状态
+
+<Callout type="info">
+- **参数**：
+    - `controller`: String — 控制器名称
+    - `state`: String — 状态名称
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setState("combat", "attack_1");
+```
+</Callout>
+
+### `setState(controller, state, speed){:java}`
+- 设置玩家动作控制器的状态，指定播放速度
+
+<Callout type="info">
+- **参数**：
+    - `controller`: String — 控制器名称
+    - `state`: String — 状态名称
+    - `speed`: double — 播放速度
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setState("combat", "attack_1", 2.0);
+```
+</Callout>
+
+### `setState(controller, state, speed, moveBreak){:java}`
+- 设置玩家动作控制器的状态，指定播放速度和移动打断时间
+
+<Callout type="info">
+- **参数**：
+    - `controller`: String — 控制器名称
+    - `state`: String — 状态名称
+    - `speed`: double — 播放速度
+    - `moveBreak`: long — 移动打断时间（毫秒），-1为不打断
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setState("combat", "heavy_attack", 1.0, 2000);
+```
+</Callout>
+
+### `setController(controller){:java}`
+- 为玩家设置动作控制器
+
+<Callout type="info">
+- **参数**：`controller`: String — 控制器配置ID
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setController("combat_controller");
+```
+</Callout>
+
+## 飞行状态
+
+### `updateFlyingState(){:java}`
+- 轮询检测玩家飞行态，若相比上次发生变化则按 seenBy 广播给观察者
+- 用于同步飞行态（原版不会向其他玩家同步 abilities.flying），一般由内部每 tick 调用
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.updateFlyingState();
+```
+</Callout>
+
+## 相机控制
+
+### `setThirdPerson(enable){:java}`
+- 将玩家设置为第三人称视角
+
+<Callout type="info">
+- **参数**：`enable`: boolean — true 设置为第三人称，false 设置为第一人称
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setThirdPerson(true);
+```
+</Callout>
+
+### `setViewLock(enable){:java}`
+- 设置视角锁定开关（开启时锁定为第三人称，关闭时解除锁定）
+- 等价于 `setViewLockMode`，enable 为 true 时使用模式 2，false 时使用模式 0
+
+<Callout type="info">
+- **参数**：`enable`: boolean — true 锁定视角，false 解除锁定
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setViewLock(true);
+```
+</Callout>
+
+### `setViewLockMode(mode){:java}`
+- 设置视角锁定模式
+
+<Callout type="info">
+- **参数**：`mode`: int — 锁定模式（0-关闭，1-强制锁定第一人称，2-强制锁定第三人称）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setViewLockMode(2);
+```
+</Callout>
+
+### `setCameraFromPreset(id){:java}`
+- 从预设配置设置玩家相机
+
+<Callout type="info">
+- **参数**：`id`: String — 相机预设配置ID
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setCameraFromPreset("idle");
+```
+</Callout>
+
+### `setCameraLocation(offsetX, offsetY, offsetZ, freeView){:java}`
+- 设置玩家相机的偏移位置
+
+<Callout type="info">
+- **参数**：
+    - `offsetX`: double — X轴偏移
+    - `offsetY`: double — Y轴偏移
+    - `offsetZ`: double — Z轴偏移
+    - `freeView`: boolean — 是否允许自由视角
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setCameraLocation(0, 2.0, -5.0, true);
+```
+</Callout>
+
+### `startSceneCamera(sceneId){:java}`
+- 开始播放场景相机
+
+<Callout type="info">
+- **参数**：`sceneId`: String — 场景相机配置ID
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.startSceneCamera("intro_scene");
+```
+</Callout>
+
+### `stopSceneCamera(){:java}`
+- 停止场景相机播放
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.stopSceneCamera();
+```
+</Callout>
+
+## 着色器与天空盒
+
+### `enableShader(shader){:java}`
+- 为玩家启用后处理着色器
+
+<Callout type="info">
+- **参数**：`shader`: String — 着色器名称
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.enableShader("blur");
+```
+</Callout>
+
+### `disableShader(){:java}`
+- 关闭玩家的着色器效果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.disableShader();
+```
+</Callout>
+
+### `setSkyTexture(texturePath, forceNoCloud){:java}`
+- 为玩家设置自定义天空盒贴图
+
+<Callout type="info">
+- **参数**：
+    - `texturePath`: String — 天空盒贴图资源路径
+    - `forceNoCloud`: boolean — 是否强制隐藏云层
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setSkyTexture("sky/night.png", true);
+```
+</Callout>
+
+### `clearSkyTexture(){:java}`
+- 清除玩家的自定义天空盒，恢复默认天空
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.clearSkyTexture();
+```
+</Callout>
+
+### `setClientTitle(text){:java}`
+- 设置玩家客户端的标题文本
+
+<Callout type="info">
+- **参数**：`text`: String — 标题文本
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setClientTitle("欢迎来到冒险世界");
+```
+</Callout>
+
+## 特效
+
+<Callout type="warn">
+以下特效方法均为**点对点发送**，仅发送给该玩家自身的客户端。如果你需要让周围所有玩家都看到特效，请使用 `ArcartXEffectManager` 的范围广播方法。
+</Callout>
+
+### `spawnBedrockParticle(identifier, particleID, effectPosition){:java}`
+- 在玩家客户端生成基岩粒子效果
+
+<Callout type="info">
+- **参数**：
+    - `identifier`: String — 粒子标识符
+    - `particleID`: String — 粒子ID
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.spawnBedrockParticle("my_particle", "flame",
+    EffectPosition.followEntity(player));
+```
+</Callout>
+
+<Callout type="warn">
+存在一个已弃用的旧重载 `spawnBedrockParticle(id, x, y, z, yaw, pitch)`（`@Deprecated`），请改用上面的 `spawnBedrockParticle(identifier, particleID, effectPosition)`。
+
+**与 ArcartXEffectManager.spawnBedrockParticle 的区别**：
+- `ArcartXPlayer.spawnBedrockParticle` — **点对点**，仅该玩家自身可见
+- `ArcartXEffectManager.Entity.spawnBedrockParticle` — **范围广播**，所有能看到该实体的玩家可见
+- `ArcartXEffectManager.World.spawnBedrockParticle` — **范围广播**，指定位置128格内所有玩家可见
+
+选择哪个取决于你的需求：如果粒子只需要一个玩家看到，用Player版本；如果需要所有人看到（如技能特效），用EffectManager版本。
+</Callout>
+
+### `addWorldTexture(id, builder, effectPosition){:java}`
+- 在玩家客户端添加世界贴图
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 贴图唯一标识
+    - `builder`: WorldTextureBuilder — 贴图构建器
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+WorldTextureBuilder builder = new WorldTextureBuilder()
+    .setTexture("effects/magic_circle.png", true, true)
+    .setSize(256.0, 256.0)
+    .setLifeTime(-1);
+axPlayer.addWorldTexture("magic_circle", builder,
+    EffectPosition.followEntity(player, 0, 0, 0, 0, 0, 0, true, true));
+```
+</Callout>
+
+<Callout type="warn">
+**与 ArcartXEffectManager.spawnWorldTextureEffect 的区别**：
+- `ArcartXPlayer.addWorldTexture` — **点对点**，仅该玩家自身可见
+- `ArcartXEffectManager.spawnWorldTextureEffect` — **范围广播**，周围所有玩家可见
+</Callout>
+
+### `removeWorldTexture(id){:java}`
+- 移除玩家客户端的世界贴图
+
+<Callout type="info">
+- **参数**：`id`: String — 贴图唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.removeWorldTexture("magic_circle");
+```
+</Callout>
+
+### `playBlockAnimation(x, y, z, animation, speed, transitionTime, keepTime){:java}`
+- 在玩家客户端播放方块动画
+
+<Callout type="info">
+- **参数**：
+    - `x` `y` `z`: int — 方块坐标
+    - `animation`: String — 动画名称
+    - `speed`: double — 播放速度
+    - `transitionTime`: int — 过渡时间（毫秒）
+    - `keepTime`: long — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.playBlockAnimation(100, 64, 200, "open", 1.0, 5, 3000);
+```
+</Callout>
+
+### `spawnHammerCrackEffect(x, y, z, radius, depth, in, keep, out, mode){:java}`
+- 在玩家客户端生成锤击裂纹特效
+
+<Callout type="info">
+- **参数**：
+    - `x` `y` `z`: int — 中心坐标
+    - `radius`: float — 裂纹半径
+    - `depth`: float — 裂纹深度
+    - `in`: int — 淡入时间（毫秒）
+    - `keep`: int — 保持时间（毫秒）
+    - `out`: int — 淡出时间（毫秒）
+    - `mode`: int — 裂纹模式
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.spawnHammerCrackEffect(100, 64, 200, 3.0f, 1.0f, 200, 1000, 500, 0);
+```
+</Callout>
+
+## 伤害显示
+
+### `addDamageDisplay(damageDisplayConfigId, x, y, z, damage){:java}`
+- 在指定坐标为玩家显示伤害数字
+
+<Callout type="info">
+- **参数**：
+    - `damageDisplayConfigId`: String — 伤害显示配置ID
+    - `x` `y` `z`: double — 显示坐标
+    - `damage`: double — 伤害数值
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.addDamageDisplay("critical", 100.0, 65.0, 200.0, 999.0);
+```
+</Callout>
+
+### `addDamageDisplay(damageDisplayConfigId, target, damage){:java}`
+- 在目标实体位置为玩家显示伤害数字
+
+<Callout type="info">
+- **参数**：
+    - `damageDisplayConfigId`: String — 伤害显示配置ID
+    - `target`: Entity — 目标实体
+    - `damage`: double — 伤害数值
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.addDamageDisplay("default", targetEntity, 50.0);
+```
+</Callout>
+
+<Callout type="warn">
+**与 ArcartXEntity.broadcastDamageDisplay 的区别**：
+- `ArcartXPlayer.addDamageDisplay` — **点对点**，仅该玩家自身可见
+- `ArcartXEntity.broadcastDamageDisplay` — **范围广播**，所有能看到该实体的玩家可见
+- `ArcartXEntity.sendDamageDisplayToPlayers` — **指定列表**，仅列表中的玩家可见
+</Callout>
+
+## 路标管理
+
+### `addWayPoint(id, title, waypointConfigId, x, y, z){:java}`
+- 为玩家添加一个路标
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 路标唯一标识
+    - `title`: String — 路标显示标题
+    - `waypointConfigId`: String — 路标配置ID
+    - `x` `y` `z`: double — 路标坐标
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.addWayPoint("quest_1", "任务目标", "default", 100.0, 64.0, 200.0);
+```
+</Callout>
+
+### `deleteWayPoint(id, regex){:java}`
+- 删除玩家的路标
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 路标标识
+    - `regex`: boolean — 是否使用正则匹配（默认false）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.deleteWayPoint("quest_1");
+```
+</Callout>
+
+### `clearWayPoint(){:java}`
+- 清除玩家的所有路标
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.clearWayPoint();
+```
+</Callout>
+
+## 额外槽位管理
+
+### `setSlotItemStack(slotID, itemStack){:java}`
+- 设置额外槽位的物品，同时更新数据库、客户端显示，并触发 `PlayerExtraSlotUpdateEvent` 事件和更新脚本
+
+<Callout type="info">
+- **参数**：
+    - `slotID`: String — 槽位ID
+    - `itemStack`: ItemStack — 物品
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setSlotItemStack("ring_1", itemStack);
+```
+</Callout>
+
+### `setSlotItemStackOnlyClient(slotID, itemStack){:java}`
+- 仅更新客户端显示的槽位物品，不写入数据库
+
+<Callout type="info">
+- **参数**：
+    - `slotID`: String — 槽位ID
+    - `itemStack`: ItemStack — 物品
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setSlotItemStackOnlyClient("preview_slot", previewItem);
+```
+</Callout>
+
+### `removeSlotItemStackOnlyClient(slotID, startWith){:java}`
+- 仅从客户端移除槽位物品显示
+
+<Callout type="info">
+- **参数**：
+    - `slotID`: String — 槽位ID
+    - `startWith`: boolean — 是否匹配以该ID开头的所有槽位
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.removeSlotItemStackOnlyClient("temp_", true); // 移除所有temp_开头的槽位
+```
+</Callout>
+
+### `getSlotItemStack(slotID){:java}`
+- 获取额外槽位中的物品
+
+<Callout type="info">
+- **参数**：`slotID`: String — 槽位ID
+- **返回值**：`ItemStack?` — 物品对象，可能为null
+- **调用示例**
+```java
+ItemStack item = axPlayer.getSlotItemStack("ring_1");
+```
+</Callout>
+
+### `syncSlotCacheToClient(){:java}`
+- 将所有槽位缓存同步到客户端，通常在玩家重新连接时使用
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.syncSlotCacheToClient();
+```
+</Callout>
+
+## 物品冷却
+
+### `setTagCooldown(tag, time){:java}`
+- 设置物品冷却标签的冷却时间
+
+<Callout type="info">
+- **参数**：
+    - `tag`: String — 冷却标签
+    - `time`: long — 冷却时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.setTagCooldown("skill_1", 3000); // 3秒冷却
+```
+</Callout>
+
+### `getTagCooldown(tag){:java}`
+- 获取物品冷却标签的剩余冷却时间
+
+<Callout type="info">
+- **参数**：`tag`: String — 冷却标签
+- **返回值**：`long` — 剩余冷却时间（毫秒），0表示已冷却完毕
+- **调用示例**
+```java
+long remaining = axPlayer.getTagCooldown("skill_1");
+```
+</Callout>
+
+## 音效
+
+### `playSoundForSelf(resourcePath, soundCategory, pitch, keepTime){:java}`
+- 为玩家自身播放音效
+
+<Callout type="info">
+- **参数**：
+    - `resourcePath`: String — 音效资源路径
+    - `soundCategory`: String — 音效类别
+    - `pitch`: float — 音调
+    - `keepTime`: int — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.playSoundForSelf("sounds/ui_click.ogg", "master", 1.0f, 1000);
+```
+</Callout>
+
+## 其他功能
+
+### `sendCustomPacket(id, data...){:java}`
+- 向玩家客户端发送自定义数据包
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 数据包ID
+    - `data`: String... — 数据内容（可变参数）
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.sendCustomPacket("my_plugin:update", "key1", "value1");
+```
+</Callout>
+
+### `parseAria(code){:java}`
+- 在玩家客户端执行Aria脚本代码
+
+<Callout type="info">
+- **参数**：`code`: String — Aria脚本代码
+- **返回值**：无
+- **调用示例**
+```java
+axPlayer.parseAria("Chat.open(\"Hello!\")");
+```
+</Callout>
+
+### `sendChatCard(cardID, cardData){:java}`
+- 向玩家发送聊天卡片消息
+
+<Callout type="info">
+- **参数**：
+    - `cardID`: String — 卡片配置ID
+    - `cardData`: Map&lt;String, String&gt; — 卡片数据
+- **返回值**：无
+- **调用示例**
+```java
+Map<String, String> data = new HashMap<>();
+data.put("title", "任务完成");
+data.put("reward", "100金币");
+axPlayer.sendChatCard("quest_complete", data);
+```
+</Callout>

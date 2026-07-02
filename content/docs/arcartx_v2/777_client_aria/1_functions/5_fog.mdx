@@ -1,0 +1,45 @@
+---
+title: Fog:雾效控制
+description: Fog雾效渲染控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Fog.setup(r, g, b, start, end){:aria}`
+- 设置雾效参数
+
+<Callout type="info">
+- **参数**：
+  - `r`: 整数类型(红色分量，0-255)
+  - `g`: 整数类型(绿色分量，0-255)
+  - `b`: 整数类型(蓝色分量，0-255)
+  - `start`: 浮点数类型(雾效起始距离)
+  - `end`: 浮点数类型(雾效结束距离)
+- **调用示例**
+```aria
+// 设置白色雾效，从5个方块开始，延伸到20个方块
+Fog.setup(255, 255, 255, 5.0, 20.0)
+
+// 设置红色雾效，从2个方块开始，延伸到15个方块
+Fog.setup(255, 0, 0, 2.0, 15.0)
+```
+</Callout>
+
+## `Fog.clear(){:aria}`
+- 清除当前雾效设置
+
+<Callout type="info">
+- **调用示例**
+```aria
+Fog.clear()
+```
+</Callout>
+
+<Callout type="warn">
+注意事项：
+- RGB颜色值范围为0-255
+- 起始距离必须小于结束距离
+- 过大的雾效范围可能影响游戏性能和视觉体验
+- 清除雾效后将恢复到游戏默认的环境效果
+</Callout>

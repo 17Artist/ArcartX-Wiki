@@ -1,0 +1,60 @@
+---
+title: ArcartXSoundPlayer:音效播放器
+description: 音效播放API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXSoundPlayer
+
+- 音效播放器提供了在世界中播放自定义音效的能力。
+- 通过 `ArcartXAPI.getSoundPlayer()` 获取。
+- 所有方法都是Kotlin扩展函数，在Java中作为静态方法调用。
+
+## `World.playSoundForPlayer(player, location, resourcePath, soundCategory, distOrRoll, pitch, keepTime){:java}`
+- 为指定玩家在指定位置播放音效，仅当玩家在同一世界且在传播距离内时才会播放
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `location`: Location — 音效播放位置
+    - `resourcePath`: String — 音效资源路径
+    - `soundCategory`: String — 音效类别（如 `master`、`music`、`ambient`）
+    - `distOrRoll`: int — 传播距离/衰减
+    - `pitch`: double — 音调
+    - `keepTime`: int — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.playSoundForPlayer(player, location, "sounds/bell.ogg", "master", 32, 1.0, 5000)
+
+// Java
+ArcartXSoundPlayer.playSoundForPlayer(world, player, location, "sounds/bell.ogg",
+    "master", 32, 1.0, 5000);
+```
+</Callout>
+
+## `World.playSoundOnWorld(location, resourcePath, soundCategory, distOrRoll, pitch, keepTime){:java}`
+- 在世界指定位置播放音效，范围内所有玩家可听到
+
+<Callout type="info">
+- **参数**：
+    - `location`: Location — 音效播放位置
+    - `resourcePath`: String — 音效资源路径
+    - `soundCategory`: String — 音效类别
+    - `distOrRoll`: int — 传播距离/衰减
+    - `pitch`: double — 音调
+    - `keepTime`: int — 持续时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.playSoundOnWorld(location, "sounds/thunder.ogg", "ambient", 64, 1.0, 8000)
+
+// Java
+ArcartXSoundPlayer.playSoundOnWorld(world, location, "sounds/thunder.ogg",
+    "ambient", 64, 1.0, 8000);
+```
+</Callout>

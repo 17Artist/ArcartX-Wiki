@@ -1,0 +1,59 @@
+---
+title: MythicMobs 额外投掷物
+description: ArcartX 为 MythicMobs 提供的模型投掷物类型
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 模型投掷物
+
+对于某些投掷物，你可能希望它以自定义模型的外观显示。ArcartX 提供了 `model` 类型的投掷物弹道来实现这一需求。
+
+<Callout type="warn">
+    由于 MythicMobs 没有注册投掷物的接口，模型投掷物是通过反射注册的，不一定所有 MythicMobs 版本通用。
+</Callout>
+
+### 参数说明
+
+在 `projectile` 技能中，设置 `bullet=model` 即可启用模型投掷物，额外参数如下：
+
+| 参数  | 全名      |   类型   | 默认值 | 说明    |
+|:----|:--------|:------:|:---:|:------|
+| mid | modelID | string | ""  | 模型 ID |
+| s   | scale   | double | 1.0 | 模型缩放  |
+
+### 示例
+
+```yaml
+示例模型子弹:
+  Conditions:
+  Skills:
+  - projectile{
+    v=5;
+    i=1;
+    hR=0.5;
+    vR=0.5;
+    Maxduration=200;
+    MaxRange=99;
+    hnp=true;
+    hp=false;
+    hO=0;
+    sE=false;
+    sB=true;
+    hs=false;
+    hfs=0;
+    syo=1.5;
+    tyo=1.5;
+    bullet=model;
+    mid=test;
+    s=1;
+    onEnd=[
+    ];
+    onHit=[
+    ];
+    onBounceSkill=[
+    ]} @Forward{f=15;y=0}
+```
+
+配置方式与普通投掷物一致，只需将 `bullet` 设为 `model`，并通过 `mid` 和 `s` 指定模型 ID 和缩放。

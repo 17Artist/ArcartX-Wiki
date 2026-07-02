@@ -1,0 +1,95 @@
+---
+title: Game:游戏控制
+description: Game游戏控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Game.options(){:aria}`
+- 打开游戏选项界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```aria
+Game.options()
+```
+</Callout>
+
+## `Game.quit(){:aria}`
+- 退出当前游戏
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```aria
+Game.quit()
+```
+</Callout>
+
+## `Game.shutdown(){:aria}`
+- 关闭游戏客户端
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```aria
+Game.shutdown()
+```
+</Callout>
+
+## `Game.advancements(){:aria}`
+- 打开成就界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```aria
+Game.advancements()
+```
+</Callout>
+
+## `Game.stat(){:aria}`
+- 打开统计信息界面
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```aria
+Game.stat()
+```
+</Callout>
+
+## `Game.setScale(scale){:aria}`
+- 设置游戏界面缩放比例
+
+<Callout type="info">
+- **参数**：`scale`: 整数类型(>=1)
+- **返回值**：无
+- **调用示例**
+```aria
+Game.setScale(2)
+```
+</Callout>
+
+## `Game.getFPS(){:aria}`
+- 获取当前游戏帧率
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Game.getFPS()
+```
+- **示例返回值**
+```aria
+"60 fps"
+```
+</Callout>

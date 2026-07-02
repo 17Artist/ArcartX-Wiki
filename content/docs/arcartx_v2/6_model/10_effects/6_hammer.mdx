@@ -1,0 +1,39 @@
+---
+title: 模型锤击效果
+description: 地形锤击特效
+---
+
+## 模型锤击效果
+
+锤击效果是一种地形特效，在指定位置生成大地被锤击的视觉效果。支持三种模式：
+
+<img src="/model/effects/hammer-mode-0.jpg" alt="锤击效果模式 0"/>
+<img src="/model/effects/hammer-mode-1.jpg" alt="锤击效果模式 1"/>
+<img src="/model/effects/hammer-mode-2.jpg" alt="锤击效果模式 2"/>
+
+## 使用方式
+
+在动画的指令帧中添加锤击命令：
+
+```
+arcartx:hammer{radius=5;depth=0.3;in=15;keep=40;out=20;mode=0}
+```
+
+| 参数     |  类型   | 说明              |
+|:-------|:-----:|:----------------|
+| radius | float | 锤击半径            |
+| depth  | float | 锤击深度            |
+| in     |  int  | 进入时间（tick）      |
+| keep   |  int  | 保持时间（tick）      |
+| out    |  int  | 退出时间（tick）      |
+| mode   |  int  | 锤击模式（0 / 1 / 2） |
+
+## 示例
+
+在劈砍动作的落地帧添加锤击命令，并将定位器移动到目标位置：
+
+<img src="/model/effects/hammer-keyframe.jpg" alt="添加锤击命令"/>
+
+结合模型相机效果的最终效果：
+
+<img src="/model/effects/hammer-demo.gif" alt="锤击效果演示"/>

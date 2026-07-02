@@ -1,0 +1,67 @@
+---
+title: 客户端UI事件
+description: HUD和菜单的打开关闭事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端UI事件
+
+- 与ArcartX自定义UI界面相关的事件，分为HUD和菜单两类。
+
+## `ClientHudOpenEvent`
+- HUD界面打开时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `hud`: ArcartXUI — HUD对象
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onHudOpen(ClientHudOpenEvent event) {
+    String hudId = event.getHud().getId();
+    // HUD已打开
+}
+```
+</Callout>
+
+## `ClientHudCloseEvent`
+- HUD界面关闭时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `hud`: ArcartXUI — HUD对象
+- **可取消**：否
+</Callout>
+
+## `ClientMenuOpenEvent`
+- 菜单界面打开时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `menu`: ArcartXUI — 菜单对象
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onMenuOpen(ClientMenuOpenEvent event) {
+    String menuId = event.getMenu().getId();
+    // 菜单已打开
+}
+```
+</Callout>
+
+## `ClientMenuCloseEvent`
+- 菜单界面关闭时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `menu`: ArcartXUI — 菜单对象
+- **可取消**：否
+</Callout>

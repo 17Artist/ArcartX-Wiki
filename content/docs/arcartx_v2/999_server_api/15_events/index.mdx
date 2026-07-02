@@ -1,0 +1,32 @@
+---
+title: 事件概述
+description: ArcartX事件系统概述
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 事件系统
+
+- 所有事件位于 `priv.seventeen.artist.arcartx.event` 包下，按功能分为三大类：
+
+| 分类    | 包路径            | 说明                        |
+|-------|----------------|---------------------------|
+| 客户端事件 | `event.client` | 由客户端行为触发，如按键、UI操作、实体视野变化等 |
+| 玩家事件  | `event.player` | 由服务端玩家状态变化触发，如进出区域、模型更新等  |
+| 插件事件  | `event.plugin` | 由ArcartX插件自身触发，如重载事件      |
+
+## 监听示例
+
+```java
+@EventHandler
+public void onClientKey(ClientKeyPressEvent event) {
+    Player player = event.getPlayer();
+    String key = event.getKeyName();
+    // 处理按键事件
+}
+```
+
+<Callout type="info">
+大部分事件不可取消。可取消的事件会在各自的文档页面中标注。
+</Callout>

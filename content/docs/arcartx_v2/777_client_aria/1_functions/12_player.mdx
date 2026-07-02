@@ -1,0 +1,151 @@
+---
+title: Player:玩家信息
+description: Player玩家信息工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 基本信息
+### `Player.getName(){:aria}`
+- 获取玩家名称
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+```aria
+Player.getName() // 返回 "Steve"
+```
+</Callout>
+
+### `Player.getUUID(){:aria}`
+- 获取玩家UUID
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+```aria
+Player.getUUID() // 返回 "550e8400-e29b-41d4-a716-446655440000"
+```
+</Callout>
+
+### `Player.getOnlinePlayersDict(){:aria}`
+- 获取在线玩家列表
+<Callout type="info">
+- **参数**：无
+- **返回值**：字典类型(Key为玩家名，Value为UUID)
+```aria
+Player.getOnlinePlayersDict() // 返回 {"Steve": "uuid1", "Alex": "uuid2"}
+```
+</Callout>
+
+## 状态信息
+### `Player.getHealth(){:aria}` / `Player.getMaxHealth(){:aria}`
+- 获取玩家当前/最大生命值
+<Callout type="info">
+- **参数**：无
+- **返回值**：浮点数类型
+```aria
+Player.getHealth() // 返回 20.0
+Player.getMaxHealth() // 返回 20.0
+```
+</Callout>
+
+### `Player.getLevel(){:aria}` / `Player.getExp(){:aria}`
+- 获取玩家等级/经验值
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数/浮点数类型
+```aria
+Player.getLevel() // 返回 30
+Player.getExp() // 返回 0.75
+```
+</Callout>
+
+## 位置信息
+### `Player.getPosX(){:aria}` / `Player.getPosY(){:aria}` / `Player.getPosZ(){:aria}`
+- 获取玩家X/Y/Z坐标
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点数类型
+```aria
+Player.getPosX() // 返回 100.5
+Player.getPosY() // 返回 64.0
+Player.getPosZ() // 返回 -200.5
+```
+</Callout>
+
+### `Player.getYaw(){:aria}` / `Player.getPitch(){:aria}`
+- 获取玩家偏航角/俯仰角
+<Callout type="info">
+- **参数**：无
+- **返回值**：浮点数类型
+```aria
+Player.getYaw() // 返回 180.0
+Player.getPitch() // 返回 45.0
+```
+</Callout>
+
+## 状态检测
+### `Player.isFlying(){:aria}` / `Player.isInWater(){:aria}` / `Player.isOnGround(){:aria}`
+- 检测玩家飞行/在水中/在地面状态
+<Callout type="info">
+- **参数**：无
+- **返回值**：布尔值类型
+```aria
+Player.isFlying() // 返回 false
+Player.isInWater() // 返回 false
+Player.isOnGround() // 返回 true
+```
+</Callout>
+
+## 其他属性
+### `Player.getFood(){:aria}` / `Player.getAir(){:aria}` / `Player.getArmor(){:aria}`
+- 获取玩家饥饿值/氧气值/护甲值
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型
+```aria
+Player.getFood() // 返回 20
+Player.getAir() // 返回 300
+Player.getArmor() // 返回 20
+```
+</Callout>
+
+### `Player.getCurrentItem(){:aria}`
+- 获取当前选中物品栏位置
+<Callout type="info">
+- **参数**：无
+- **返回值**：整数类型(0-8)
+```aria
+Player.getCurrentItem() // 返回 0
+```
+</Callout>
+
+### `Player.isFallFlying(){:aria}`
+- 检测玩家是否正在滑翔
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    ```aria
+    Player.isFallFlying() // 返回 true | false
+    ```
+</Callout>
+
+### `Player.respawn(){:aria}`
+- 重生玩家
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    ```aria
+    Player.respawn()
+    ```
+</Callout>
+
+### `Player.getMainHandItem(){:aria}`
+- 获取玩家主手物品
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：ItemStack对象
+    ```aria
+    Player.getMainHandItem() // 返回 ItemStack对象
+    ```
+</Callout>

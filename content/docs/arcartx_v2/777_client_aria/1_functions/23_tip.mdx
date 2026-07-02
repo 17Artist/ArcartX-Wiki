@@ -1,0 +1,53 @@
+---
+title: Tip:工具提示
+description: Tip工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Tip.getText(){:aria}`
+- 获取Tip文本
+
+<Callout type="info">
+    - **参数**：无
+    - **调用示例**
+    ```aria
+    Tip.getText()
+    ```
+    - **返回值**：列表型——包含Tip文本的字符串列表，解析的文本会将!&!* !&!# !&!%替换为§* §# §%
+</Callout>
+
+## `Tip.getDisplay(){:aria}`
+- 获取物品显示名（第一行Tip文本）
+<Callout type="info">
+    - **参数**：无
+    - **调用示例**
+    ```aria
+    Tip.getDisplay()
+    ```
+    - **返回值**：字符串型——物品显示名（第一行Tip文本），解析的文本会将!&!* !&!# !&!%替换为§* §# §%
+</Callout>
+
+## `Tip.getLore(){:aria}`
+- 获取物品Lore（除第一行外的Tip文本）
+<Callout type="info">
+    - **参数**：无
+    - **调用示例**
+    ```aria
+    Tip.getLore()
+    ```
+    - **返回值**：列表型——包含物品Lore的字符串列表，解析的文本会将!&!* !&!# !&!%替换为§* §# §%
+</Callout>
+
+## `Tip.getItemStack(){:aria}`
+- 获取当前Tip的物品对象
+<Callout type="info">
+    - **参数**：无
+    - **调用示例**
+    ```aria
+    Tip.getItemStack()
+    ```
+    - **返回值**：ItemStack型——当前Tip的物品对象
+</Callout>
+

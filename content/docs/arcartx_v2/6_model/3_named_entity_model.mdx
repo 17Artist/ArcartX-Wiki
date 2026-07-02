@@ -1,0 +1,23 @@
+---
+title: 含名称的实体模型
+description: 通过实体名称渲染实体模型
+---
+
+## 根据名称渲染实体模型
+- 实体模型的名称匹配配置位于 ArcartX 根目录下的 `entity_model` 目录中，支持创建多个配置文件。
+- 配置格式说明
+```yaml
+example: # 配置项名称，不可重复
+  matchName: "123456" # 匹配名，无需颜色符号。建议在生物名中添加特殊符号以避免误匹配玩家，因为匹配时不包含颜色代码。
+  modelID: "test" # 模型 ID，获取方式参见上一章
+  scale: 1 # 模型缩放
+  hideNameTag: false # 是否隐藏名称标签，适用于装饰性实体
+  hurtColor: true # 受击渲染，关闭后受击时不会显示红色闪烁效果
+  virtualWidth: -1 # 虚拟体积（仅 ADY 实体有效）
+  virtualHeight: -1 # 虚拟体积（仅 ADY 实体有效）
+  renderAlways: false # 持续渲染（仅 ADY 实体有效）
+
+```
+
+- 配置完成后，将实体命名为 `matchName` 对应的名称即可看到模型效果。
+<img src="/model/named-entity.png" alt="模型"/>

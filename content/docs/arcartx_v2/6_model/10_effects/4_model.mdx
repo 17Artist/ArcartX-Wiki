@@ -1,0 +1,34 @@
+---
+title: 模型粒子效果
+description: 将模型作为粒子在定位器上生成
+---
+
+## 模型粒子效果
+
+模型粒子效果将一个独立模型作为粒子，在目标模型的定位器上生成并播放动画。
+
+这个功能的背景：传统做法中，建模师通过大量骨骼逐帧切换来模拟粒子特效，导致模型文件体积膨胀、骨骼数量激增。模型粒子效果将特效模型以粒子形式独立渲染，避免了这个问题。
+
+模型粒子生成后会自动执行 `idle` 动画（与生物模型是两个独立模型）。
+
+<img src="/model/effects/model-particle-preview.png" alt="模型粒子效果"/>
+
+## 使用方式
+
+在动画的指令帧中添加模型粒子命令：
+
+<img src="/model/effects/model-particle-keyframe.png" alt="添加指令帧"/>
+
+```
+arcartx:model{model=boom;scale=1;keepTime=15;follow=false;glow=false;animation=idle;speed=1}
+```
+
+| 参数        |   类型    |  默认值  | 说明                    |
+|:----------|:-------:|:-----:|:----------------------|
+| model     | string  |       | 模型 ID                 |
+| scale     |  float  |   1   | 模型缩放                  |
+| keepTime  |   int   |       | 粒子持续时间（tick）          |
+| follow    | boolean | false | 是否跟随定位器               |
+| glow      | boolean | false | 是否发光                  |
+| animation | string  | idle  | 播放的动画名称               |
+| speed     |  float  |   1   | 播放速度，-1 表示跟随释放模型的播放速度 |

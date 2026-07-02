@@ -1,0 +1,37 @@
+---
+title: MythicMobs 额外配置项
+description: ArcartX 为 MythicMobs 提供的额外配置项
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## MythicMobs 额外配置
+
+ArcartX 为 MythicMobs 的生物配置提供了以下额外字段，可以直接写在 MythicMobs 的 mob 配置中：
+
+```yaml
+test:
+  Type: ZOMBIE
+  Display: '&a示例'
+  Health: 1
+  Model: "test"       # 模型 ID，等效于使用 model 技能词条
+  Scale: 0.5          # 模型缩放
+  HideName: true      # 隐藏名称标签，适用于陷阱类生物
+  HideHitBox: true    # 隐藏碰撞箱渲染，适用于遁地或隐身怪物
+  Width: 1
+  Height:  1
+  ProxyWidth: 1
+  ProxyHeight: 1
+```
+
+| 配置项         |    类型    | 说明                |
+|:------------|:--------:|:------------------|
+| Model       |  string  | 模型 ID，生物生成时自动设置模型 |
+| Scale       |  double  | 模型缩放比例            |
+| HideName    | boolean  | 是否隐藏名称标签          |
+| HideHitBox  | boolean  | 是否隐藏碰撞箱的客户端渲染     |
+| Width       |   碰撞宽度   | -                 |
+| Height      |   碰撞高度   | -                 |
+| ProxyWidth  | 碰撞宽度(代理) | -                 |
+| ProxyHeight | 碰撞高度(代理) | -                 |

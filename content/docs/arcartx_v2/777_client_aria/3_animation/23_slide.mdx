@@ -1,0 +1,92 @@
+---
+title: Slide-滑动效果
+description: 滑动效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Slide是一个用于UI元素滑动进入和退出效果的对象。它支持多种缓动曲线，包括线性、缓入、缓出、缓入缓出和弹跳效果，非常适合创建流畅的界面动画。
+</Callout>
+
+## 实例化方式
+
+### `Slide`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个滑动动画实例。
+    - **参数**：
+    - `startPosition`：数值类型，起始位置
+    - `endPosition`：数值类型，结束位置
+    - `transferTime`：长整型，持续时间（毫秒，最小1ms）
+    - `easeType`：整型，缓动类型（可选，0-4）
+      - 0: LINEAR（线性）
+      - 1: EASE_IN（缓慢开始）
+      - 2: EASE_OUT（缓慢结束）
+      - 3: EASE_IN_OUT（两端缓慢）
+      - 4: BOUNCE（弹跳）
+    - **调用示例**：
+    ```aria
+    Slide(-100, 0, 500) // 从-100滑动到0，持续500ms
+    Slide(0, 200, 800, 2) // 使用EASE_OUT缓动
+    Slide(0, 100, 600, 4) // 使用弹跳效果
+    ```
+</Callout>
+
+## 缓动类型说明
+
+<Callout type="info">
+    - **LINEAR (0)**：线性过渡，匀速运动
+    - **EASE_IN (1)**：三次方缓入，缓慢开始然后加速
+    - **EASE_OUT (2)**：三次方缓出，快速开始然后减速
+    - **EASE_IN_OUT (3)**：两端缓慢，中间加速
+    - **BOUNCE (4)**：弹跳效果，到达终点时产生弹跳
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前滑动位置，动画完成后返回结束位置。
+</Callout>
+
+### `progress(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型（0.0-1.0）
+    - **说明**：获取当前滑动的完成进度。
+</Callout>
+
+### `reset(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置滑动状态，重新开始动画。
+</Callout>
+
+### `reverse(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转滑动方向，从当前位置反向滑动。
+</Callout>
+
+## 类型转换
+
+Slide对象支持以下类型转换：
+- **数值**：返回当前滑动位置
+- **布尔值**：当前位置偏离起始位置时返回true，否则返回false
+- **字符串**：返回当前位置的字符串表示
+
+<Callout type="info">
+    Slide对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

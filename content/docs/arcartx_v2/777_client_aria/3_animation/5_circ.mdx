@@ -1,0 +1,112 @@
+---
+title: CircX/CircY-圆周运动插值
+description: 圆周运动插值对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+CircX和CircY是一对配合使用的对象，用于创建圆周运动效果。CircX控制X坐标，CircY控制Y坐标。
+</Callout>
+
+## 实例化方式
+
+### `CircX`实例化
+<Callout type="info">
+- **描述**：创建圆周运动的X坐标控制器。
+- **参数**：
+  - `centerX`：数值类型，圆心X坐标
+  - `centerY`：数值类型，圆心Y坐标
+  - `radius`：数值类型，圆的半径
+  - `transferTime`：长整型，一圈的运动时间（毫秒）
+- **调用示例**：
+```aria
+CircX(100, 100, 50, 1000) // 以(100,100)为圆心，半径50，1秒转一圈的X坐标
+```
+</Callout>
+
+### `CircY`实例化
+<Callout type="info">
+- **描述**：创建圆周运动的Y坐标控制器。
+- **参数**：同CircX
+- **调用示例**：
+```aria
+CircY(100, 100, 50, 1000) // 以(100,100)为圆心，半径50，1秒转一圈的Y坐标
+```
+</Callout>
+
+### 默认参数
+<Callout type="info">
+当不提供完整参数时，使用以下默认值：
+- **圆心**: (0, 0)
+- **半径**: 100
+- **周期**: 1000毫秒
+</Callout>
+
+## 圆周运动示例
+
+<Callout type="info">
+创建完整的圆周运动需要同时使用CircX和CircY：
+```aria
+// 创建圆周运动控制器
+x = CircX(100, 100, 50, 1000)
+y = CircY(100, 100, 50, 1000)
+
+// 使用时分别获取x和y坐标
+positionX = x.get()
+positionY = y.get()
+```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+- 获取当前坐标值
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数值类型
+- **说明**：根据当前时间计算对应的X或Y坐标
+- **调用示例**：
+```aria
+CircX(100, 100, 50, 1000).get()
+```
+</Callout>
+
+### `reset(){:aria}`
+- 重置动画状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：重置计时器并清除反向状态，重新开始运动
+- **调用示例**：
+```aria
+CircX(100, 100, 50, 1000).reset()
+```
+</Callout>
+
+### `reverse(){:aria}`
+- 反转运动方向
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：改变圆周运动的方向（顺时针/逆时针）
+- **调用示例**：
+```aria
+CircX(100, 100, 50, 1000).reverse()
+```
+</Callout>
+
+## 类型转换
+
+CircX/CircY对象支持以下类型转换：
+- **数值**：返回当前坐标值
+- **布尔值**：当前值大于0时返回true，否则返回false
+- **字符串**：返回当前坐标值的字符串表示
+
+<Callout type="info">
+CircX/CircY对象支持数学运算，可以直接参与计算表达式。
+</Callout>

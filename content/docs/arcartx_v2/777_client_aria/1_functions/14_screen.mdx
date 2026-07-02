@@ -1,0 +1,47 @@
+---
+title: Screen:屏幕控制
+description: Screen屏幕控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 屏幕尺寸
+### `Screen.getWidth(){:aria}` / `Screen.getHeight(){:aria}`
+- 获取游戏窗口的宽度/高度
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点数类型
+- **调用示例**
+```aria
+Screen.getWidth()  // 返回窗口宽度
+Screen.getHeight() // 返回窗口高度
+```
+</Callout>
+
+## 菜单控制
+### `Screen.open(name){:aria}`
+- 打开指定ID的UI
+
+<Callout type="info">
+- **参数**：
+  - `name`: 字符串类型(ID)
+- **调用示例**
+```aria
+Screen.open("settings")  // 使用默认命名空间
+```
+</Callout>
+
+### `Screen.close(name){:aria}`
+- 关闭当前或指定的菜单界面
+
+<Callout type="info">
+- **参数**：
+  - `name`: 字符串类型(可选，ID)
+- **调用示例**
+```aria
+Screen.close()  // 关闭当前界面
+Screen.close("settings")  // 关闭指定UI
+```
+</Callout>

@@ -1,0 +1,43 @@
+---
+title: 模型相机效果
+description: 模型相机跟随与镜头摇晃
+---
+
+## 模型相机效果
+
+模型相机效果仅在当前客户端玩家自身身上生效，用于让相机跟随模型定位器移动。
+
+典型场景：模型播放"跳劈"动作时，模型起跳但玩家本体仍在地面。如果不使用相机跟随，相机会停留在玩家本体位置，导致视觉效果不自然。通过模型相机效果，相机会跟随模型定位器移动，动作结束后自动平滑过渡回原位。
+
+该功能类似于 Root Motion 的相机跟随，但不会影响玩家本体的移动。
+
+## 使用方式
+
+1. 在模型中创建一个名为 `camera_position` 的定位器，挂载在需要跟随的骨骼下（如 `AllBody`）
+
+<img src="/model/effects/camera-locator.jpg" alt="创建定位器"/>
+
+2. 在动画的起跳帧添加指令帧：
+
+```
+arcartx:camera
+```
+
+<img src="/model/effects/camera-keyframe.jpg" alt="添加指令帧"/>
+
+3. 效果预览：
+
+<img src="/model/effects/camera-demo.gif" alt="模型相机效果"/>
+
+## 镜头摇晃
+
+镜头摇晃同样通过指令帧触发：
+
+```
+arcartx:shake{duration=10;amplitude=10}
+```
+
+| 参数        | 类型  | 默认值 | 说明         |
+|:----------|:---:|:---:|:-----------|
+| duration  | int | 10  | 持续时间（tick） |
+| amplitude | int | 10  | 摇晃强度       |

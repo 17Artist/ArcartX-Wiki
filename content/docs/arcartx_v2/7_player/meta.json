@@ -1,0 +1,10 @@
+{
+    "title": "玩家动作/时装篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_start",
+        "2_armor",
+        "3_animation",
+        "4_fashion"
+    ]
+}

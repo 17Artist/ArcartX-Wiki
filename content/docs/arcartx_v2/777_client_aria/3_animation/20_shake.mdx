@@ -1,0 +1,94 @@
+---
+title: Shake-抖动效果
+description: 抖动效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Shake是一个用于创建抖动、振动效果的对象。它常用于错误提示、警告或强调效果，支持自定义抖动强度、次数和阻尼衰减。
+</Callout>
+
+## 实例化方式
+
+### `Shake`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个抖动动画实例。
+    - **参数**：
+    - `centerValue`：数值类型，中心位置
+    - `intensity`：数值类型，抖动强度
+    - `totalDuration`：长整型，总持续时间（毫秒，最小100ms）
+    - `shakeInterval`：长整型，抖动间隔（每次抖动的时间，毫秒，最小10ms）
+    - `shakeCount`：整型，抖动次数（最小1次）
+    - `damping`：布尔值，是否启用阻尼衰减（可选）
+    - **调用示例**：
+    ```aria
+    Shake(0, 10, 600, 50, 6) // 以0为中心，强度10，600ms内抖动6次
+    Shake(100, 20, 800, 40, 8, true) // 启用阻尼，抖动逐渐减弱
+    ```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前抖动位置，动画结束后返回中心值。
+</Callout>
+
+### `intensity(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前抖动强度（考虑阻尼衰减），动画结束后返回0。
+</Callout>
+
+### `trigger(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：触发一次新的抖动，重置时间开始新的抖动动画。
+</Callout>
+
+### `isComplete(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔值
+    - **说明**：检查抖动动画是否已完成。
+</Callout>
+
+### `reset(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置抖动状态，重新开始效果。
+</Callout>
+
+### `reverse(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转抖动进度方向。
+</Callout>
+
+## 类型转换
+
+Shake对象支持以下类型转换：
+- **数值**：返回当前抖动位置
+- **布尔值**：当前位置偏离中心值时返回true，否则返回false
+- **字符串**：返回当前位置的字符串表示
+
+<Callout type="info">
+    Shake对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

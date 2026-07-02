@@ -1,0 +1,204 @@
+---
+title: EffectPosition与WorldTextureBuilder:特效数据类
+description: 特效位置和世界贴图构建器
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## EffectPosition
+
+- `EffectPosition` 用于描述特效的生成位置，支持两种模式：固定世界坐标和跟随实体。
+- 通过静态工厂方法创建实例。
+
+### 固定坐标模式
+
+### `EffectPosition.location(x, y, z, pitch, yaw){:java}`
+- 创建一个固定世界坐标的特效位置
+
+<Callout type="info">
+- **参数**：
+    - `x` `y` `z`: double — 世界坐标
+    - `pitch`: float — 垂直旋转角度（可选，默认0）
+    - `yaw`: float — 水平旋转角度（可选，默认0）
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.location(100.0, 64.0, 200.0);
+EffectPosition posWithRotation = EffectPosition.location(100.0, 64.0, 200.0, 45.0f, 90.0f);
+```
+</Callout>
+
+### `EffectPosition.location(location){:java}`
+- 从Bukkit Location创建固定坐标特效位置
+
+<Callout type="info">
+- **参数**：`location`: Location — Bukkit位置对象
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.location(player.getLocation());
+```
+</Callout>
+
+### `EffectPosition.location(location, roll){:java}`
+- 从Bukkit Location创建固定坐标特效位置，附带翻滚角
+
+<Callout type="info">
+- **参数**：
+    - `location`: Location — Bukkit位置对象
+    - `roll`: float — 翻滚角度
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.location(location, 30.0f);
+```
+</Callout>
+
+### 跟随实体模式
+
+### `EffectPosition.followEntity(entity){:java}`
+- 创建一个跟随实体的特效位置，默认跟随实体的俯仰和偏航
+
+<Callout type="info">
+- **参数**：`entity`: Entity — 要跟随的实体
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.followEntity(player);
+```
+</Callout>
+
+### `EffectPosition.followEntity(entity, pitch, yaw, followPitch, followYaw){:java}`
+- 创建一个跟随实体的特效位置，可自定义旋转和跟随选项
+
+<Callout type="info">
+- **参数**：
+    - `entity`: Entity — 要跟随的实体
+    - `pitch`: float — 初始垂直旋转角度
+    - `yaw`: float — 初始水平旋转角度
+    - `followPitch`: boolean — 是否跟随实体俯仰
+    - `followYaw`: boolean — 是否跟随实体偏航
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.followEntity(player, 0f, 0f, false, true);
+```
+</Callout>
+
+### `EffectPosition.followEntity(entity, xOffset, yOffset, zOffset, pitch, yaw, roll, followPitch, followYaw){:java}`
+- 创建一个跟随实体的特效位置，完整参数版本
+
+<Callout type="info">
+- **参数**：
+    - `entity`: Entity — 要跟随的实体
+    - `xOffset` `yOffset` `zOffset`: double — 相对实体的偏移量
+    - `pitch`: float — 垂直旋转角度
+    - `yaw`: float — 水平旋转角度
+    - `roll`: float — 翻滚角度
+    - `followPitch`: boolean — 是否跟随实体俯仰
+    - `followYaw`: boolean — 是否跟随实体偏航
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+// 跟随玩家，向上偏移2格，仅跟随偏航不跟随俯仰
+EffectPosition pos = EffectPosition.followEntity(player,
+    0.0, 2.0, 0.0, 0f, 0f, 0f, false, true);
+```
+</Callout>
+
+### `EffectPosition.followEntity(uuid, xOffset, yOffset, zOffset, pitch, yaw, roll, followPitch, followYaw){:java}`
+- 通过UUID创建跟随实体的特效位置
+
+<Callout type="info">
+- **参数**：
+    - `uuid`: UUID — 实体UUID
+    - 其余参数同上
+- **返回值**：`EffectPosition`
+- **调用示例**
+```java
+EffectPosition pos = EffectPosition.followEntity(entityUUID,
+    0.0, 1.0, 0.0, 0f, 0f, 0f, true, true);
+```
+</Callout>
+
+---
+
+## WorldTextureBuilder
+
+- `WorldTextureBuilder` 用于构建世界贴图特效的参数，采用Builder链式调用模式。
+
+### `setTexture(texture, facing, glowing){:java}`
+- 设置贴图路径和显示属性
+
+<Callout type="info">
+- **参数**：
+    - `texture`: String — 贴图资源路径
+    - `facing`: boolean — 是否始终朝向玩家视角
+    - `glowing`: boolean — 是否发光（不受光照影响）
+- **返回值**：`WorldTextureBuilder`（链式调用）
+- **调用示例**
+```java
+builder.setTexture("effects/magic.png", true, true);
+```
+</Callout>
+
+### `setSize(width, height){:java}`
+- 设置贴图尺寸
+
+<Callout type="info">
+- **参数**：
+    - `width`: double — 宽度
+    - `height`: double — 高度
+- **返回值**：`WorldTextureBuilder`
+- **调用示例**
+```java
+builder.setSize(256.0, 256.0);
+```
+</Callout>
+
+### `setLifeTime(lifeTime){:java}`
+- 设置贴图生命周期
+
+<Callout type="info">
+- **参数**：`lifeTime`: int — 持续时间（毫秒），-1为永久
+- **返回值**：`WorldTextureBuilder`
+- **调用示例**
+```java
+builder.setLifeTime(-1); // 永久显示
+```
+</Callout>
+
+### 动画方法
+
+- 以下方法用于为世界贴图添加各种动画效果，所有动画方法参数格式一致。
+
+<Callout type="info">
+**通用参数**：
+- `delay`: int — 延迟开始时间（毫秒）
+- `from`: double — 起始值
+- `to`: double — 结束值
+- `duration`: int — 动画持续时间（毫秒）
+- `loop`: boolean — 是否循环播放
+</Callout>
+
+| 方法                                                       | 说明     |
+|----------------------------------------------------------|--------|
+| `addOffsetXAnimation(delay, from, to, duration, loop)`   | X轴偏移动画 |
+| `addOffsetYAnimation(delay, from, to, duration, loop)`   | Y轴偏移动画 |
+| `addOffsetZAnimation(delay, from, to, duration, loop)`   | Z轴偏移动画 |
+| `addScaleAnimation(delay, from, to, duration, loop)`     | 缩放动画   |
+| `addRotationXAnimation(delay, from, to, duration, loop)` | X轴旋转动画 |
+| `addRotationYAnimation(delay, from, to, duration, loop)` | Y轴旋转动画 |
+| `addRotationZAnimation(delay, from, to, duration, loop)` | Z轴旋转动画 |
+
+- **调用示例**
+```java
+WorldTextureBuilder builder = new WorldTextureBuilder()
+    .setTexture("effects/circle.png", true, true)
+    .setSize(128.0, 128.0)
+    .setLifeTime(-1)
+    .addOffsetYAnimation(0, 0.0, 0.5, 2000, true)     // 上下浮动
+    .addRotationYAnimation(0, 0.0, 360.0, 3000, true)  // 持续旋转
+    .addScaleAnimation(0, 0.8, 1.2, 1500, true);       // 缩放呼吸效果
+```

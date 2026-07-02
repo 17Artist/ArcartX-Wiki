@@ -33,6 +33,58 @@ description: 模型相关调试指令
 
 - `player`：目标玩家名
 
+### `arcartx model defaultModel`
+
+- 设置玩家为内置默认模型（叠加盔甲/披风/鞘翅/时装）
+
+| 属性  | 值                                             |
+|-----|-----------------------------------------------|
+| 用法  | `arcartx model defaultModel <player> <scale>` |
+| 权限  | `arcartx.command.admin.entity.edit`           |
+| 执行者 | 仅OP                                           |
+
+- `player`：目标玩家名
+- `scale`：模型缩放比例，不填时默认为 `1.0`
+
+### `arcartx model customModel`
+
+- 设置玩家自定义模型
+
+| 属性  | 值                                                      |
+|-----|--------------------------------------------------------|
+| 用法  | `arcartx model customModel <player> <modelID> <scale>` |
+| 权限  | `arcartx.command.admin.entity.edit`                    |
+| 执行者 | 仅OP                                                    |
+
+- `player`：目标玩家名
+- `modelID`：模型ID
+- `scale`：模型缩放比例，不填时默认为 `1.0`
+
+### `arcartx model animationPack`
+
+- 为玩家指派动画包
+
+| 属性  | 值                                                |
+|-----|--------------------------------------------------|
+| 用法  | `arcartx model animationPack <player> <packID>`  |
+| 权限  | `arcartx.command.admin.entity.edit`              |
+| 执行者 | 仅OP                                              |
+
+- `player`：目标玩家名
+- `packID`：动画包ID
+
+### `arcartx model clearAnimationPack`
+
+- 取消玩家的动画包
+
+| 属性  | 值                                            |
+|-----|----------------------------------------------|
+| 用法  | `arcartx model clearAnimationPack <player>`  |
+| 权限  | `arcartx.command.admin.entity.edit`          |
+| 执行者 | 仅OP                                          |
+
+- `player`：目标玩家名
+
 ### `arcartx model testController`
 
 - 测试为玩家设置动作控制器
@@ -87,20 +139,6 @@ description: 模型相关调试指令
 
 - `player`：目标玩家名
 - `locatorName`：定位器名称
-
-### `arcartx model testSubstitutionModel`
-
-- 测试为玩家设置覆盖模型
-
-| 属性  | 值                                                               |
-|-----|-----------------------------------------------------------------|
-| 用法  | `arcartx model testSubstitutionModel <player> <modelID> <mode>` |
-| 权限  | `arcartx.command.admin.entity.edit`                             |
-| 执行者 | 仅OP                                                             |
-
-- `player`：目标玩家名
-- `modelID`：覆盖模型ID
-- `mode`：布尔值，`true` 为传统隐藏模式，`false` 为完整替换模式
 
 ### `arcartx model testAnimation`
 

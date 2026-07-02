@@ -1,0 +1,31 @@
+---
+title: MythicMob
+description: 实体对象:施放 MythicMobs 技能
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`），以该实体作为技能的施法者。
+- 玩家也是生物实体，因此该函数对玩家目标同样有效。
+
+<Callout type="warn">
+本分类下的函数**仅在服务器安装了 MythicMobs 插件时**才会注册；未安装 MythicMobs 时调用无效。
+</Callout>
+
+## `castMythicMobSkill(name, power){:aria}`
+- 以当前实体为施法者，施放一个 MythicMobs 技能
+<Callout type="info">
+    - **参数**：
+        - `name` — 字符串类型，技能名称
+        - `power` — 单精度浮点数类型，技能强度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.castMythicMobSkill("SkillName", 1.0)
+    ```
+</Callout>
+
+<Callout type="warn">
+参数数量必须为 2 个，否则不会执行。
+</Callout>

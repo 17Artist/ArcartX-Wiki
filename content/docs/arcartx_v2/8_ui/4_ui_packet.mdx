@@ -1,0 +1,39 @@
+---
+title: UI通讯处理
+description: UI通讯处理
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## UI通讯处理
+- 这里其实算是一个开发文档，如果你不涉及写插件应该用不到这个，不过，某些情况你可能需要修改你所使用插件的UI的一些逻辑，可能也需要对本章进行了解。
+- 先上一个包含通讯处理的UI配置
+```yaml
+ui:
+  packetHandler:
+    init: |-
+      var.title = packet['title']
+      val.inputs.actions['init'](packet['type'])
+      val.button.actions['init'](packet['type'])
+    result: |-
+      var.title = packet
+    close: |-
+      async {
+        Thread.sleep(500)
+        self.close()
+      }
+```
+- 当服务端使用API对指定UI发包的时候，会触发对应ID的包处理器。
+- 用上面这个配置举例，比如我要触发init这个处理器的逻辑，则服务端对应的代码应该是这样的
+```java
+ui.sendPacket(player,"init", Map.of("type","register","title","你好"));
+```
+- 这里的`init`就是上面配置中的`init`，而`Map.of("type","register","title","你好"){:java}`就是传递给处理器的包内容。
+- 值得注意的是，包内容只允许是基本数据类型以及List和Map，且如果是集合类型，其内容也应是基本数据类型或者只包含基本数据类型的集合。
+- 在服务端运行上述代码发送包到这个UI的时候，便会执行相对应的脚本。
+- 从示例不难看出，发来的包的内容会赋值给变量`packet`，你可以通过脚本进行读取并执行你的逻辑。
+
+<Callout type="info">
+    UI 发包带有缓存机制：如果目标 UI 尚未打开，发送的包会被临时缓存，在 UI 打开后自动处理。不过，预先发送的包无法访问控件数据，因为它触发于控件创建之前。
+</Callout>

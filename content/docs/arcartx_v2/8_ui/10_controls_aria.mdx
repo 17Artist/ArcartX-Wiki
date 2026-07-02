@@ -1,0 +1,348 @@
+---
+title: 控件变量以及函数
+description: 控件变量以及函数
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 控件变量以及函数
+- 这里列出控件中可用的Aria函数以及控件对象自身的变量。
+
+## 变量
+
+### 固有变量
+- `type` 控件类型（固定值无法修改）
+- `actions` 触发器字典[字典类型]
+- `dragX` 当前X轴被拖动距离[数字类型]（可赋值，但是应当是数字类型）
+- `dragY` 当前Y轴被拖动距离[数字类型]（可赋值，但是应当是数字类型）
+- `meta` 元数据[字典类型]
+### 动态变量
+- 我记得在控件结构中提到了，属性是可以自己命名创建的。
+- 比如下面这个配置：
+```yaml
+background:
+    type: texture
+    attribute:
+      point: ~middle_center
+      width: 1000
+      height: 500
+      normal: ~AXLoginView/background.png
+      abcd: "~我是一条自定义属性"
+```
+- 这个时候这个控件可访问的变量包含`attribute`块下所有的值。
+- 也就是`abcd`这个值，可以通过`self.abcd{:aria}`来访问或赋值。
+- 其余变量同理，比如`width` 可以通过`self.width{:aria}`来访问或赋值。
+- 当然，没有在这个块里面声明的值也可以赋值访问，比如`self.a = 10{:aria}`
+
+## 元素
+- 通过控件对象自身，可通过元素访问语法来获取子级控件对象
+- 比如我们获取子级的`button`控件，则可以用`self['button']{:aria}`来访问。
+
+## 函数
+
+### `parent(){:aria}`
+- 获取控件父级（如果是顶层控件返回的是UI对象）
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：UI 或 控件
+    - **调用示例**
+    ```aria
+    self.parent()
+    ```
+</Callout>
+
+### `childrenCount(){:aria}`
+- 获取子级控件数量(仅限子级，孙级以及以上不包含)
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.childrenCount()
+    ```
+</Callout>
+
+### `remove(){:aria}`
+- 移除当前控件
+- 该语句不应在进行copy操作后立即调用
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.remove()
+    ```
+</Callout>
+
+### `setDragXRatio(value){:aria}`
+- 设置X轴拖动比率
+<Callout type="info">
+    - **参数**：`value`（比率，数字类型）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.setDragXRatio(0.5)
+    ```
+</Callout>
+
+### `setDragYRatio(value){:aria}`
+- 设置Y轴拖动比率
+<Callout type="info">
+    - **参数**：`value`（比率，数字类型）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.setDragYRatio(0.5)
+    ```
+</Callout>
+
+### `getDragXRatio(){:aria}`
+- 获取X轴拖动比率
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getDragXRatio()
+    ```
+</Callout>
+
+### `getDragYRatio(){:aria}`
+- 获取Y轴拖动比率
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getDragYRatio()
+    ```
+</Callout>
+
+### `copy(name){:aria}`
+- 复制当前控件，并命名为`name`，调用后即刻添加至当前层级中
+<Callout type="info">
+    - **参数**：`name`（复制后的控件名称，字符串类型）
+    - **返回值**：控件对象
+    - **调用示例**
+    ```aria
+    self.copy("newControl")
+    ```
+</Callout>
+
+### `clear(){:aria}`
+- 清除当前控件的所有子级控件
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.clear()
+    ```
+</Callout>
+
+### `getStackWidth(){:aria}`
+- 获取当前控件的堆叠宽度（仅限HStack）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getStackWidth()
+    ```
+</Callout>
+
+### `getStackHeight(){:aria}`
+- 获取当前控件的堆叠高度（仅限VStack）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getStackHeight()
+    ```
+</Callout>
+
+### `getSlotItemStack(){:aria}`
+- 获取当前控件的物品（仅限Slot）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：物品对象
+    - **调用示例**
+    ```aria
+    self.getSlotItemStack()
+    ```
+</Callout>
+
+### `getItemValueSum(key){:aria}`
+- 获取整个UI中和当前控件中物品相同的槽位的物品量总和（当前控件数量不计入其中）用于做图纸插件的UI显示材料（仅限Slot）
+<Callout type="info">
+    - **参数**：`key`（物品键，字符串类型）
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getItemValueSum("exampleKey")
+    ```
+</Callout>
+
+### `getItemText(key){:aria}`
+- 获取当前控件的物品文本值，比如有一行lore是`xxx: abc`，该函数用于获取冒号后面的内容（仅限Slot）
+<Callout type="info">
+    - **参数**：`key`（键内容，字符串类型）
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    self.getItemText("exampleKey")
+    ```
+</Callout>
+
+### `setContent(content){:aria}`
+- 设置文本框的内容（仅限TextBox | ChatTextBox）
+<Callout type="info">
+    - **参数**：`content`（内容，字符串类型）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.setContent("exampleContent")
+    ```
+</Callout>
+
+### `getContent(){:aria}`
+- 获取文本框的内容（仅限TextBox | ChatTextBox）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    self.getContent()
+    ```
+</Callout>
+
+### `insert(text){:aria}`
+- 在当前指针位置插入文字（仅限TextBox | ChatTextBox）
+<Callout type="info">
+    - **参数**：`test`（插入的内容，字符串类型）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.insert("exampleText")
+    ```
+</Callout>
+
+### `setFocus(value){:aria}`
+- 设置当前控件是否获取焦点（仅限TextBox | ChatTextBox）
+<Callout type="info">
+    - **参数**：`value`（布尔类型，true表示获取焦点，false表示失去焦点）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.setFocus(true)
+    ```
+</Callout>
+
+### `isHovered(){:aria}`
+- 获取控件此时是否鼠标悬停
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    self.isHovered()
+    ```
+</Callout>
+
+### `setItemIcon(item){:aria}`
+- 设置控件的图标物品（仅限Slot 且类型为Icon）
+<Callout type="info">
+    - **参数**：`item`（物品JSON，字符串类型, 这个值需要序列化物品发送）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.setItemIcon('{"id": "minecraft:stone","Count":1}')
+    ```
+</Callout>
+
+### `getSameCount(){:aria}`
+- 获取当前容器中，有多少和当前Slot相同的物品数量（仅限Slot）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数字类型
+    - **调用示例**
+    ```aria
+    self.getSameCount()
+    ```
+</Callout>
+
+### `needShowAll(){:aria}`
+- 获取聊天栏控件此时是否需要全部展示（仅限ChatTextBox）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    self.needShowAll()
+    ```
+</Callout>
+
+### `getVisibleChildren(){:aria}`
+- 获取当前控件下所有可见子控件，不包含孙控件
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：列表
+    - **调用示例**
+    ```aria
+    self.getVisibleChildren()
+    ```
+</Callout>
+
+### `create(){:aria}`
+
+- 在当前控件层级通过模板创建控件
+<Callout type="info">
+    - **参数**：`tempID` 模板ID、 `newName` 新创建控件的ID
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.create('模板ID', '新控件ID')
+    ```
+    - **示例返回值**
+    ```aria
+    // 返回一个控件对象
+    ```
+
+    - 和界面的一级创建控件差不多，这个是在当前控件层级创建子控件。
+
+</Callout>
+
+### `send(){:aria}`
+- 发送聊天栏输入框的内容（仅限 ChatBox 控件）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.send()
+    ```
+</Callout>
+
+### `get(index){:aria}`
+- 通过索引获取子控件
+<Callout type="info">
+    - **参数**：`index`（子控件索引，数字类型）
+    - **返回值**：控件对象
+    - **调用示例**
+    ```aria
+    self.get(0)
+    ```
+</Callout>
+
+### `replay(){:aria}`
+- 重新播放gif（仅限TextView）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.replay()
+    ```
+</Callout>

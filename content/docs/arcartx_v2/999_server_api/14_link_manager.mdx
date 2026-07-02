@@ -1,0 +1,173 @@
+---
+title: ArcartXLinkManager:第三方桥接
+description: 第三方插件桥接API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXLinkManager
+
+- 第三方桥接管理器允许你为ArcartX注册自定义的属性系统、经济系统、物品系统和PlaceholderAPI变量。
+- `ArcartXLinkManager` 是一个 Kotlin `object` 单例。在 Kotlin 中直接以 `ArcartXLinkManager.xxx()` 调用；在 Java 中通过 `ArcartXLinkManager.INSTANCE.xxx()` 调用。
+
+## 属性系统
+
+### `registerAttributeProvider(attributeProvider){:java}`
+- 注册一个属性提供者
+
+<Callout type="info">
+- **参数**：`attributeProvider`: AttributeProvider — 属性提供者实例
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXLinkManager.INSTANCE.registerAttributeProvider(new MyAttributeProvider());
+```
+</Callout>
+
+### `getAttributeProvider(name){:java}`
+- 获取指定名称的属性提供者
+
+<Callout type="info">
+- **参数**：`name`: String — 提供者标识
+- **返回值**：`AttributeProvider?` — 未找到时为 null
+</Callout>
+
+<Callout type="info">
+**AttributeProvider 接口**：
+```java
+public interface AttributeProvider {
+    String getIdentifier();
+    void addAttribute(LivingEntity livingEntity, String sourceID, List<String> list);
+    void addAttribute(LivingEntity livingEntity, String sourceID, ItemStack itemStack);
+    void removeAttribute(LivingEntity livingEntity, String sourceID);
+}
+```
+</Callout>
+
+## 经济系统
+
+### `registerEconomyProvider(economyProvider){:java}`
+- 注册一个经济提供者
+
+<Callout type="info">
+- **参数**：`economyProvider`: EconomyProvider — 经济提供者实例
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXLinkManager.INSTANCE.registerEconomyProvider(new MyEconomyProvider());
+```
+</Callout>
+
+### `getEconomyProvider(name){:java}`
+- 获取指定名称的经济提供者
+
+<Callout type="info">
+- **参数**：`name`: String — 提供者标识
+- **返回值**：`EconomyProvider?` — 未找到时为 null
+</Callout>
+
+<Callout type="info">
+**EconomyProvider 接口**：
+```java
+public interface EconomyProvider {
+    String getIdentifier();
+    String getDisplayName(); // 具有默认实现，可不重写
+    boolean addEconomy(Player player, double amount);
+    double getEconomy(Player player);
+    boolean takeEconomy(Player player, double amount);
+}
+```
+</Callout>
+
+## 物品系统
+
+### `registerItemProvider(itemProvider){:java}`
+- 注册一个物品提供者
+
+<Callout type="info">
+- **参数**：`itemProvider`: ItemProvider — 物品提供者实例
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXLinkManager.INSTANCE.registerItemProvider(new MyItemProvider());
+```
+</Callout>
+
+### `getItemProvider(name){:java}`
+- 获取指定名称的物品提供者
+
+<Callout type="info">
+- **参数**：`name`: String — 提供者标识
+- **返回值**：`ItemProvider?` — 未找到时为 null
+</Callout>
+
+<Callout type="info">
+**ItemProvider 接口**：
+```java
+public interface ItemProvider {
+    String getIdentifier();
+    ItemStack generateItemStack(String id); // 可能返回 null
+}
+```
+</Callout>
+
+## PlaceholderAPI
+
+### `registerPlaceholder(placeholder){:java}`
+- 注册一个ArcartX PlaceholderAPI变量
+
+<Callout type="info">
+- **参数**：`placeholder`: AXPlaceholder — 变量实例
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXLinkManager.INSTANCE.registerPlaceholder(new MyPlaceholder());
+```
+</Callout>
+
+<Callout type="warn">
+需要服务端安装PlaceholderAPI插件才能使用此功能。
+</Callout>
+
+### `unregisterPlaceholder(placeholder){:java}`
+- 注销一个PlaceholderAPI变量
+
+<Callout type="info">
+- **参数**：`placeholder`: AXPlaceholder — 变量实例
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXLinkManager.INSTANCE.unregisterPlaceholder(myPlaceholder);
+```
+</Callout>
+
+<Callout type="info">
+**AXPlaceholder 抽象类**：
+- 继承此类并使用 `@Placeholder` 注解标记方法即可注册变量
+- 方法参数为 `PlaceholderContext`，返回值为 `String`
+- 使用 `@PlaceholderArgs` 注解声明参数
+
+```java
+public class MyPlaceholder extends AXPlaceholder {
+    @Override
+    public String getIdentifier() {
+        return "myplugin";
+    }
+
+    @Placeholder("level")
+    public String getLevel(PlaceholderContext context) {
+        // %arcartx_myplugin_level%
+        return String.valueOf(getPlayerLevel(context.getPlayer()));
+    }
+
+    @Placeholder("stat")
+    @PlaceholderArgs({"statName"})
+    public String getStat(PlaceholderContext context) {
+        // %arcartx_myplugin_stat_<statName>%
+        String statName = context.getArg(0);
+        return getStatValue(context.getPlayer(), statName);
+    }
+}
+```
+</Callout>

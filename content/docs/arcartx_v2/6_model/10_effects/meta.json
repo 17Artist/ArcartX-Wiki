@@ -1,0 +1,15 @@
+{
+    "title": "模型特效帧",
+    "defaultOpen": false,
+    "pages": [
+        "1_sound",
+        "2_trail",
+        "3_slash",
+        "4_model",
+        "5_camera",
+        "6_hammer",
+        "7_bedrockparticle",
+        "8_shadow",
+        "9_camera_frame"
+    ]
+}

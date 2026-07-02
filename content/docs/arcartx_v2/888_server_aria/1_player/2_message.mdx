@@ -1,0 +1,58 @@
+---
+title: 玩家消息
+description: 玩家对象:向玩家发送标题、消息与 UI 数据包
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**玩家**（`Player`），仅在目标为玩家时可用。
+
+## `showTitle(title, subtitle, fadeIn, stay, fadeOut){:aria}`
+- 向玩家显示标题与副标题
+<Callout type="info">
+    - **参数**：
+        - `title` — 字符串类型，主标题
+        - `subtitle` — 字符串类型，副标题
+        - `fadeIn` — 整数类型，淡入时间（tick）
+        - `stay` — 整数类型，停留时间（tick）
+        - `fadeOut` — 整数类型，淡出时间（tick）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    玩家对象.showTitle("主标题", "副标题", 10, 40, 10)
+    ```
+</Callout>
+
+<Callout type="warn">
+参数数量必须为 5 个，否则不会执行。
+</Callout>
+
+## `sendMessage(message){:aria}`
+- 向玩家发送一条聊天消息
+<Callout type="info">
+    - **参数**：`message` — 字符串类型，消息内容
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    玩家对象.sendMessage("你好，冒险者")
+    ```
+</Callout>
+
+## `sendUIPacket(id, handlerName, packet){:aria}`
+- 向玩家的指定 UI 发送一个数据包
+<Callout type="info">
+    - **参数**：
+        - `id` — 字符串类型，UI 标识
+        - `handlerName` — 字符串类型，处理器名称
+        - `packet` — 字符串类型，数据包内容
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    玩家对象.sendUIPacket("myUI", "myHandler", "data")
+    ```
+</Callout>
+
+<Callout type="warn">
+参数数量必须为 3 个，否则不会执行。
+</Callout>

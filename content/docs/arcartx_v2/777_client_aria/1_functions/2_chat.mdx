@@ -1,0 +1,103 @@
+---
+title: Chat:聊天工具
+description: Chat工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Chat.open([message]){:aria}`
+- 打开聊天界面，可选择是否预填充消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型（可选）
+- **返回值**：无
+- **调用示例**
+```aria
+Chat.open("Hello world!")
+```
+</Callout>
+
+## `Chat.setMessage(message){:aria}`
+- 设置聊天框的内容
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```aria
+Chat.setMessage("Hello Minecraft!")
+```
+</Callout>
+
+## `Chat.addMessage(message){:aria}`
+- 在当前聊天框内容后追加文本
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```aria
+Chat.addMessage(" World!")
+```
+</Callout>
+
+## `Chat.getMessage(){:aria}`
+- 获取当前聊天框的内容
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Chat.getMessage()
+```
+- **示例返回值**
+```aria
+"Hello Minecraft!"
+```
+</Callout>
+
+## `Chat.say(message){:aria}`
+- 发送一条聊天消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```aria
+Chat.say("Hello everyone!")
+```
+</Callout>
+
+## `Chat.getEventMessage(){:aria}`
+- 获取当前事件的聊天消息
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Chat.getEventMessage()
+```
+- **示例返回值**
+```aria
+"Player joined the game"
+```
+</Callout>
+
+## `Chat.getLastMessage(){:aria}`
+- 获取最后一条聊天消息
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Chat.getLastMessage()
+```
+- **示例返回值**
+```aria
+"Last chat message"
+```
+</Callout>

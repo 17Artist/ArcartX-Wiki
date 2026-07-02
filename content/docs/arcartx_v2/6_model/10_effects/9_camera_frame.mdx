@@ -1,0 +1,24 @@
+---
+title: 相机效果
+description: 相机根据动画进行移动
+---
+
+## 相机效果
+
+相机效果用于一些技能演绎镜头，比如释放后镜头先看向自己，然后转圈之类的效果。
+
+<img src="/model/effects/camera.png" alt="相机效果"/>
+
+## 使用方式
+
+在动画的指令帧中添加残影命令：
+
+```
+arcartx:camera_frame
+```
+
+动画结束相机会自动归位，如果需要显式提前退出，可以在对应帧增加
+
+```
+arcartx:camera_frame_end
+```

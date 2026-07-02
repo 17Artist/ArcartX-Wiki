@@ -1,0 +1,66 @@
+---
+title: PlayerUtils:玩家工具
+description: 玩家操作扩展工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## PlayerUtils
+
+- 玩家工具集提供了 `Player` 的Kotlin扩展函数和扩展属性。
+- 位于 `priv.seventeen.artist.arcartx.util.PlayerUtils`。
+
+## `Player.isNpc(){:java}`
+- 判断玩家是否为NPC（通过检查是否有 `NPC` Metadata）
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：boolean
+- **调用示例**
+```java
+// Kotlin
+if (player.isNpc()) return
+
+// Java
+if (PlayerUtils.isNpc(player)) return;
+```
+</Callout>
+
+## `Player.arcartXHandler{:java}`
+- 获取玩家对应的 `ArcartXPlayer` 管理对象（扩展属性）
+
+<Callout type="info">
+- **返回值**：`ArcartXPlayer?` — 可能为null
+- **调用示例**
+```java
+// Kotlin
+player.arcartXHandler?.setModel("knight", 1.0)
+
+// Java
+ArcartXPlayer handler = PlayerUtils.getArcartXHandler(player);
+if (handler != null) {
+    handler.setModel("knight", 1.0);
+}
+```
+</Callout>
+
+<Callout type="warn">
+这是 `ArcartXAPI.getEntityManager().getPlayer(player)` 的快捷方式，功能完全相同。
+</Callout>
+
+## `Player.dispatchOpCommand(command){:java}`
+- 以OP权限执行一条指令
+
+<Callout type="info">
+- **参数**：`command`: String — 指令内容（不含 `/`）
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+player.dispatchOpCommand("give ${player.name} diamond 1")
+
+// Java
+PlayerUtils.dispatchOpCommand(player, "give " + player.getName() + " diamond 1");
+```
+</Callout>

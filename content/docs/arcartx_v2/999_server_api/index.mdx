@@ -1,0 +1,64 @@
+---
+title: 开发概述
+description: ArcartX服务端插件开发入门
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 写在前面
+
+- ArcartX 提供了完整的服务端 API，允许第三方插件与 ArcartX 深度集成。你可以通过 API 控制模型、特效、UI、按键绑定、音效等几乎所有客户端功能。
+- 本章节面向有 Java/Kotlin 开发经验的插件开发者。如果你只是想通过配置文件使用 ArcartX 的功能，请参阅核心教学部分。
+
+## 环境要求
+
+- Java 17+
+- Kotlin 1.8.22+（如果使用Kotlin开发）
+- 服务端需安装ArcartX插件
+
+## 引入依赖
+
+<Callout type="info">
+ArcartX 使用 TabooLib 框架，你的插件不需要依赖 TabooLib，只需要将 ArcartX 作为依赖引入即可。
+</Callout>
+
+在你的 `plugin.yml` 中添加依赖声明：
+
+```yaml
+depend: [ArcartX]
+```
+
+或者作为软依赖：
+
+```yaml
+softdepend: [ArcartX]
+```
+
+将 ArcartX 的 jar 文件添加到项目的编译依赖中即可使用 API。
+
+## 获取API入口
+
+- ArcartX的所有API都通过 `ArcartXAPI` 这个入口类获取，它提供了8个静态方法，分别返回各个功能模块的管理器单例。
+
+```java
+import priv.seventeen.artist.arcartx.api.ArcartXAPI;
+
+// 获取各个管理器
+ArcartXAPI.getUIRegistry();              // UI注册
+ArcartXAPI.getKeyBindRegistry();         // 按键绑定
+ArcartXAPI.getEntityManager();           // 实体管理
+ArcartXAPI.getSoundPlayer();             // 音效播放
+ArcartXAPI.getNetworkSender();           // 网络发送
+ArcartXAPI.getAreaManager();             // 区域管理
+ArcartXAPI.getEffectManager();           // 特效管理
+ArcartXAPI.getInteractionProxyManager(); // 交互代理（命中盒代理）管理
+```
+
+## 注意事项
+
+<Callout type="warn">
+- 请确保在 ArcartX 加载完成后再调用 API，建议在你插件的 `onEnable` 中使用。
+- 部分 API 涉及网络数据包发送，请注意线程安全问题，涉及 Bukkit API 的操作需要在主线程执行。
+- ArcartX 的实体管理器会自动清理过期的实体缓存，你不需要手动管理实体对象的生命周期。
+</Callout>

@@ -21,6 +21,16 @@
         "2_simple",
         "3_camera",
         "4_hologram",
-        "5_key"
+        "5_key",
+        "6_model",
+        "7_player",
+        "8_ui",
+        "9_tip",
+        "10_controller",
+        "11_bedrockparticle",
+        "12_mythicmobs",
+        "777_client_aria",
+        "888_server_aria",
+        "999_server_api"
     ]
 }

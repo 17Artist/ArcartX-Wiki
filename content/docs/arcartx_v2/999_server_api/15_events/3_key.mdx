@@ -1,0 +1,70 @@
+---
+title: 客户端按键事件
+description: 按键按下与释放事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端按键事件
+
+- 与客户端按键操作相关的事件，分为客户端按键和简单按键两类。
+
+## `ClientKeyPressEvent`
+- 客户端按键按下时触发（对应通过 `registerClientKeyBind` 注册的按键）
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `keyName`: String — 按键名称
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onKeyPress(ClientKeyPressEvent event) {
+    if (event.getKeyName().equals("open_menu")) {
+        // 玩家按下了自定义按键
+    }
+}
+```
+</Callout>
+
+## `ClientKeyReleaseEvent`
+- 客户端按键释放时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `keyName`: String — 按键名称
+- **可取消**：否
+</Callout>
+
+## `ClientKeyGroupPressEvent`
+- 按键组触发时触发，当一组按键同时按下时产生
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `groupID`: String — 按键组ID
+- **可取消**：否
+</Callout>
+
+## `ClientSimpleKeyPressEvent`
+- 简单按键按下时触发（对应通过 `registerSimpleKeyBind` 注册的按键）
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `keyName`: String — 按键名称
+- **可取消**：否
+</Callout>
+
+## `ClientSimpleKeyReleaseEvent`
+- 简单按键释放时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `keyName`: String — 按键名称
+- **可取消**：否
+</Callout>

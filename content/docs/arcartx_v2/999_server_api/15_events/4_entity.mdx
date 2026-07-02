@@ -1,0 +1,47 @@
+---
+title: 客户端实体视野事件
+description: 实体进出客户端视野事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端实体视野事件
+
+- 当实体进入或离开玩家客户端的渲染视野时触发。
+
+## `ClientEntityJoinEvent`
+- 实体进入玩家客户端视野时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `entityUUID`: UUID — 进入视野的实体UUID
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onEntityJoin(ClientEntityJoinEvent event) {
+    UUID entityUUID = event.getEntityUUID();
+    // 实体进入了玩家的视野
+}
+```
+</Callout>
+
+## `ClientEntityLeaveEvent`
+- 实体离开玩家客户端视野时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `entityUUID`: UUID — 离开视野的实体UUID
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onEntityLeave(ClientEntityLeaveEvent event) {
+    UUID entityUUID = event.getEntityUUID();
+    // 实体离开了玩家的视野
+}
+```
+</Callout>

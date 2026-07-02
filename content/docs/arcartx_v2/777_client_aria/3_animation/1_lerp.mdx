@@ -1,0 +1,78 @@
+---
+title: Lerp-线性插值
+description: 线性插值对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+Lerp（Linear interpolation）是一个用于实现数值之间平滑过渡的对象。它可以在指定的时间内，将一个数值平滑地过渡到另一个数值。
+</Callout>
+
+## 实例化方式
+
+### `Lerp`含参实例化
+<Callout type="info">
+- **描述**：创建一个线性插值实例，用于处理数值的平滑过渡。
+- **参数**：
+  - `start`：数值类型，起始值
+  - `end`：数值类型，结束值
+  - `transferTime`：长整型，过渡时间（毫秒）
+- **调用示例**：
+```aria
+Lerp(0, 100, 1000) // 在1秒内从0平滑过渡到100
+```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+- 获取当前插值计算的结果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数值类型
+- **说明**：根据当前时间计算插值的结果。当时间超过设定的过渡时间时，将返回目标值。
+- **调用示例**：
+```aria
+Lerp(0, 100, 1000).get()
+```
+</Callout>
+
+### `reset(){:aria}`
+- 重置插值器状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：重置计时器并清除反向状态，重新开始插值过程。
+- **调用示例**：
+```aria
+Lerp(0, 100, 1000).reset()
+```
+</Callout>
+
+### `reverse(){:aria}`
+- 反转插值方向
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：将插值方向反转，从当前位置开始向起始值过渡。
+- **调用示例**：
+```aria
+Lerp(0, 100, 1000).reverse()
+```
+</Callout>
+
+## 类型转换
+
+Lerp对象支持以下类型转换：
+- **数值**：返回当前插值计算的结果
+- **布尔值**：当前值大于0时返回true，否则返回false
+- **字符串**：返回当前插值计算结果的字符串表示
+
+<Callout type="info">
+Lerp对象支持数学运算，可以直接参与计算表达式。
+</Callout>

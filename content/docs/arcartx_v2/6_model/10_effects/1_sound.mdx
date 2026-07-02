@@ -1,0 +1,21 @@
+---
+title: 模型音频帧
+description: 模型音频帧
+---
+
+## 模型音频帧
+- 对于方块和生物模型，可以通过bbmodel特效帧中的声音帧播放音频
+- 这种方案优于使用服务端API进行音频播放，因为是根据动画进度播放，不会造成“音画不同步”
+- 通过 BlockBench 编辑动画，如图所示。
+<img src="/model/effects/sound-keyframe.png" alt="模型"/>
+
+```
+arcartx:sound{path=sound/movement/double_jump.ogg;category=master;distOrRoll=16;pitch=1;keepTime=5000}
+```
+
+- 参数说明：
+    - `path` 音频文件资源路径
+    - `category` 音频类别
+    - `distOrRoll` 音频传播衰减距离
+    - `pitch` 音调
+    - `keepTime` 音频持续时间

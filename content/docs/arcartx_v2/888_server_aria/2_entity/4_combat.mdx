@@ -1,0 +1,46 @@
+---
+title: 实体战斗
+description: 实体对象:攻击、设置生命值、点燃
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
+
+## `attack(target){:aria}`
+- 让当前实体攻击指定的目标实体（按 Bukkit 原版攻击逻辑结算伤害）
+<Callout type="info">
+    - **参数**：`target` — 实体对象，被攻击的生物实体
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.attack(目标实体)
+    ```
+</Callout>
+
+<Callout type="warn">
+当目标已死亡或与攻击者不在同一世界时，将跳过本次攻击。
+</Callout>
+
+## `setHealth(amount){:aria}`
+- 设置实体的生命值（自动钳制到 `[0, 最大生命值]` 区间内）
+<Callout type="info">
+    - **参数**：`amount` — 双精度浮点数类型，目标生命值
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.setHealth(10.0)
+    ```
+</Callout>
+
+## `setFire(ticks){:aria}`
+- 点燃实体，设置其着火时间
+<Callout type="info">
+    - **参数**：`ticks` — 整数类型，着火持续时间（tick）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.setFire(100)
+    ```
+</Callout>

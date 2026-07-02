@@ -1,0 +1,158 @@
+---
+title: 玩家事件
+description: 服务端玩家状态变化事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 玩家事件
+
+- 由服务端玩家状态变化触发的事件，与客户端事件不同，这些事件在服务端逻辑中产生。
+
+## `PlayerAreaEnterEvent`
+- 玩家进入ArcartX区域时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `area`: Area — 进入的区域对象
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onAreaEnter(PlayerAreaEnterEvent event) {
+    String areaName = event.getArea().getName();
+    // 玩家进入了区域
+}
+```
+</Callout>
+
+## `PlayerAreaLeaveEvent`
+- 玩家离开ArcartX区域时触发
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `area`: Area — 离开的区域对象
+    - `newArea`: Area? — 新进入的区域（如果直接从一个区域进入另一个区域），可能为null
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onAreaLeave(PlayerAreaLeaveEvent event) {
+    Area newArea = event.getNewArea();
+    if (newArea != null) {
+        // 玩家从一个区域直接进入了另一个区域
+    } else {
+        // 玩家离开区域进入了无区域地带
+    }
+}
+```
+</Callout>
+
+## `PlayerExtraSlotUpdateEvent`
+- 玩家额外槽位物品更新时触发（通过 `ArcartXPlayer.setSlotItemStack` 设置时）
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `slotID`: String — 槽位ID
+    - `itemStack`: ItemStack — 更新后的物品
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onSlotUpdate(PlayerExtraSlotUpdateEvent event) {
+    String slotID = event.getSlotID();
+    ItemStack item = event.getItemStack();
+    // 槽位物品已更新
+}
+```
+</Callout>
+
+## `PlayerModelUpdateEvent`
+- 玩家模型更新时触发（通过 `ArcartXPlayer.setModel` 设置时）
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `modelID`: String — 新模型ID
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onModelUpdate(PlayerModelUpdateEvent event) {
+    String modelID = event.getModelID();
+    // 玩家模型已更新
+}
+```
+</Callout>
+
+## `PlayerAnimationPackChangeEvent`
+- 玩家动画包变更**前**触发，可通过取消阻止变更
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `packId`: String — 即将设定的动画包ID，空串表示取消动画包
+- **可取消**：是
+- **调用示例**
+```java
+@EventHandler
+public void onAnimationPackChange(PlayerAnimationPackChangeEvent event) {
+    String packId = event.getPackId();
+    if (packId.isEmpty()) {
+        // 即将取消玩家的动画包
+    }
+    // event.setCancelled(true); // 阻止本次变更
+}
+```
+</Callout>
+
+## `PlayerCostumeChangeEvent`
+- 玩家时装变更**前**触发，可通过取消阻止变更
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `type`: PlayerCostumeChangeEvent.Type — 变更类型，取值 `EQUIP_SUIT`（穿全套装）、`EQUIP_SLOT`（穿某槽）、`REMOVE_SLOT`（脱某槽）、`CLEAR`（脱下全部）
+    - `slot`: ArcartXPlayer.CostumeSlot? — 涉及的时装槽位；`EQUIP_SUIT` 与 `CLEAR` 时为 null
+    - `modelID`: String? — 涉及的模型ID；`REMOVE_SLOT` 与 `CLEAR` 时为 null
+    - `hide`: boolean — 是否隐藏对应部位
+- **可取消**：是
+- **调用示例**
+```java
+@EventHandler
+public void onCostumeChange(PlayerCostumeChangeEvent event) {
+    if (event.getType() == PlayerCostumeChangeEvent.Type.EQUIP_SUIT) {
+        String modelID = event.getModelID();
+        // 玩家即将穿上整套时装
+    }
+    // event.setCancelled(true); // 阻止本次变更
+}
+```
+</Callout>
+
+## `PlayerVariantChangeEvent`
+- 玩家模型变体变更**前**触发，可通过取消阻止变更
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `variant`: ArcartXPlayer.PlayerModelVariant — 即将设定的模型变体
+- **可取消**：是
+- **调用示例**
+```java
+@EventHandler
+public void onVariantChange(PlayerVariantChangeEvent event) {
+    ArcartXPlayer.PlayerModelVariant variant = event.getVariant();
+    // 玩家即将切换模型变体
+    // event.setCancelled(true); // 阻止本次变更
+}
+```
+</Callout>
+
+<Callout type="warn">
+`PlayerAnimationPackChangeEvent`、`PlayerCostumeChangeEvent`、`PlayerVariantChangeEvent` 均在状态变更**前**触发，且**可取消**；取消后对应变更不会生效。
+</Callout>

@@ -1,0 +1,26 @@
+---
+title: Web:网页控制
+description: Web网页操作工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Web.open(url){:aria}`
+- 在默认浏览器中打开指定URL
+
+<Callout type="info">
+- **参数**：
+  - `url`: 字符串类型(网页地址)
+- **调用示例**
+```aria
+Web.open("https://example.com")
+```
+</Callout>
+
+<Callout type="warn">
+注意事项：
+- URL必须以"https://"或"http://"开头
+- 不符合要求的URL将被忽略且不会打开
+- 该功能会调用系统默认浏览器打开链接
+</Callout>

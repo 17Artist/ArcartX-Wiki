@@ -1,0 +1,8 @@
+{
+    "title": "服务端Aria",
+    "defaultOpen": false,
+    "pages": [
+        "1_player",
+        "2_entity"
+    ]
+}

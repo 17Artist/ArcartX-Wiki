@@ -1,0 +1,29 @@
+---
+title: Potion:药水效果
+description: Potion药水效果工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Potion.getActivePotionEffects(){:aria}`
+- 获取玩家当前所有激活的药水效果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：药水效果实例列表(`List<EffectValue>`)
+- **调用示例**
+```aria
+Potion.getActivePotionEffects()
+```
+- **示例返回值**
+```aria
+[EffectValue]
+```
+</Callout>
+
+<Callout type="warn">
+注意事项：
+- 如果玩家不存在（例如未进入游戏），将返回空列表
+- 返回的列表包含每个药水效果的类型、持续时间和效果等级
+</Callout>

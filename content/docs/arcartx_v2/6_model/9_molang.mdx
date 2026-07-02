@@ -1,0 +1,53 @@
+---
+title: Molang 查询
+description: ArcartX 支持的 Molang 查询变量列表
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+ArcartX 的模型动画系统支持 Molang 表达式，你可以在 Bedrock 动画文件的关键帧中使用以下查询变量来实现动态效果。
+
+## 通用查询
+
+以下查询适用于所有模型类型（实体、物品、方块、展示物等）。
+
+| 查询                  | 返回值       | 说明                                |
+|---------------------|-----------|-----------------------------------|
+| `query.anim_time`   | 秒         | 当前动画已播放的时间（秒），每个动画开始时重置为 0        |
+| `query.life_time`   | 秒         | 模型的存活时间（秒），从模型开始渲染时累计             |
+| `query.actor_count` | 整数        | 当前世界中的实体总数                        |
+| `query.time_of_day` | 0.0 ~ 1.0 | 当前游戏内时间，0.0 为日出，0.5 为日落，1.0 为次日日出 |
+| `query.moon_phase`  | 0 ~ 7     | 当前月相，0 为满月，依次递增                   |
+
+## 实体查询
+
+以下查询仅在实体模型上可用。
+
+| 查询                           | 返回值       | 说明                                         |
+|------------------------------|-----------|--------------------------------------------|
+| `query.distance_from_camera` | 浮点数       | 实体与摄像机之间的距离（方块数）                           |
+| `query.is_on_ground`         | 0.0 / 1.0 | 实体是否在地面上                                   |
+| `query.is_in_water`          | 0.0 / 1.0 | 实体是否在水中                                    |
+| `query.is_in_water_or_rain`  | 0.0 / 1.0 | 实体是否在水中或雨中                                 |
+| `query.health`               | 浮点数       | 实体当前生命值（仅 LivingEntity）                    |
+| `query.max_health`           | 浮点数       | 实体最大生命值（仅 LivingEntity）                    |
+| `query.is_on_fire`           | 0.0 / 1.0 | 实体是否着火（仅 LivingEntity）                     |
+| `query.ground_speed`         | 浮点数       | 实体水平方向移动速度，即 XZ 平面的速度分量合成值（仅 LivingEntity） |
+| `query.yaw_speed`            | 浮点数       | 实体视角水平旋转速度（仅 LivingEntity）                 |
+
+## ArcartX 扩展查询
+
+以 `ax.` 为前缀的查询是 ArcartX 的扩展变量，仅在实体模型上可用。
+
+| 查询                  | 返回值 | 说明                                         |
+|---------------------|-----|--------------------------------------------|
+| `ax.head_yaw`       | 角度  | 实体头部的水平旋转角度（相对于身体）                         |
+| `ax.head_pitch`     | 角度  | 实体头部的俯仰角度                                  |
+| `ax.move_forward`   | 浮点数 | 前后移动输入值，正值为前进，负值为后退。本地玩家取键盘输入，其他实体取 AI 移动值 |
+| `ax.move_strafe`    | 浮点数 | 左右移动输入值，正值为左移，负值为右移。本地玩家取键盘输入，其他实体取 AI 移动值 |
+| `ax.move_speed`     | 浮点数 | 移动输入的合成速度，即 `sqrt(forward² + strafe²)`     |
+| `ax.vertical_speed` | 浮点数 | 实体垂直方向速度（Y 轴），正值为上升，负值为下降                  |
+
+<Callout type="info">
+布尔类型的查询（`is_on_ground`、`is_in_water` 等）返回 `1.0` 表示 true，`0.0` 表示 false，可直接用于数学运算。
+</Callout>

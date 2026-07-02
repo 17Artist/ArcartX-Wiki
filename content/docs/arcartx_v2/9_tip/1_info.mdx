@@ -1,0 +1,52 @@
+---
+title: Tooltips 说明
+description: Tooltips 使用说明
+---
+
+## Tooltips 使用说明
+
+Tooltips 的配置格式与 UI 类似，但存在一些限制。如果你还没有阅读 UI 篇，建议先了解 UI 系统后再来看这部分。
+
+## Tooltips 和 UI 的差异
+
+- Tooltips 本体不支持触发器
+- Tooltips 中无法创建实体模型控件和输入框控件
+- Tooltips 的控件触发器不支持交互性（鼠标、键盘）事件
+- Tooltips 没有 `controls` 块，而是使用 `root_control`
+
+## 基本配置结构
+
+Tooltips 配置位于 ArcartX 配置目录下的 `tooltip` 文件夹，支持创建多个配置文件。
+
+```yaml
+tip:
+  match: "default"
+root_control:
+  type: "Tip"
+  attribute:
+    width: 1920
+    height: 1080
+    autoScale: true
+    follow: false
+```
+
+### 配置项说明
+
+| 配置项                      | 说明                                                    |
+|:-------------------------|:------------------------------------------------------|
+| tip.match                | 匹配规则。当 Tooltips 的第一行或第二行（名称和第一行 lore）包含此文字时，替换为该配置的内容 |
+| root_control.type        | 控件类型，必须为 `Tip`                                        |
+| attribute.width / height | 配置所使用的分辨率，用于自动缩放计算                                    |
+| attribute.autoScale      | 是否按照设定的宽高进行自动缩放。不需要自动缩放时可省略                           |
+| attribute.follow         | 是否跟随鼠标移动（默认 true）                                     |
+
+### 匹配规则
+
+- `match` 填写 `default` 时，匹配所有未被其它配置匹配到的 Tooltips
+- `match` 也会匹配物品 NBT 中 `type` 字段的值
+- `match` 支持列表格式，可以配置多个匹配规则
+
+## 注意事项
+
+1. Tips 的文字获取和当前渲染物品的获取，请参考 Aria 工具集文档中的 Tip 函数
+2. Tips 中可以使用 Slot 控件来渲染对应物品，只需将槽位类型设置为 `Hover`，不需要填写 ID

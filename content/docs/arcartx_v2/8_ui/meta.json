@@ -1,0 +1,20 @@
+{
+    "title": "UI篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_start",
+        "2_ui_attribute",
+        "3_ui_action",
+        "4_ui_packet",
+        "5_ui_aria",
+        "6_controls_config",
+        "7_controls_attribute",
+        "8_controls_type",
+        "9_controls_action",
+        "10_controls_aria",
+        "11_try",
+        "12_bossbar",
+        "13_chat",
+        "14_task"
+    ]
+}

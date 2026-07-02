@@ -1,0 +1,27 @@
+---
+title: Thread:线程控制
+description: Thread线程控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Thread.sleep(time){:aria}`
+- 使当前线程暂停执行指定的毫秒数
+
+<Callout type="info">
+- **参数**：
+  - `time`: 整数类型(暂停时间，单位为毫秒)
+- **返回值**：整数类型(始终返回0)  
+- **调用示例**
+```aria
+Thread.sleep(1000) // 暂停1秒
+```
+</Callout>
+
+<Callout type="warn">
+注意事项：
+- 如果传入的时间小于或等于0，将自动调整为1毫秒
+- 该方法会阻塞当前线程的执行
+- 通常用于实现定时或延迟操作
+</Callout>

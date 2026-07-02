@@ -1,0 +1,88 @@
+---
+title: Back-回弹动画插值
+description: 回弹动画插值对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+Back是一个用于创建回弹动画效果的插值对象。它可以在数值过渡时产生回弹效果，使动画更加生动自然。
+</Callout>
+
+## 实例化方式
+
+### `Back`含参实例化
+<Callout type="info">
+- **描述**：创建一个回弹插值实例。
+- **参数**：
+  - `start`：数值类型，起始值
+  - `end`：数值类型，结束值
+  - `overshoot`：数值类型，过冲系数（建议值：1.70158）
+  - `type`：整数类型，动画类型（0=渐入，1=渐出，2=渐入渐出）
+  - `transferTime`：长整型，过渡时间（毫秒）
+- **调用示例**：
+```aria
+Back(0, 100, 1.70158, 0, 1000) // 1秒内从0到100，使用渐入回弹效果
+```
+
+</Callout>
+
+### 动画类型说明
+<Callout type="info">
+- **渐入(0)**：先回退再前进到目标值
+- **渐出(1)**：先超出目标值再回弹
+- **渐入渐出(2)**：起始和结束处都有回弹效果
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+- 获取当前插值计算的结果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数值类型
+- **说明**：根据当前时间计算带回弹效果的插值结果
+- **调用示例**：
+```aria
+Back(0, 100, 1.70158, 0, 1000).get()
+```
+</Callout>
+
+### `reset(){:aria}`
+- 重置插值器状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：重置计时器并清除反向状态，重新开始动画
+- **调用示例**：
+```aria
+Back(0, 100, 1.70158, 0, 1000).reset()
+```
+</Callout>
+
+### `reverse(){:aria}`
+- 反转动画方向
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：将动画方向反转，从当前位置开始向起始值过渡
+- **调用示例**：
+```aria
+Back(0, 100, 1.70158, 0, 1000).reverse()
+```
+</Callout>
+
+## 类型转换
+
+Back对象支持以下类型转换：
+- **数值**：返回当前插值计算的结果
+- **布尔值**：当前值大于0时返回true，否则返回false
+- **字符串**：返回当前插值计算结果的字符串表示
+
+<Callout type="info">
+Back对象支持数学运算，可以直接参与计算表达式。
+</Callout>
