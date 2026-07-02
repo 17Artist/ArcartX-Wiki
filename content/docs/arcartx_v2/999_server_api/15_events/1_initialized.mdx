@@ -1,0 +1,61 @@
+---
+title: 客户端初始化事件
+description: 客户端初始化生命周期事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端初始化事件
+
+- `ClientInitializedEvent` 是一个抽象类，包含四个子事件，对应客户端初始化的不同阶段。
+- 这些事件在玩家安装了ArcartX客户端模组并连接服务器时按顺序触发。
+
+## `ClientInitializedEvent.Start`
+- 客户端开始初始化时触发，此时客户端刚与服务端建立ArcartX通道
+
+<Callout type="info">
+- **属性**：`player`: Player — 玩家
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onStart(ClientInitializedEvent.Start event) {
+    Player player = event.getPlayer();
+    // 客户端开始初始化
+}
+```
+</Callout>
+
+## `ClientInitializedEvent.End`
+- 客户端初始化完成时触发，此时客户端已准备就绪
+
+<Callout type="info">
+- **属性**：`player`: Player — 玩家
+- **可取消**：否
+- **调用示例**
+```java
+@EventHandler
+public void onEnd(ClientInitializedEvent.End event) {
+    Player player = event.getPlayer();
+    // 可以开始向客户端发送数据了
+}
+```
+</Callout>
+
+## `ClientInitializedEvent.Reload`
+- 客户端重载时触发，通常由玩家在客户端手动触发重载
+
+<Callout type="info">
+- **属性**：`player`: Player — 玩家
+- **可取消**：否
+</Callout>
+
+## `ClientInitializedEvent.ResourceLoaded`
+- 客户端资源加载完成时触发，此时客户端已完成所有资源文件的加载
+
+<Callout type="info">
+- **属性**：`player`: Player — 玩家
+- **可取消**：否
+- 适合在此事件中发送需要资源就绪后才能显示的内容（如UI、模型等）
+</Callout>

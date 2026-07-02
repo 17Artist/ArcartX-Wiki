@@ -1,0 +1,277 @@
+---
+title: ItemStackUtils:物品工具
+description: 物品操作扩展工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ItemStackUtils
+
+- 物品工具集提供了一系列 `ItemStack` 的Kotlin扩展函数，用于便捷地操作物品的Lore、名称、NBT标签以及ArcartX专属属性。
+- 位于 `priv.seventeen.artist.arcartx.util.ItemStackUtils`，所有方法均为静态方法。
+- 在Kotlin中可直接作为扩展函数调用，在Java中通过 `ItemStackUtils.xxx(itemStack, ...)` 调用。
+
+## Lore操作
+
+### `ItemStack.addLore(text){:java}`
+- 为物品追加一行Lore
+
+<Callout type="info">
+- **参数**：`text`: String — Lore文本，支持 `&` 颜色代码（会自动转换为 `§`）
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+itemStack.addLore("&a这是一行绿色Lore")
+
+// Java
+ItemStackUtils.addLore(itemStack, "&a这是一行绿色Lore");
+```
+</Callout>
+
+### `ItemStack.setLore(text, line){:java}`
+- 设置物品指定行的Lore
+
+<Callout type="info">
+- **参数**：
+    - `text`: String — Lore文本
+    - `line`: int — 行号（从0开始）
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setLore(itemStack, "&b新内容", 0);
+```
+</Callout>
+
+### `ItemStack.insertLore(text, line){:java}`
+- 在物品指定行插入一行Lore，原有内容向下移动
+
+<Callout type="info">
+- **参数**：
+    - `text`: String — Lore文本
+    - `line`: int — 插入位置行号
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.insertLore(itemStack, "&e插入的内容", 2);
+```
+</Callout>
+
+### `ItemStack.removeLore(line){:java}`
+- 删除物品指定行的Lore
+
+<Callout type="info">
+- **参数**：`line`: int — 要删除的行号
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.removeLore(itemStack, 0);
+```
+</Callout>
+
+### `ItemStack.containsLore(text){:java}`
+- 判断物品Lore中是否包含指定文本（模糊匹配）
+
+<Callout type="info">
+- **参数**：`text`: String — 要搜索的文本
+- **返回值**：boolean
+- **调用示例**
+```java
+boolean has = ItemStackUtils.containsLore(itemStack, "稀有");
+```
+</Callout>
+
+### `ItemStack.hasLore(text){:java}`
+- 判断物品Lore中是否包含与指定文本完全相等的行（精确匹配）
+
+<Callout type="info">
+- **参数**：`text`: String — 要匹配的完整行文本
+- **返回值**：boolean
+- **调用示例**
+```java
+boolean has = ItemStackUtils.hasLore(itemStack, "§a这是一行绿色Lore");
+```
+</Callout>
+
+## 名称操作
+
+### `ItemStack.setDisplayName(name){:java}`
+- 设置物品的显示名称
+
+<Callout type="info">
+- **参数**：`name`: String — 显示名称，支持 `&` 颜色代码
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setDisplayName(itemStack, "&6传说之剑");
+```
+</Callout>
+
+## ArcartX专属属性
+
+### `ItemStack.setIcon(path){:java}`
+- 设置物品的图标贴图路径（ArcartX客户端渲染）
+
+<Callout type="info">
+- **参数**：`path`: String — 图标资源路径
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setIcon(itemStack, "icons/sword.png");
+```
+</Callout>
+
+### `ItemStack.setModel(path){:java}`
+- 设置物品的3D模型ID
+
+<Callout type="info">
+- **参数**：`path`: String — 模型ID
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setModel(itemStack, "my_sword");
+```
+</Callout>
+
+### `ItemStack.setArmorTexture(id){:java}`
+- 设置物品作为盔甲穿戴时的盔甲贴图ID
+
+<Callout type="info">
+- **参数**：`id`: String — 盔甲贴图ID
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setArmorTexture(itemStack, "knight_armor");
+```
+</Callout>
+
+### `ItemStack.setCostume(modelId, hide){:java}`
+- 设置物品的时装模型ID，并控制是否隐藏物品本体
+
+<Callout type="info">
+- **参数**：
+    - `modelId`: String — 时装模型ID
+    - `hide`: boolean — 是否隐藏物品本体（`true` 隐藏，`false` 显示）
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setCostume(itemStack, "wings_costume", true);
+```
+</Callout>
+
+### `ItemStack.setFPModel(path){:java}`
+- 设置物品的第一人称模型ID
+
+<Callout type="info">
+- **参数**：`path`: String — 第一人称模型ID
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setFPModel(itemStack, "my_sword_fp");
+```
+</Callout>
+
+### `ItemStack.addExtraModel(locatorName, modelID){:java}`
+- 为物品添加额外渲染模型，挂载在指定定位器上
+
+<Callout type="info">
+- **参数**：
+    - `locatorName`: String — 定位器名称
+    - `modelID`: String — 模型ID
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.addExtraModel(itemStack, "blade_extra", "glow_effect");
+```
+</Callout>
+
+### `ItemStack.setUrl(path){:java}`
+- 设置物品在UI界面中显示的贴图路径
+
+<Callout type="info">
+- **参数**：`path`: String — 贴图资源路径
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setUrl(itemStack, "ui/items/sword.png");
+```
+</Callout>
+
+### `ItemStack.setDrop(path){:java}`
+- 设置物品掉落时的附加模型
+
+<Callout type="info">
+- **参数**：`path`: String — 掉落模型ID
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setDrop(itemStack, "drop_sword");
+```
+</Callout>
+
+## 冷却系统
+
+### `ItemStack.setCoolDownTag(value){:java}`
+- 设置物品的冷却标签，相同标签的物品共享冷却
+
+<Callout type="info">
+- **参数**：`value`: String — 冷却标签
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setCoolDownTag(itemStack, "skill_group_1");
+```
+</Callout>
+
+### `ItemStack.getCooldownTag(){:java}`
+- 获取物品的冷却标签
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：String — 冷却标签，无标签时返回空字符串
+- **调用示例**
+```java
+String tag = ItemStackUtils.getCooldownTag(itemStack);
+```
+</Callout>
+
+### `ItemStack.getCooldown(player){:java}`
+- 获取物品对于指定玩家的剩余冷却时间
+
+<Callout type="info">
+- **参数**：`player`: Player — 玩家
+- **返回值**：long — 剩余冷却时间（毫秒），0表示已就绪
+- **调用示例**
+```java
+long remaining = ItemStackUtils.getCooldown(itemStack, player);
+```
+</Callout>
+
+### `ItemStack.setCooldown(player, time){:java}`
+- 为物品设置对于指定玩家的冷却时间
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 玩家
+    - `time`: long — 冷却时间（毫秒）
+- **返回值**：无
+- **调用示例**
+```java
+ItemStackUtils.setCooldown(itemStack, player, 3000); // 3秒冷却
+```
+</Callout>
+
+## NBT操作
+
+### `ItemStack.getTag(key){:java}`
+- 获取物品的NBT标签值，支持 `.` 分隔的深层路径
+
+<Callout type="info">
+- **参数**：`key`: String — NBT键名，支持 `a.b.c` 格式的深层路径
+- **返回值**：String — 标签值，不存在时返回空字符串
+- **调用示例**
+```java
+String value = ItemStackUtils.getTag(itemStack, "custom.level");
+```
+</Callout>

@@ -1,0 +1,175 @@
+---
+title: 实体移动
+description: 实体对象:冲刺、位移、瞬移、起跳等高级移动
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
+- 「瞬移」类函数（`teleportXxx`）会自动寻找安全落点后再传送；「冲刺」类函数（`dashXxx`）通过设置速度实现位移。
+
+## `teleportForward(distance){:aria}`
+- 沿实体朝向**向前**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportForward(3.0)
+    ```
+</Callout>
+
+## `teleportBack(distance){:aria}`
+- 沿实体朝向**向后**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportBack(3.0)
+    ```
+</Callout>
+
+## `teleportLeft(distance){:aria}`
+- 沿实体朝向**向左**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportLeft(3.0)
+    ```
+</Callout>
+
+## `teleportRight(distance){:aria}`
+- 沿实体朝向**向右**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportRight(3.0)
+    ```
+</Callout>
+
+## `teleportUp(distance){:aria}`
+- **向上**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportUp(3.0)
+    ```
+</Callout>
+
+## `teleportDown(distance){:aria}`
+- **向下**瞬移指定距离（自动寻找安全落点）
+<Callout type="info">
+    - **参数**：`distance` — 双精度浮点数类型，瞬移距离
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.teleportDown(3.0)
+    ```
+</Callout>
+
+## `dashAdvanced(forward, strafe, vertical){:aria}`
+- 高级冲刺：按前后 / 左右 / 垂直三个方向的分量设置速度
+<Callout type="info">
+    - **参数**：
+        - `forward` — 双精度浮点数类型，前后分量（正值向前，负值向后）
+        - `strafe` — 双精度浮点数类型，左右分量（正值向右，负值向左）
+        - `vertical` — 双精度浮点数类型，垂直分量
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dashAdvanced(1.2, 0.0, 0.3)
+    ```
+</Callout>
+
+## `dash(horizontal, vertical){:aria}`
+- 沿实体朝向**向前**冲刺
+<Callout type="info">
+    - **参数**：
+        - `horizontal` — 双精度浮点数类型，水平方向速度
+        - `vertical` — 双精度浮点数类型，垂直方向速度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dash(1.2, 0.3)
+    ```
+</Callout>
+
+## `dashBack(horizontal, vertical){:aria}`
+- 沿实体朝向**向后**冲刺
+<Callout type="info">
+    - **参数**：
+        - `horizontal` — 双精度浮点数类型，水平方向速度
+        - `vertical` — 双精度浮点数类型，垂直方向速度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dashBack(1.2, 0.3)
+    ```
+</Callout>
+
+## `dashLeft(horizontal, vertical){:aria}`
+- 沿实体朝向**向左**冲刺
+<Callout type="info">
+    - **参数**：
+        - `horizontal` — 双精度浮点数类型，水平方向速度
+        - `vertical` — 双精度浮点数类型，垂直方向速度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dashLeft(1.2, 0.3)
+    ```
+</Callout>
+
+## `dashRight(horizontal, vertical){:aria}`
+- 沿实体朝向**向右**冲刺
+<Callout type="info">
+    - **参数**：
+        - `horizontal` — 双精度浮点数类型，水平方向速度
+        - `vertical` — 双精度浮点数类型，垂直方向速度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dashRight(1.2, 0.3)
+    ```
+</Callout>
+
+## `jump(force){:aria}`
+- 让实体向上起跳（设置垂直向上速度）
+<Callout type="info">
+    - **参数**：`force` — 双精度浮点数类型，起跳力度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.jump(0.6)
+    ```
+</Callout>
+
+## `dive(force){:aria}`
+- 让实体向下俯冲（设置垂直向下速度）
+<Callout type="info">
+    - **参数**：`force` — 双精度浮点数类型，俯冲力度
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.dive(0.6)
+    ```
+</Callout>
+
+## `bounce(){:aria}`
+- 将实体当前速度反向（回弹）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.bounce()
+    ```
+</Callout>

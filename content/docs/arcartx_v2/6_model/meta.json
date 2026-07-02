@@ -1,0 +1,17 @@
+{
+    "title": "模型篇",
+    "defaultOpen": false,
+    "pages": [
+        "1_start",
+        "2_model_link",
+        "3_named_entity_model",
+        "4_item_model",
+        "5_first_person",
+        "6_other_model",
+        "7_animation_name",
+        "8_locator",
+        "9_molang",
+        "10_effects",
+        "11_item_extra_model"
+    ]
+}

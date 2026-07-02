@@ -1,0 +1,44 @@
+---
+title: JsonUtils:JSON工具
+description: JSON序列化工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## JsonUtils
+
+- JSON工具集基于Gson，提供了对象与JSON字符串之间的快捷转换。
+- 位于 `priv.seventeen.artist.arcartx.util.JsonUtils`。
+
+## `Any.toJson(){:java}`
+- 将任意对象序列化为JSON字符串
+
+<Callout type="info">
+- **参数**：无（扩展函数，作用于对象自身）
+- **返回值**：String — JSON字符串
+- **调用示例**
+```java
+// Kotlin
+val json = myObject.toJson()
+
+// Java
+String json = JsonUtils.toJson(myObject);
+```
+</Callout>
+
+## `String.fromJson(clazz){:java}`
+- 将JSON字符串反序列化为指定类型的对象
+
+<Callout type="info">
+- **参数**：`clazz`: Class&lt;T&gt; — 目标类型
+- **返回值**：T — 反序列化后的对象
+- **调用示例**
+```java
+// Kotlin
+val obj = jsonString.fromJson(MyData::class.java)
+
+// Java
+MyData obj = JsonUtils.fromJson(jsonString, MyData.class);
+```
+</Callout>

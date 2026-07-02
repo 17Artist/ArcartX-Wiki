@@ -1,0 +1,76 @@
+---
+title: ControllerRegistry:控制器注册器
+description: 动作控制器注册API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ControllerRegistry
+
+- 控制器注册器用于注册和管理动作控制器配置。
+- 通过代码直接访问 `ControllerRegistry` 单例对象。
+
+<Callout type="warn">
+    新版控制器不再通过配置文件夹加载，只能通过此 API 注册。
+</Callout>
+
+## `controllers`
+- 已注册的控制器映射，可直接读写。
+
+<Callout type="info">
+- **类型**：`ConcurrentHashMap<String, Controller>` — 键为控制器唯一标识，值为控制器对象
+- **调用示例**
+```java
+Controller c = ControllerRegistry.INSTANCE.getControllers().get("combat");
+```
+</Callout>
+
+## `register(id, src){:java}`
+- 注册一个动作控制器，支持三种数据源
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 控制器唯一标识
+    - `src`: YamlConfiguration / String / File — 控制器配置数据源
+- **返回值**：无
+- **调用示例**
+```java
+// 从文件注册
+ControllerRegistry.INSTANCE.register("控制器ID", new File("文件路径"));
+
+// 从YAML字符串注册
+ControllerRegistry.INSTANCE.register("控制器ID", yamlString);
+
+// 从YamlConfiguration注册
+ControllerRegistry.INSTANCE.register("控制器ID", yamlConfig);
+```
+</Callout>
+
+## `unregister(id){:java}`
+- 注销一个动作控制器
+
+<Callout type="info">
+- **参数**：`id`: String — 控制器唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ControllerRegistry.INSTANCE.unregister("combat");
+```
+</Callout>
+
+## `syncPlayers(){:java}`
+- 将所有已注册的控制器同步到所有在线玩家的客户端
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+ControllerRegistry.INSTANCE.syncPlayers();
+```
+</Callout>
+
+<Callout type="warn">
+注册或修改控制器后，需要调用 `syncPlayers()` 才能让在线玩家的客户端生效。
+</Callout>

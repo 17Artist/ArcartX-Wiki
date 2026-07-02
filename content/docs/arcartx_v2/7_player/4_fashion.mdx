@@ -1,0 +1,21 @@
+---
+title: 玩家时装
+description: 玩家自定义时装
+---
+
+## 概述
+- 通过ArcartX的玩家渲染器，你可以进行时装的穿戴。
+- 我们的时装统一使用bbmodel格式，关于为什么不兼容时装工坊：
+    - 因为ArcartX虽然本体免费，但是我们还是有商业行为，而时装工坊是非商用开源协议。所以我们不能违反协议，
+    - 不过，我们提供一个开源的时装工坊文件转bbmodel文件的工具：[点我前往](armour2bbmodel.vercel.app)  | [开源地址](https://github.com/17Artist/Armour2BBModel)
+
+## 时装模型格式
+- 时装模型的格式要求和大部分支持bbmodel时装的产品类似：
+<img src="/model/fashion.png" alt="配置粒子效果帧"/>
+
+
+## 设置方式
+- 我们提供物品和API两种读取模式，其中API设置的时装优先级大于通过装备护甲穿戴的时装。
+- 你可以通过指令 ` a item setCostume` 对手持物品设置时装id、槽位、是否隐藏玩家对应部位骨骼，不过这个方式不支持本体以外的时装（比如背饰这些外部装饰，必须使用API）
+- 该功能免费提供，如需更好的效果，推荐使用 [时装衣橱](https://arcartx.com/resources/52/)
+

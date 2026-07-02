@@ -1,0 +1,52 @@
+---
+title: Packet:网络数据包
+description: Packet网络数据包工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Packet.send(type, ...data){:aria}`
+- 发送自定义网络数据包
+
+<Callout type="info">
+- **参数**：
+    - `type`: 字符串类型(数据包类型)
+    - `data`: 可变参数(数据包内容)，可以是字符串或字符串列表
+- **返回值**：无
+- **调用示例**
+```aria
+// 发送无数据的数据包
+Packet.send("test")
+
+// 发送单个数据的数据包
+Packet.send("test", "data")
+
+// 发送多个数据的数据包
+Packet.send("test", "data1", "data2", "data3")
+
+// 发送多个数据的数据包（另一种方式）
+Packet.send("test", ["data1", "data2", "data3"])
+```
+</Callout>
+
+<Callout type="warn">
+注意：数据包的发送应遵循服务器的协议规范，确保数据格式正确。
+</Callout>
+
+
+## `Packet.clickSlot(slot, clickType){:aria}`
+- 发送自定义网络数据包
+   *   slot      : 容器原始槽位下标(int)
+   *   clickType : Bukkit
+<Callout type="info">
+    - **参数**：
+    - `slot`: 容器原始槽位下标(int)
+    - `clickType`: ClickType 名字(string)，如 LEFT/RIGHT/SHIFT_LEFT/SHIFT_RIGHT/MIDDLE/DROP/CONTROL_DROP/DOUBLE_CLICK，缺省 LEFT
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    Packet.clickSlot(0,'LEFT')
+    ```
+</Callout>
+

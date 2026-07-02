@@ -1,0 +1,103 @@
+---
+title: ArcartXEntityManager:实体管理器
+description: 实体管理器API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXEntityManager
+
+- 实体管理器负责管理所有 ArcartX 实体对象和玩家对象的生命周期。
+- 通过 `ArcartXAPI.getEntityManager()` 获取。
+- 实体缓存会按照配置的间隔自动清理已失效的实体，无需手动管理。
+
+## 公开属性
+
+### `entities`
+- 所有已缓存的ArcartX实体对象（不含玩家），键为实体UUID。返回的是**只读**视图，无法直接修改。
+- 在 Java 中通过 `getEntities()` 访问。
+
+<Callout type="info">
+- **类型**：`Map<UUID, ArcartXEntity>` — 只读实体缓存
+- **调用示例**
+```java
+Map<UUID, ArcartXEntity> entities = ArcartXAPI.getEntityManager().getEntities();
+```
+</Callout>
+
+### `players`
+- 所有已缓存的ArcartX玩家对象，键为玩家UUID。返回的是**只读**视图，无法直接修改。
+- 在 Java 中通过 `getPlayers()` 访问。
+
+<Callout type="info">
+- **类型**：`Map<UUID, ArcartXPlayer>` — 只读玩家缓存
+- **调用示例**
+```java
+Map<UUID, ArcartXPlayer> players = ArcartXAPI.getEntityManager().getPlayers();
+```
+</Callout>
+
+## `getPlayer(player){:java}`
+- 获取玩家对应的ArcartX玩家管理对象，如果玩家是NPC则返回null
+
+<Callout type="info">
+- **参数**：`player`: Player — Bukkit玩家对象
+- **返回值**：`ArcartXPlayer?` — 玩家管理对象，可能为null
+- **调用示例**
+```java
+ArcartXPlayer axPlayer = ArcartXAPI.getEntityManager().getPlayer(player);
+```
+</Callout>
+
+## `removePlayer(player){:java}`
+- 移除玩家的ArcartX管理对象，同时会清除该玩家在其他玩家客户端上的控制器设置
+
+<Callout type="info">
+- **参数**：`player`: Player — Bukkit玩家对象
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getEntityManager().removePlayer(player);
+```
+</Callout>
+
+<Callout type="warn">
+通常您不需要手动调用此方法，ArcartX会在玩家退出时自动处理。
+</Callout>
+
+## `getOrCreateEntity(entity){:java}`
+- 获取或创建实体对应的ArcartX实体对象。如果传入的是玩家（非NPC），会自动返回ArcartXPlayer对象
+
+<Callout type="info">
+- **参数**：`entity`: Entity — Bukkit实体对象
+- **返回值**：`ArcartXEntity?` — 实体管理对象，可能为null
+- **调用示例**
+```java
+ArcartXEntity axEntity = ArcartXAPI.getEntityManager().getOrCreateEntity(entity);
+```
+</Callout>
+
+## `getEntity(entity){:java}`
+- 通过UUID获取已缓存的ArcartX实体对象，会优先查找玩家缓存
+
+<Callout type="info">
+- **参数**：`entity`: UUID — 实体UUID
+- **返回值**：`ArcartXEntity?` — 实体管理对象，可能为null
+- **调用示例**
+```java
+ArcartXEntity axEntity = ArcartXAPI.getEntityManager().getEntity(uuid);
+```
+</Callout>
+
+## `removeEntity(entity){:java}`
+- 移除实体的ArcartX管理对象。如果传入的是玩家则不会执行任何操作
+
+<Callout type="info">
+- **参数**：`entity`: Entity — Bukkit实体对象
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getEntityManager().removeEntity(entity);
+```
+</Callout>

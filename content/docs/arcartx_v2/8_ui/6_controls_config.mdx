@@ -1,0 +1,55 @@
+---
+title: 控件结构
+description: 控件结构
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 控件结构
+- 了解完 UI 的基本配置后，接下来介绍控件。单个控件的配置结构如下：
+```yaml
+background:
+    type: texture
+    val: "background" # 可选
+    attribute:
+      point: ~middle_center
+      width: 1000
+      height: 500
+      normal: ~AXLoginView/background.png
+    effect:
+      stroke:
+        width: 2
+        color: ~255,255,255
+    action:
+        click: |-
+          // 点击事件触发器
+    children:
+      title:
+        type: text
+        attribute:
+          x: 500
+          y: 28
+          center: true
+          fontSize: 120
+          texts:
+            - ~&7&l芜湖
+```
+- 从配置中不难看出，控件主要是四个部分：类型、属性、子组件、触发器
+- 其中：
+- `type`是一个非脚本的常量，用来设置组件的类型
+- `attribute` 用来设置组件的属性，在此之下的所有值都是脚本语句，而键则是变量名，可通过脚本访问（也就是说你可以自定义属性名，用于实现自定义逻辑）
+- `effect` 是纹理控件渲染特效，所有值都是脚本语句，可通过脚本访问修改赋值新建等，具体看控件Aria文档。
+- `children` 用来设置组件的子组件，是一个嵌套的结构，可以多层嵌套，但不建议层级过深，过深会影响性能。
+
+
+- `val`是一个非脚本常量，可以不填，用于简化深层结构的访问。例如当结构层级较深时，可能需要编写如下代码：
+```aria
+val.root['控件A']['控件B']['控件C'].x = 100
+```
+- 路径过深时代码会变得冗长且不易阅读。此时如果在`控件C`加一个`val: "component"{:yaml}`，即可直接通过`val.component{:aria}`访问该控件。
+
+- `action` 用来创建动作，里面的键是动作名称，值是触发后的脚本内容，当动作的名称和触发器一致时，则在对应事件触发后执行同名动作下的代码。
+
+### 父子组件逻辑
+- ArcartX 的 UI 采用相对布局，子组件的位置起点为父组件的左上角（如果设置了锚点则为对应的相对位置，后续章节会详细讲解）。
+- 除此之外还有其它的父子级关系，将在控件属性章节的备注中说明。

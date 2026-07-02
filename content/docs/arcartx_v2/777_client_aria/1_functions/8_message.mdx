@@ -1,0 +1,48 @@
+---
+title: Message:消息展示
+description: Message消息控制工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Message.chat(message){:aria}`
+- 发送聊天消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```aria
+Message.chat("Hello World!")
+```
+</Callout>
+
+## `Message.actionBar(message){:aria}`
+- 在动作栏显示消息
+
+<Callout type="info">
+- **参数**：`message`: 字符串类型
+- **返回值**：无
+- **调用示例**
+```aria
+Message.actionBar("Action message")
+```
+</Callout>
+
+## `Message.title(title, subtitle, fadeIn, stay, fadeOut){:aria}`
+- 显示标题和副标题
+
+<Callout type="info">
+- **参数**：
+    - `title`: 字符串类型(主标题文本)
+    - `subtitle`: 字符串类型(副标题文本)
+    - `fadeIn`: 整数类型(淡入时间，单位为tick)
+    - `stay`: 整数类型(停留时间，单位为tick，默认为60)
+    - `fadeOut`: 整数类型(淡出时间，单位为tick)
+- **返回值**：无
+- **调用示例**
+```aria
+Message.title("Main Title", "Sub Title", 10, 60, 10)
+```
+</Callout>

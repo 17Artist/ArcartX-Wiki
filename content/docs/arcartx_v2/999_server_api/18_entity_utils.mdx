@@ -1,0 +1,84 @@
+---
+title: EntityUtils:实体工具
+description: 实体操作扩展工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## EntityUtils
+
+- 实体工具集提供了 `Entity` 的Kotlin扩展函数和扩展属性。
+- 位于 `priv.seventeen.artist.arcartx.util.EntityUtils`。
+
+## `Entity.setSize(width, height){:java}`
+- 设置实体的碰撞体积（通过NMS直接修改）
+
+<Callout type="info">
+- **参数**：
+    - `width`: float — 碰撞箱宽度
+    - `height`: float — 碰撞箱高度
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.setSize(2.0f, 3.0f)
+
+// Java
+EntityUtils.setSize(entity, 2.0f, 3.0f);
+```
+</Callout>
+
+<Callout type="warn">
+此方法仅修改服务端碰撞体积，不会同步到客户端显示。如果需要同时同步客户端，请使用 `ArcartXEntity.setSize()`。
+</Callout>
+
+## `Entity.doWithSeenBy(action){:java}`
+- 对所有能看到该实体的玩家执行操作，如果实体本身是玩家也会包含自身
+
+<Callout type="info">
+- **参数**：`action`: PlayerCallBack — 对每个玩家执行的回调
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.doWithSeenBy { player ->
+    // 对每个能看到该实体的玩家执行操作
+}
+
+// Java
+EntityUtils.doWithSeenBy(entity, player -> {
+    // 对每个能看到该实体的玩家执行操作
+});
+```
+</Callout>
+
+## `Entity.arcartXHandler{:java}`
+- 获取实体对应的 `ArcartXEntity` 管理对象（扩展属性）
+
+<Callout type="info">
+- **返回值**：`ArcartXEntity?` — 可能为null（仅返回已缓存的实体对象）
+- **调用示例**
+```java
+// Kotlin
+entity.arcartXHandler?.playAnimation("attack", 1.0, 5, -1)
+
+// Java
+ArcartXEntity handler = EntityUtils.getArcartXHandler(entity);
+```
+</Callout>
+
+## `Entity.isProxy{:java}`
+- 判断实体是否为MythicMobs Hitbox代理实体（扩展属性）
+
+<Callout type="info">
+- **返回值**：boolean
+- **调用示例**
+```java
+// Kotlin
+if (entity.isProxy) return
+
+// Java
+if (EntityUtils.isProxy(entity)) return;
+```
+</Callout>

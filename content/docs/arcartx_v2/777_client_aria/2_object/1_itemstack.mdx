@@ -1,0 +1,95 @@
+---
+title: ItemStack:物品对象
+description: ItemStack:物品对象
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `getType(){:aria}`
+- 获取物品类型
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    物品对象.getType()
+    ```
+</Callout>
+
+## `getCount(){:aria}`
+- 获取物品数量
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    物品对象.getCount()
+    ```
+</Callout>
+
+## `getName(){:aria}`
+- 获取物品名称
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    物品对象.getName()
+    ```
+</Callout>
+
+## `getLore(){:aria}`
+- 获取物品描述
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串列表类型
+    - **调用示例**
+    ```aria
+    物品对象.getLore()
+    ```
+</Callout>
+
+## `getNBT(path){:aria}`
+- 获取物品NBT数据（多层级属于用`.`分割）
+<Callout type="info">
+    - **参数**：`path`（NBT路径）
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    物品对象.getNBT("model")
+    ```
+</Callout>
+
+## `getNBTList(path){:aria}`
+- 获取物品NBT数据（多层级属于用`.`分割）
+<Callout type="info">
+    - **参数**：`path`（NBT路径）
+    - **返回值**：列表类型
+    - **调用示例**
+    ```aria
+    物品对象.getNBTList("xxx")
+    ```
+</Callout>
+
+## `getNBTMap(path){:aria}`
+- 获取物品NBT数据（多层级属于用`.`分割）
+<Callout type="info">
+    - **参数**：`path`（NBT路径）
+    - **返回值**：字典类型
+    - **调用示例**
+    ```aria
+    物品对象.getNBTMap("xxx")
+    ```
+</Callout>
+
+## `toJson(){:aria}`
+- 将物品对象序列化为 JSON 字符串
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型（JSON 格式）
+    - **调用示例**
+    ```aria
+    物品对象.toJson()
+    ```
+</Callout>

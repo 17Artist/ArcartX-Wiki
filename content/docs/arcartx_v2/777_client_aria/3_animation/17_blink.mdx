@@ -1,0 +1,82 @@
+---
+title: Blink-闪烁效果
+description: 闪烁效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Blink是一个用于创建闪烁效果的对象。它可以在两个值之间自动往返过渡，创造出闪烁的视觉效果。
+</Callout>
+
+## 实例化方式
+
+### `Blink`含参实例化
+<Callout type="info">
+    - **描述**：创建一个闪烁效果实例。
+    - **参数**：
+    - `start`：数值类型，起始值
+    - `end`：数值类型，结束值
+    - `transferTime`：长整型，单次过渡时间（毫秒）
+    - **调用示例**：
+    ```aria
+    Blink(0, 1, 1000) // 每秒在0和1之间往返变化
+    ```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前闪烁效果的值。
+</Callout>
+
+### `reset(){:aria}`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置闪烁状态，重新开始效果。
+</Callout>
+
+### `reverse(){:aria}`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：手动反转当前的变化方向。
+</Callout>
+
+### `setAutoReverse(boolean){:aria}`
+<Callout type="info">
+    - **参数**：布尔值
+    - **返回值**：无
+    - **说明**：设置是否自动反转。启用时会在达到终点时自动反向。
+</Callout>
+
+### `isReversed(){:aria}`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔值
+    - **说明**：检查当前是否处于反向状态。
+</Callout>
+
+### `getProgress(){:aria}`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型(0.0-1.0)
+    - **说明**：获取当前过渡的完成进度。
+</Callout>
+
+## 类型转换
+
+Blink对象支持以下类型转换：
+- **数值**：返回当前闪烁值
+- **布尔值**：当前值超过中点时返回true，否则返回false
+- **字符串**：返回当前值的字符串表示
+
+<Callout type="info">
+    Blink对象支持数学运算，可以直接参与计算表达式。
+</Callout>

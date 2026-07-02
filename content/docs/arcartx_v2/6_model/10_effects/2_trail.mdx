@@ -1,0 +1,26 @@
+---
+title: 模型拖尾效果
+description: 通过定位器生成拖尾特效
+---
+
+## 模型拖尾效果
+
+拖尾效果适用于投掷物或动作的拖尾场景：
+
+<img src="/model/effects/trail-preview.png" alt="拖尾效果"/>
+
+## 使用方式
+
+通过定位器配合动画指令帧实现：
+
+<img src="/model/effects/trail-locator.png" alt="定位器配置"/>
+
+```
+arcartx:trail{color=255,255,255,255;width=0.5;length=15}
+```
+
+| 参数     |  类型   | 说明              |
+|:-------|:-----:|:----------------|
+| color  | RGBA  | 颜色值，格式为 R,G,B,A |
+| width  | float | 拖尾宽度            |
+| length |  int  | 拖尾长度            |

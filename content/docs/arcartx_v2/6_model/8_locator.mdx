@@ -1,0 +1,26 @@
+---
+title: 模型定位器
+description: 生物模型手持物品与鞘翅渲染定位器
+---
+
+## 手持物品定位器
+
+生物模型被替换后，默认没有"手"的概念。通过基岩模型的定位器功能，可以告诉 ArcartX 手的位置，从而渲染手持物品。
+
+在手部骨骼中创建定位器：
+- 左手：`left_hand`
+- 右手：`right_hand`
+
+<img src="/model/locator-1.png" alt="手持物品定位器配置"/>
+
+重载后即可在游戏中看到效果。
+
+<img src="/model/locator-2.png" alt="手持物品效果"/>
+
+## 鞘翅定位器
+
+当玩家装备鞘翅时，ArcartX 可以在模型上渲染鞘翅。在模型的背部骨骼中创建名为 `elytra` 的定位器，ArcartX 会在该位置渲染鞘翅模型。
+
+- 定位器名称：`elytra`
+
+<img src="/model/locator-3.png" alt="鞘翅定位器配置"/>

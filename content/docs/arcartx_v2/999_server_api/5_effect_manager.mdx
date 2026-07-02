@@ -1,0 +1,267 @@
+---
+title: ArcartXEffectManager:特效管理器
+description: 特效管理器API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXEffectManager
+
+- 特效管理器提供了模型特效、世界贴图特效和基岩粒子的**范围广播**发送能力。
+- 通过 `ArcartXAPI.getEffectManager()` 获取。
+- 所有方法都是Kotlin扩展函数，在Java中作为静态方法调用。
+
+<Callout type="warn">
+**范围广播 vs 点对点**：本类所有方法都是**范围广播**模式。
+- `World.xxx()` 系列 — 向指定位置128格范围内的所有玩家发送
+- `Entity.xxx()` 系列 — 向所有能看到该实体的玩家发送
+
+如果你只需要让单个玩家看到特效，请使用 `ArcartXPlayer` 的对应方法（点对点发送）。
+</Callout>
+
+## 模型特效
+
+### `World.spawnModelEffect(location, modelID, modelScale, keepTime, glow){:java}`
+- 在世界指定位置生成一次性模型特效，128格内所有玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `location`: Location — 生成位置
+    - `modelID`: String — 模型ID
+    - `modelScale`: float — 模型缩放
+    - `keepTime`: int — 持续时间（毫秒）
+    - `glow`: boolean — 是否发光
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.spawnModelEffect(location, "explosion", 2.0f, 3000, true)
+
+// Java
+ArcartXEffectManager.spawnModelEffect(world, location, "explosion", 2.0f, 3000, true);
+```
+</Callout>
+
+### `Entity.spawnModelEffect(modelID, modelScale, keepTime, glow, effectPosition){:java}`
+- 在实体身上生成一次性模型特效，所有能看到该实体的玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 模型ID
+    - `modelScale`: float — 模型缩放
+    - `keepTime`: int — 持续时间（毫秒）
+    - `glow`: boolean — 是否发光
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.spawnModelEffect("aura", 1.0f, 5000, true, EffectPosition.followEntity(entity))
+
+// Java
+ArcartXEffectManager.spawnModelEffect(entity, "aura", 1.0f, 5000, true,
+    EffectPosition.followEntity(entity));
+```
+</Callout>
+
+### `World.spawnModelEffect(identifier, location, modelID, animation, speed, modelScale, keepTime, glow){:java}`
+- 在世界指定位置生成带标识符的模型特效，可通过标识符移除
+
+<Callout type="info">
+- **参数**：
+    - `identifier`: String — 特效唯一标识符
+    - `location`: Location — 生成位置
+    - `modelID`: String — 模型ID
+    - `animation`: String — 动画名称
+    - `speed`: double — 动画播放速度
+    - `modelScale`: float — 模型缩放
+    - `keepTime`: int — 持续时间（毫秒）
+    - `glow`: boolean — 是否发光
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.spawnModelEffect("portal_1", location, "portal", "spin", 1.0, 1.5f, -1, true)
+
+// Java
+ArcartXEffectManager.spawnModelEffect(world, "portal_1", location, "portal", "spin",
+    1.0, 1.5f, -1, true);
+```
+</Callout>
+
+### `Entity.spawnModelEffect(identifier, modelID, animation, speed, modelScale, keepTime, glow, effectPosition){:java}`
+- 在实体身上生成带标识符的模型特效
+
+<Callout type="info">
+- **参数**：
+    - `identifier`: String — 特效唯一标识符
+    - `modelID`: String — 模型ID
+    - `animation`: String — 动画名称
+    - `speed`: double — 动画播放速度
+    - `modelScale`: float — 模型缩放
+    - `keepTime`: int — 持续时间（毫秒）
+    - `glow`: boolean — 是否发光
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.spawnModelEffect("shield", "shield_model", "idle", 1.0, 1.0f, -1, true,
+    EffectPosition.followEntity(entity))
+
+// Java
+ArcartXEffectManager.spawnModelEffect(entity, "shield", "shield_model", "idle", 1.0,
+    1.0f, -1, true, EffectPosition.followEntity(entity));
+```
+</Callout>
+
+### `World.removeModelEffect(identifier, location){:java}`
+- 移除世界中指定标识符的模型特效
+
+<Callout type="info">
+- **参数**：
+    - `identifier`: String — 特效唯一标识符
+    - `location`: Location — 参考位置（用于确定广播范围）
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.removeModelEffect("portal_1", location)
+
+// Java
+ArcartXEffectManager.removeModelEffect(world, "portal_1", location);
+```
+</Callout>
+
+### `Entity.removeModelEffect(identifier){:java}`
+- 移除实体身上指定标识符的模型特效
+
+<Callout type="info">
+- **参数**：`identifier`: String — 特效唯一标识符
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.removeModelEffect("shield")
+
+// Java
+ArcartXEffectManager.removeModelEffect(entity, "shield");
+```
+</Callout>
+
+## 世界贴图特效
+
+### `World.spawnWorldTextureEffect(location, identifier, worldTexture, effectPosition){:java}`
+- 在世界指定位置生成世界贴图特效，128格内所有玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `location`: Location — 参考位置（用于确定广播范围）
+    - `identifier`: String — 贴图唯一标识
+    - `worldTexture`: WorldTextureBuilder — 贴图构建器
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+WorldTextureBuilder builder = new WorldTextureBuilder()
+    .setTexture("effects/circle.png", true, true)
+    .setSize(128.0, 128.0)
+    .setLifeTime(5000);
+
+// Kotlin
+world.spawnWorldTextureEffect(location, "magic_circle", builder,
+    EffectPosition.location(location))
+
+// Java
+ArcartXEffectManager.spawnWorldTextureEffect(world, location, "magic_circle", builder,
+    EffectPosition.location(location));
+```
+</Callout>
+
+### `Entity.spawnWorldTextureEffect(identifier, worldTexture, effectPosition){:java}`
+- 在实体身上生成世界贴图特效，所有能看到该实体的玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `identifier`: String — 贴图唯一标识
+    - `worldTexture`: WorldTextureBuilder — 贴图构建器
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.spawnWorldTextureEffect("name_tag", builder, EffectPosition.followEntity(entity))
+
+// Java
+ArcartXEffectManager.spawnWorldTextureEffect(entity, "name_tag", builder,
+    EffectPosition.followEntity(entity));
+```
+</Callout>
+
+## 基岩粒子
+
+### `Entity.spawnBedrockParticle(particleID, effectPosition){:java}`
+- 在实体身上生成基岩粒子，所有能看到该实体的玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `particleID`: String — 粒子ID
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+entity.spawnBedrockParticle("flame", EffectPosition.followEntity(entity))
+
+// Java
+ArcartXEffectManager.spawnBedrockParticle(entity, "flame",
+    EffectPosition.followEntity(entity));
+```
+</Callout>
+
+### `World.spawnBedrockParticle(location, particleID, effectPosition){:java}`
+- 在世界指定位置生成基岩粒子，128格内所有玩家可见
+
+<Callout type="info">
+- **参数**：
+    - `location`: Location — 参考位置（用于确定广播范围）
+    - `particleID`: String — 粒子ID
+    - `effectPosition`: EffectPosition — 特效位置
+- **返回值**：无
+- **调用示例**
+```java
+// Kotlin
+world.spawnBedrockParticle(location, "explosion", EffectPosition.location(location))
+
+// Java
+ArcartXEffectManager.spawnBedrockParticle(world, location, "explosion",
+    EffectPosition.location(location));
+```
+</Callout>
+
+## 同质接口对比总结
+
+<Callout type="warn">
+ArcartX中有多个类提供了功能相似但发送方式不同的方法，请根据你的需求选择合适的版本：
+
+**基岩粒子 spawnBedrockParticle**：
+| 所在类 | 发送方式 | 适用场景 |
+|--------|----------|----------|
+| `ArcartXEffectManager` (Entity扩展) | 范围广播（能看到实体的玩家） | 技能特效、战斗粒子等所有人可见的效果 |
+| `ArcartXEffectManager` (World扩展) | 范围广播（128格内玩家） | 世界事件、环境粒子等 |
+| `ArcartXPlayer` | 点对点（仅该玩家） | UI粒子、个人提示等仅自己可见的效果 |
+
+**世界贴图 WorldTexture**：
+| 所在类 | 发送方式 | 适用场景 |
+|--------|----------|----------|
+| `ArcartXEffectManager` (Entity/World扩展) | 范围广播 | 公共标识、世界装饰等 |
+| `ArcartXPlayer` (addWorldTexture) | 点对点 | 个人HUD、私有标记等 |
+
+**伤害显示 DamageDisplay**：
+| 所在类 | 发送方式 | 适用场景 |
+|--------|----------|----------|
+| `ArcartXEntity` (broadcastDamageDisplay) | 范围广播（能看到实体的玩家） | 公共伤害数字 |
+| `ArcartXEntity` (sendDamageDisplayToPlayers) | 指定玩家列表 | 部分玩家可见的伤害 |
+| `ArcartXPlayer` (addDamageDisplay) | 点对点 | 仅攻击者可见的伤害数字 |
+</Callout>

@@ -1,0 +1,8 @@
+{
+    "title": "玩家对象",
+    "defaultOpen": false,
+    "pages": [
+        "1_info",
+        "2_message"
+    ]
+}

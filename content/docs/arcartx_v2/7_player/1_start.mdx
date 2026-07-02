@@ -1,0 +1,17 @@
+---
+title: 玩家模型概述
+description: 玩家模型概述
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 概述
+- 玩家模型用以支持玩家动作、时装、自定义护甲贴图等功能。关闭后这些功能都将失效
+- 先从`setting.yml`中开启功能（默认开启）
+
+```yaml
+playerDefaultModelEnabled: true
+```
+
+- 然后你游戏内的玩家如果没有显式设置模型，将使用我们内置的模型以及动作，支持史蒂夫和艾利克斯变体。

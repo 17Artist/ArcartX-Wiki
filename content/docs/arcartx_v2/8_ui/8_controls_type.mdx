@@ -1,0 +1,421 @@
+---
+title: 控件类型
+description: 控件类型
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 控件类型
+ArcartX 提供了多种类型的控件，根据需要选择合适的控件类型。
+
+## 基础显示
+
+### 纹理 `Texture`
+- 用于显示色块或图像，支持 png、jpg、gif 格式
+- 支持文本显示
+- 渲染玩家头像：在 normal 属性填写 `PlayerSkin:UUID`（UUID 为目标玩家的 UUID）
+- 独有属性:
+
+|   名称   |    说明    |  默认值  |                                       备注                                        |
+|:------:|:--------:|:-----:|:-------------------------------------------------------------------------------:|
+| normal |  常态显示内容  |   无   |        [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明)        |
+| hover  | 鼠标悬停显示内容 |   无   | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明)，不设置则悬停时也渲染常态图 |
+|  loop  | GIF 是否循环 | false |                              为 false 时 GIF 停止于最后一帧                              |
+
+<Callout type="info">
+    Texture 控件的 GIF 动画可通过 Aria 脚本调用 `self.replay()` 重置到第一帧重新播放。
+</Callout>
+
+### 文字 `Text`
+- 用于显示纯文字内容，支持 ArcartX 的特殊格式码（描边、渐变、流光等）。
+- 独有属性:
+
+|    名称     |   说明   |  默认值  | 备注                                           |
+|:---------:|:------:|:-----:|:---------------------------------------------|
+|  shadow   |  渲染阴影  | false |                                              |
+| alignment | 文字对齐方式 | ~left | 可选值：`~left`（左对齐）、`~center`（居中）、`~right`（右对齐） |
+
+### 九宫格纹理 `9SliceTexture`
+- 九宫格纹理用于显示色块或者图像，图像读取支持png、jpg、gif
+- 九宫格纹理组件支持文本显示
+- 九宫格纹理和纹理组件的机制相同，但是会将被渲染的贴图剪裁成9个块：
+<img src="/ui/controls-type.png" alt="UI"/>
+- 如图所示，九宫格纹理会根据 `left``right``top``bottom``textureWidth``textureHeight`将贴图分为9个部分
+- 其中，四角不会被拉伸（例图淡紫色充填部分），其余根据`width`以及`height`进行拉伸。
+- <strong>独有属性:</strong>
+
+|      名称       |     说明      | 默认值 |                                           备注                                            |
+|:-------------:|:-----------:|:---:|:---------------------------------------------------------------------------------------:|
+|    normal     |   常态显示内容    |  无  |            [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明)            |
+|     hover     | 鼠标悬停上方显示的内容 |  无  | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) ，如果不设置该值则就算悬停了也是渲染常态图 |
+|     left      |    左侧分割线    |  0  |                                         左侧分割线宽度                                         |
+|     right     |    右侧分割线    |  0  |                                         右侧分割线宽度                                         |
+|      top      |    上侧分割线    |  0  |                                         上分割线高度                                          |
+|    bottom     |    下侧分割线    |  0  |                                         下分割线高度                                          |
+| textureWidth  |    贴图宽度     |  0  |                               贴图宽度（可以和贴图实际宽度不一样，分割以该数据为准）                               |
+| textureHeight |    贴图高度     |  0  |                               贴图高度（可以和贴图实际高度不一样，分割以该数据为准）                               |
+
+## 游戏内容显示
+
+### 实体 `Entity`
+- 实体组件用于显示游戏内实体，比如背包UI的玩家。
+- <strong>独有属性:</strong>
+
+|     名称      |    说明    |      默认值      | 备注 |
+|:-----------:|:--------:|:-------------:|:--:|
+|    uuid     | 渲染实体uuid | 当前客户端玩家自身uuid |    |
+|   hideTag   | 是否渲染名称标签 |     false     |    |
+| followMouse | 视线是否跟随鼠标 |     false     |    |
+
+###  模型 `Model`
+- 用于在 UI 中渲染一个模型。
+- 独有属性:
+
+|     名称      |    说明    |  默认值  | 备注                                                                              |
+|:-----------:|:--------:|:-----:|:--------------------------------------------------------------------------------|
+|    model    |  模型 ID   |   无   |                                                                                 |
+|  animation  |   播放动作   | idle  |                                                                                 |
+| followMouse | 视线是否跟随鼠标 | false |                                                                                 |
+|  showType   |  显示部位类型  | none  | 可选值：`~none`（完整模型）、`~HEAD`（头部）、`~UPPER_BODY`（上半身）、`~LOWER_BODY`（下半身）、`~FOOT`（脚部） |
+
+### 槽位 `Slot`
+- 物品格子控件，用于显示和交互物品。
+- itemEffect 填写 ItemEffect 配置文件名：配置位于 `ArcartX/item_effect/xxx.yml` 则填写 `xxx`，带子目录如 `ArcartX/item_effect/abc/xxx.yml` 则填写 `abc/xxx`。
+- 独有属性:
+
+|      名称       |    说明    |   默认值    |                                                     备注                                                     |
+|:-------------:|:--------:|:--------:|:----------------------------------------------------------------------------------------------------------:|
+|    normal     |  常态显示内容  |    无     |                     [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明)                      |
+|     hover     | 鼠标悬停显示内容 |    无     | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) ，不设置则悬停时也渲染常态图。HUD 类型中，手持槽位对应该槽位时也会渲染此纹理 |
+|   slotType    |   槽位类型   | Backpack |                                      `Container` 容器槽位 `Extra`自定义拓展槽位                                       |
+|      id       |   槽位ID   |    0     |                                           除了拓展槽位是字符串，其余两种都是数字ID                                            |
+|   itemScale   |  物品缩放比例  |   1.0    |                                                   物品缩放比例                                                   |
+|     lock      |   锁定点击   |  false   |                                         是否锁定点击事件，锁定后无法点击槽位物品（仅客户端）                                         |
+|   cooldown    | 物品冷却状态贴图 |          |             [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) ,物品在渲染冷却进度时候的贴图              |
+| overwriteText |   覆盖显示   |    无     |                                            当不为空时，会替换物品右下角的文字显示                                             |
+
+<Callout type="info">
+    在 HUD 类型的 UI 中，Slot 控件支持 hovered 检测：当玩家手持的物品对应该槽位时，会渲染 `hover` 纹理。
+</Callout>
+
+### 多层血条 `BossBar`
+- 多层血条组件用于显示UI血条,该控件不应该直接放入UI而是在插件的boss_bar模块进行配置。
+- 具体请查看BossBar相关说明
+- 可用变量：health、maxHealth、layer(剩余层数)
+- <strong>独有属性:</strong>
+
+|       名称       |    说明    | 默认值 |              备注               |
+|:--------------:|:--------:|:---:|:-----------------------------:|
+|    textures    |   纹理列表   |  无  | 填写纹理路径列表，支持网络资源直连链接【注意这个是个列表】 |
+| transitionTime | 过渡时间（毫秒） | 500 |           血条宽度过渡时长            |
+
+## 特殊控件
+
+### 罗盘 `Compass`
+- 一个长得很像游标卡尺的指南针，联动WayPoint进行更精确的位置指引
+
+|         名称         |   说明    |     默认值     |                                备注                                 |
+|:------------------:|:-------:|:-----------:|:-----------------------------------------------------------------:|
+|     background     |  背景纹理   |  0,0,0,180  | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) |
+|     textColor      |  文字颜色   | 255,255,255 |                                                                   |
+|     tickColor      |  刻度颜色   | 255,255,255 |                                                                   |
+|   directionColor   |  方位颜色   | 255,255,255 |                                                                   |
+|    tickInterval    |  刻度间隔   |      5      |                                                                   |
+| majorTickInterval  | 主要刻度间隔  |     15      |                                                                   |
+|   showWaypoints    | 显示路标图标  |    true     |                                                                   |
+|  waypointFontSize  | 路标文字尺寸  |     32      |                                                                   |
+| waypointIconWidth  | 路标图标宽度  |     16      |                                                                   |
+| waypointIconHeight | 路标图标高度  |     16      |                                                                   |
+|     wayOffsetY     | 路标起始Y偏移 |      0      |                                                                   |
+
+### 输入框 `TextBox`
+- 输入框组件用于接收用户输入的文本内容。
+- <strong>独有属性:</strong>
+
+|      名称      |     说明      |     默认值      |                                     备注                                     |
+|:------------:|:-----------:|:------------:|:--------------------------------------------------------------------------:|
+|    length    |   最大输入长度    |    99999     |                                                                            |
+| allowNewLine |   是否允许换行    |    false     |                                                                            |
+|   editable   |    是否可编辑    |     true     |                                                                            |
+| cursorColor  |    光标颜色     | ~151,255,255 |                                                                            |
+|  emptyText   | 输入框为空时的提示文本 |      无       |                                                                            |
+| canLoseFocus |  是否可以失去焦点   |     true     |                                                                            |
+|  background  |   输入框背景颜色   |      无       | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) 如果为空则不渲染 |
+| passwordChar |    密码字符     |      无       |                                 为空则正常渲染文字                                  |
+| inputPattern |    输入限制     |      无       |                  这里输入的是正则表达式，比如限制仅限数字输入则是 `[0-9]+{:yaml}`                  |
+
+### 进度条 `Progress`
+- 该控件自带缓动过度动画，通过一个比值进行自动伸缩，可设置从左到右、右到左、上到下、下到上几种模式。
+- <strong>独有属性:</strong>
+
+|    名称    |  说明  | 默认值 |                                备注                                 |
+|:--------:|:----:|:---:|:-----------------------------------------------------------------:|
+| texture  |  纹理  |  无  | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) |
+| progress | 进度比值 |  0  |                       取值范围0~1，0表示无进度，1表示满进度                       |
+|   time   | 缓动时间 | 100 |                         进度变化到目标值所需时间，单位毫秒                         |
+|   mode   | 进度模式 |  0  |                    0 从左到右 1 从右到左 2 从上到下 3 从下到上                    |
+
+### 导入器 `Import`
+- 导入器用于将其它UI中的控件导入到当前UI中
+- 注：该控件无子控件
+- <strong>独有属性:</strong>
+
+|  名称  |  说明  | 默认值 |   备注   |
+|:----:|:----:|:---:|:------:|
+| node | 节点路径 |     | 填写节点路径 |
+
+- 详细说明
+```yaml
+import:
+    type: import
+    attribute:
+        node: ~menu.test.adaptive.chat
+        # 这里注意，如果目标ui是hud，第一个节点填hud，反之填menu
+        # 第二个节点是目标ui的id
+        # 其余节点填目标ui的控件路径，需要从顶层控件开始，用点号分隔
+        # 比如我要导入目标ui的abc中的子控件bcd，则路径为abc.bcd
+```
+### 观察者 `Observer`
+- 观察者用于订阅一个 *字典类型* 的变量，当变量键数量发生变化时，创建/删除控件
+- 注：该控件无子控件
+- <strong>独有属性:</strong>
+
+|    名称     |  说明  | 默认值 |                     备注                     |
+|:---------:|:----:|:---:|:------------------------------------------:|
+|  maxSize  | 最大数量 | 32  |                                            |
+| subscribe | 订阅变量 |     |             必须是字典类型，一般情况下填写变量              |
+|  target   | 目标控件 |     | 填写控件变量，当订阅目标增加键时，复制该控件，减少键时，删除该键对应的复制出来的控件 |
+
+- 详细说明
+```yaml
+  obs:
+    type: observer
+    attribute:
+      target: val.vStack['test'] # 不要给被复制控件加val，而是给父级设置val值
+      subscribe: global.testMap  # 订阅目标值
+  adaptive:
+    type: adaptive
+    attribute:
+      point: ~bottom_left
+      width: 1920
+      height: 1080
+    children:
+      vStack:
+        val: "vStack"
+        type: vStack
+        children:
+          test:
+            type: texture
+            attribute:
+              width: 200
+              height: 100
+              texts: "'键：' + self.key"  # 复制出来的控件会有一个key变量，对应订阅变量的键
+              normal: ~0,0,0
+              fontSize: 32
+```
+
+## 聊天相关
+
+### 聊天栏输入框 `ChatTextBox`
+- 和TextBox类似，但聊天栏输入框包含专用于聊天栏输入框的特性，该控件下可创建补全器子控件用于命令补全。
+- <strong>独有属性:</strong>
+
+|      名称      |     说明      |     默认值      |                                备注                                 |
+|:------------:|:-----------:|:------------:|:-----------------------------------------------------------------:|
+|    length    |   最大输入长度    |    99999     |                                                                   |
+|   editable   |    是否可编辑    |     true     |                                                                   |
+| cursorColor  |    光标颜色     | ~151,255,255 |                                                                   |
+|  emptyText   | 输入框为空时的提示文本 |      无       |                                                                   |
+| canLoseFocus |  是否可以失去焦点   |     true     |                                                                   |
+|  background  |   输入框背景颜色   |      无       | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) |
+|  sendClose   |   发送后关闭UI   |     TRUE     |                                                                   |
+
+### 命令补全器 `Suggestion`
+- 命令补全器用于聊天栏的命令补全，<strong>注意这个控件只能作为聊天栏输入框控件的子控件</strong>
+- 注：该控件无子控件
+- <strong>独有属性:</strong>
+
+|        名称        |     说明     |    默认值    |                                备注                                 |
+|:----------------:|:----------:|:---------:|:-----------------------------------------------------------------:|
+|    background    |    背景色     | 0,0,0,175 | [纹理表达式](/docs/arcartx_v1/core/8_ui/7_controls_attribute#纹理表达方式说明) |
+|      radius      |    圆角半径    |     3     |                                                                   |
+|   spaceBetween   | 每个提示文字的间距  |     5     |                                                                   |
+| backgroundBorder | 提示文字和背景的间距 |     5     |                                                                   |
+|        up        | 位置置于聊天栏上方  |   false   |                              反之至于下方                               |
+|     maxShow      | 最多显示的提示数量  |     5     |                                                                   |
+|    textColor     |   提示文字颜色   |  #FFFFFF  |                          注意这里填的是HEX16颜色                           |
+|  hoverTextColor  |  悬停提示文字颜色  |  #87CEEB  |                          注意这里填的是HEX16颜色                           |
+
+- 详细说明
+```yaml
+      input:
+        type: ChatTextBox
+        attribute:
+          length: 64
+          background: ~0,0,0
+          x: 10
+          y: 700
+          fontSize: 32
+          width: 1000
+          height: 20
+        children:
+          # 注意看这里，Suggestion只能置于聊天栏输入框的子控件
+          suggestion:
+            type: Suggestion
+            attribute:
+              fontSize: 32
+```
+
+### 聊天栏 `Chat`
+- 聊天栏用于显示聊天消息。该聊天栏支持ArcartX的特殊颜色格式和文字图标以及卡片消息
+- 注：该控件无子控件
+- <strong>独有属性:</strong>
+
+|      名称      |  说明   |  默认值  |                备注                 |
+|:------------:|:-----:|:-----:|:---------------------------------:|
+|    border    | 边框宽度  |   5   |                                   |
+| spaceBetween | 每行的间距 |   5   |                                   |
+|  background  | 背景颜色  | 0,0,0 |     填写rgba颜色字符串，比如~0,0,0,175      |
+|    filter    |  过滤   |       |  默认为空，当存在值时，如果消息开头和这个设定的值匹配才会显示   |
+|   showCard   | 显示卡片  | true  |          关闭后该聊天栏不显示卡片消息           |
+|   exclude    |  排除   |       |   默认为空，当存在值时，如果消息开头为设置的值则排除对应消息   |
+|     keep     | 持续渲染  | false | 为 true 时，即使不在聊天屏幕中也持续显示所有消息（不会淡出） |
+
+## 布局型
+
+### 画布 `Canvas`
+- 画布组件用于布局，你可以将其它组件放置在画布中进行相对布局。画布类型无独有属性。
+
+### 自适配布局  `Adaptive`
+- 自适配布局用于根据窗口大小调整其子组件的缩放值。
+- 自适配布局同样没有独有属性，但是有必要详细说明一下。
+- 该组件的宽高属性应该设置为你编辑这个UI的时候的屏幕分辨率宽高。这样就会在不同分辨率中运算缩放并应用到子组件中。
+- 比如你的屏幕分辨率是1920 * 1080 那么将该组件的宽高设置为同样的值即可。
+- 此外，还需要说明一点，自适配布局组件本身的位置是不会变的，也就是比如你窗口本身是居中的，那么自适配布局应该设置为居中锚点，如果需要其它位置以此类推。
+
+### 横向网格布局 `HGrid` (别名`Grid`)
+- 网格布局用于将子组件根据设定的间距和列数有序排列（比如背包的槽位）
+- <strong>独有属性:</strong>
+
+|      名称       |  说明  | 默认值 |     备注     |
+|:-------------:|:----:|:---:|:----------:|
+| spaceBetweenX | X轴间距 |  0  | 子组件之间的水平间距 |
+| spaceBetweenY | Y轴间距 |  0  | 子组件之间的垂直间距 |
+|    column     |  列数  |  1  |   子组件的列数   |
+
+### 纵向网格布局 `VGrid`
+- 网格布局用于将子组件根据设定的间距和列数有序排列（比如背包的槽位）
+- <strong>独有属性:</strong>
+
+|      名称       |  说明  | 默认值 |     备注     |
+|:-------------:|:----:|:---:|:----------:|
+| spaceBetweenX | X轴间距 |  0  | 子组件之间的水平间距 |
+| spaceBetweenY | Y轴间距 |  0  | 子组件之间的垂直间距 |
+|      row      |  行数  |  1  |   子组件的行数   |
+
+### 横向布局 `HStack` (别名`Stack`)
+- 横向布局用于将子组件横向排列
+- 该类型控件允许子控件增加一条新属性: level, 子控件 level越高，越靠前，其余顺序逻辑不变。
+- <strong>独有属性:</strong>
+
+|      名称      |  说明  | 默认值 |             备注              |
+|:------------:|:----:|:---:|:---------------------------:|
+| spaceBetween |  间距  |  0  |          子组件之间的间距           |
+|   maxSize    | 最大数量 | 64  | 一级子控件最大数量，如果超过该值，将移除最先加入的控件 |
+
+### 竖向布局 `VStack`
+- 竖向布局用于将子组件竖向排列
+- 该类型控件允许子控件增加一条新属性: level, 子控件 level越高，越靠前，其余顺序逻辑不变。
+- <strong>独有属性:</strong>
+
+|      名称      |  说明  | 默认值 |             备注              |
+|:------------:|:----:|:---:|:---------------------------:|
+| spaceBetween |  间距  |  0  |          子组件之间的间距           |
+|   maxSize    | 最大数量 | 64  | 一级子控件最大数量，如果超过该值，将移除最先加入的控件 |
+
+### 滚动栏 `Scroll`
+- 滚动栏用于实现可滚动的内容区域。
+- 滚动栏中只允许有一个子控件，且只能是布局控件（不能为 `Tip` 或 `Scroll`）。
+- 滚动栏本身不带滚动交互，需要配合滑块控件通过比例值控制滚动位置。
+- 独有属性:
+
+|  名称   |   说明    | 默认值 | 备注 |
+|:-----:|:-------:|:---:|:--:|
+| moveX | 横向移动百分比 |  0  |    |
+| moveY | 纵向移动百分比 |  0  |    |
+
+- 这个滚动栏控件解释起来有点困难，直接上一个示例。
+```yaml
+controls:
+  adaptive:
+    type: adaptive
+    attribute:
+      point: ~middle_center
+      width: 1920
+      height: 1080
+    children:
+      背景:
+        type: Texture
+        attribute:
+          point: ~middle_center
+          width: 1270
+          height: 650
+          normal: ~0,0,0
+      滚动栏区域:
+        type: Canvas
+        attribute:
+          point: ~middle_center
+          width: 1270
+          height: 650
+        children:
+          纵向滑块:
+            type: Texture
+            attribute:
+              point: ~top_right
+              width: 25
+              height: 80
+              normal: ~255,255,255
+              maxDragY: 650 - 80
+          横向滑块:
+            type: Texture
+            attribute:
+              point: ~bottom_left
+              width: 80
+              height: 25
+              normal: ~255,255,255
+              maxDragX: 1270 - 80
+          滚动栏:
+            type: Scroll
+            attribute:
+              width: 1245
+              height: 625
+              moveY: self.parent['纵向滑块'].getDragYRatio()
+              moveX: self.parent['横向滑块'].getDragXRatio()
+              normal: ~255,255,255
+            children:
+              滚动栏区域:
+                type: Canvas
+                attribute:
+                  width: 1270
+                  height: 1000
+                children:
+                  示例控件:
+                    type: Texture
+                    attribute:
+                      width: 1270
+                      height: 1000
+                      normal: ~inventory/item.png
+```
+
+### 血条排列器 `BossBars`
+- 血条排列器用于自动创建、移除、布局血条控件，创建好了不需要做任何事情，该控件会根据服务端配置的BossBar自动处理
+- 如何创建血条配置请看BossBar使用说明。
+- 注：该控件无子控件
+- 每次创建血条，会根据配置，在顶层控件加入一个entityName变量，表示当前血条所绑定的实体名称。
+- <strong>独有属性:</strong>
+
+|      名称      |  说明  | 默认值 |             备注              |
+|:------------:|:----:|:---:|:---------------------------:|
+| spaceBetween |  间距  |  0  |          子组件之间的间距           |
+|   maxSize    | 最大数量 |  3  | 一级子控件最大数量，如果超过该值，将移除最先加入的控件 |
+

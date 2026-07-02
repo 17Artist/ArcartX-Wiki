@@ -31,14 +31,14 @@ description: 音效播放调试指令
 
 | 属性  | 值                                                                                                       |
 |-----|---------------------------------------------------------------------------------------------------------|
-| 用法  | `arcartx sound entity <player> <resourcePath> <soundCategory> <target> <distOrRoll> <pitch> <keepTime>` |
+| 用法  | `arcartx sound entity <player> <resourcePath> <soundCategory> <player> <distOrRoll> <pitch> <keepTime>` |
 | 权限  | `arcartx.command.admin.sound`                                                                           |
 | 执行者 | 仅OP                                                                                                     |
 
-- `player`：目标玩家名（接收音效的玩家）
+- `player`：接收音效的玩家名
 - `resourcePath`：音效资源路径
 - `soundCategory`：音效类别
-- `target`：绑定的实体（玩家名或UUID）
+- `player`：绑定的目标实体（玩家名或UUID）
 - `distOrRoll`：音效传播距离/衰减
 - `pitch`：音调
 - `keepTime`：持续时间（毫秒）

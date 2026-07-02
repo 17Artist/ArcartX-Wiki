@@ -106,6 +106,31 @@ description: 物品NBT和属性编辑指令
 
 - `modelID`：模型ID
 
+### `arcartx item setArmor`
+
+- 设置手持物品的盔甲自定义贴图（资源id）
+
+| 属性  | 值                                 |
+|-----|-----------------------------------|
+| 用法  | `arcartx item setArmor <id>`      |
+| 权限  | `arcartx.command.admin.item.edit` |
+| 执行者 | 仅玩家                               |
+
+- `id`：盔甲贴图资源ID
+
+### `arcartx item setCostume`
+
+- 给护甲绑定时装
+
+| 属性  | 值                                          |
+|-----|--------------------------------------------|
+| 用法  | `arcartx item setCostume <modelID> [?hide]` |
+| 权限  | `arcartx.command.admin.item.edit`          |
+| 执行者 | 仅玩家                                        |
+
+- `modelID`：时装模型ID
+- `hide`：可选，是否隐藏对应的宿主部位（布尔值，默认 false）
+
 ### `arcartx item setFPModel`
 
 - 设置手持物品的第一人称模型

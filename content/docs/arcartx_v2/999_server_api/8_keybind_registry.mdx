@@ -1,0 +1,191 @@
+---
+title: ArcartXKeyBindRegistry:按键绑定注册器
+description: 按键绑定注册API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXKeyBindRegistry
+
+- 按键绑定注册器用于注册和管理自定义按键绑定。
+- 通过 `ArcartXAPI.getKeyBindRegistry()` 获取。
+- ArcartX支持两种按键类型：**简单按键（SimpleKey）** 和 **客户端按键（ClientKey）**。
+
+<Callout type="info">
+**SimpleKey vs ClientKey**：
+- **SimpleKey** — 服务端定义的按键组合，按键名称固定，玩家无法自定义。适合内部功能快捷键。
+- **ClientKey** — 在客户端按键设置界面中显示的按键，玩家可以自行修改绑定。适合面向玩家的功能按键。
+</Callout>
+
+## 只读属性
+
+### `clientKeyBind`
+- 已注册的客户端按键映射（只读，不可修改）。
+
+<Callout type="info">
+- **类型**：`Map<String, ClientKeyElement>` — 键为按键唯一标识，值为客户端按键元素
+- **调用示例**
+```java
+Map<String, ClientKeyElement> map = ArcartXAPI.getKeyBindRegistry().getClientKeyBind();
+```
+</Callout>
+
+### `simpleKeyBind`
+- 已注册的简单按键映射（只读，不可修改）。
+
+<Callout type="info">
+- **类型**：`Map<String, SimpleKeyElement>` — 键为按键唯一标识，值为简单按键元素
+- **调用示例**
+```java
+Map<String, SimpleKeyElement> map = ArcartXAPI.getKeyBindRegistry().getSimpleKeyBind();
+```
+</Callout>
+
+## 简单按键
+
+### `registerSimpleKeyBind(keyName, keys){:java}`
+- 注册一个简单按键绑定（无回调）
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `keys`: List&lt;String&gt; — 按键组合列表（如 `["LEFT_ALT", "R"]`）
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().registerSimpleKeyBind("my_key",
+    Arrays.asList("LEFT_CONTROL", "E"));
+```
+</Callout>
+
+### `registerSimpleKeyBind(keyName, keys, callBack){:java}`
+- 注册一个简单按键绑定，使用 `KeyCallBack` 接口处理按下和释放事件（适用于Java）
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `keys`: List&lt;String&gt; — 按键组合列表
+    - `callBack`: KeyCallBack — 按键回调接口
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().registerSimpleKeyBind("my_key",
+    Arrays.asList("LEFT_ALT", "Q"),
+    new KeyCallBack() {
+        @Override
+        public void onPress(Player player) {
+            // 按下时执行
+        }
+        @Override
+        public void onRelease(Player player) {
+            // 释放时执行
+        }
+    });
+```
+</Callout>
+
+### `registerSimpleKeyBind(keyName, keys, onPress, onRelease){:java}`
+- 注册一个简单按键绑定，分别指定按下和释放的回调（适用于Kotlin）
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `keys`: List&lt;String&gt; — 按键组合列表
+    - `onPress`: PlayerCallBack — 按下回调
+    - `onRelease`: PlayerCallBack — 释放回调
+- **返回值**：无
+- **调用示例**
+```kotlin
+ArcartXAPI.getKeyBindRegistry().registerSimpleKeyBind("my_key",
+    mutableListOf("LEFT_ALT", "Q"),
+    onPress = { player -> /* 按下 */ },
+    onRelease = { player -> /* 释放 */ }
+)
+```
+</Callout>
+
+### `unregisterSimpleKeyBind(keyName){:java}`
+- 注销一个简单按键绑定
+
+<Callout type="info">
+- **参数**：`keyName`: String — 按键唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().unregisterSimpleKeyBind("my_key");
+```
+</Callout>
+
+## 客户端按键
+
+### `registerClientKeyBind(keyName, category, defaultKey){:java}`
+- 注册一个客户端按键绑定（无回调）
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `category`: String — 按键分类（在客户端设置界面中的分组名）
+    - `defaultKey`: String — 默认绑定的按键
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().registerClientKeyBind("open_menu", "我的插件", "G");
+```
+</Callout>
+
+### `registerClientKeyBind(keyName, category, defaultKey, callBack){:java}`
+- 注册一个客户端按键绑定，使用 `KeyCallBack` 接口
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `category`: String — 按键分类
+    - `defaultKey`: String — 默认绑定的按键
+    - `callBack`: KeyCallBack — 按键回调接口
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().registerClientKeyBind("open_menu", "我的插件", "G",
+    new KeyCallBack() {
+        @Override
+        public void onPress(Player player) {
+            // 打开菜单
+        }
+        @Override
+        public void onRelease(Player player) { }
+    });
+```
+</Callout>
+
+### `registerClientKeyBind(keyName, category, defaultKey, onPress, onRelease){:java}`
+- 注册一个客户端按键绑定，分别指定回调（适用于Kotlin）
+
+<Callout type="info">
+- **参数**：
+    - `keyName`: String — 按键唯一标识
+    - `category`: String — 按键分类
+    - `defaultKey`: String — 默认绑定的按键
+    - `onPress`: PlayerCallBack — 按下回调
+    - `onRelease`: PlayerCallBack — 释放回调
+- **返回值**：无
+- **调用示例**
+```kotlin
+ArcartXAPI.getKeyBindRegistry().registerClientKeyBind("open_menu", "我的插件", "G",
+    onPress = { player -> /* 按下 */ },
+    onRelease = { player -> /* 释放 */ }
+)
+```
+</Callout>
+
+### `unregisterClientKeyBind(keyName){:java}`
+- 注销一个客户端按键绑定
+
+<Callout type="info">
+- **参数**：`keyName`: String — 按键唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getKeyBindRegistry().unregisterClientKeyBind("open_menu");
+```
+</Callout>

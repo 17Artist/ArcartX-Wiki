@@ -1,0 +1,12 @@
+{
+    "title": "实体对象",
+    "defaultOpen": false,
+    "pages": [
+        "1_info",
+        "2_movement",
+        "3_effect",
+        "4_combat",
+        "5_sound",
+        "6_mythicmob"
+    ]
+}

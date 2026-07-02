@@ -1,0 +1,281 @@
+---
+title: AsteroidScheduler:调度工具
+description: Folia 兼容的线程调度工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## AsteroidScheduler
+
+- 调度器桥接工具，封装 Asteroid `FoliaScheduler`，提供 Spigot / Paper / Folia 三平台兼容的任务调度。
+- 位于 `priv.seventeen.artist.arcartx.nms.AsteroidScheduler`，是一个 Kotlin `object` 单例。
+- 所有一次性任务和周期任务的句柄都会被内部登记，可通过 `cancelAll()` 在插件卸载时统一取消，避免 Folia 下任务泄漏。
+- 大部分方法都提供了 `Plugin` 的 Kotlin 扩展形式（如 `plugin.runTask { ... }`），在 Java 中请使用静态调用形式（如 `AsteroidScheduler.runTask(plugin, task)`）。
+
+<Callout type="info">
+调度方法的返回值均为 `Any?`（Java 中为 `Object`），代表底层任务句柄，可能为 null。该句柄可传给 `cancelTask(handle)` 用于取消任务。
+</Callout>
+
+## 平台检测
+
+### `isPaper(){:java}`
+- 判断当前服务端是否为 Paper（或其衍生版）
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：boolean
+- **调用示例**
+```java
+boolean paper = AsteroidScheduler.isPaper();
+```
+</Callout>
+
+### `isFolia(){:java}`
+- 判断当前服务端是否为 Folia
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：boolean
+- **调用示例**
+```java
+boolean folia = AsteroidScheduler.isFolia();
+```
+</Callout>
+
+### `isSpigot(){:java}`
+- 判断当前服务端是否为原版 Spigot
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：boolean
+- **调用示例**
+```java
+boolean spigot = AsteroidScheduler.isSpigot();
+```
+</Callout>
+
+## 同步调度
+
+### `runTask(plugin, task){:java}`
+- 在主线程（Folia 下为全局区域线程）执行一次性任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+// Java
+AsteroidScheduler.runTask(plugin, () -> player.sendMessage("Hello"));
+
+// Kotlin 扩展写法
+plugin.runTask { player.sendMessage("Hello") }
+```
+</Callout>
+
+### `runTaskLater(plugin, task, delayTicks){:java}`
+- 在主线程延迟执行一次性任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+    - `delayTicks`: long — 延迟 tick 数（20 tick = 1 秒）
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+AsteroidScheduler.runTaskLater(plugin, () -> {
+    // 1 秒后执行
+}, 20L);
+```
+</Callout>
+
+### `runTaskTimer(plugin, task, delayTicks, periodTicks){:java}`
+- 在主线程按周期重复执行任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+    - `delayTicks`: long — 首次执行前的延迟 tick 数
+    - `periodTicks`: long — 每次执行的间隔 tick 数
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+Object handle = AsteroidScheduler.runTaskTimer(plugin, () -> {
+    // 每秒执行一次
+}, 0L, 20L);
+```
+</Callout>
+
+## 异步调度
+
+### `runAsync(plugin, task){:java}`
+- 在异步线程执行一次性任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+AsteroidScheduler.runAsync(plugin, () -> {
+    // 异步操作，如数据库查询
+});
+```
+</Callout>
+
+### `runAsyncLater(plugin, task, delayTicks){:java}`
+- 在异步线程延迟执行一次性任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+    - `delayTicks`: long — 延迟 tick 数
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+AsteroidScheduler.runAsyncLater(plugin, () -> {
+    // 异步延迟执行
+}, 40L);
+```
+</Callout>
+
+### `runAsyncTimer(plugin, task, delayTicks, periodTicks){:java}`
+- 在异步线程按周期重复执行任务
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+    - `delayTicks`: long — 首次执行前的延迟 tick 数
+    - `periodTicks`: long — 每次执行的间隔 tick 数
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+Object handle = AsteroidScheduler.runAsyncTimer(plugin, () -> {
+    // 每 5 秒异步执行一次
+}, 0L, 100L);
+```
+</Callout>
+
+## 区域安全调度（Folia）
+
+### `runEntityTask(plugin, entity, task){:java}`
+- 在指定实体所属的区域线程上执行任务，保证 Folia 下对该实体的操作线程安全
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `entity`: Entity — 目标实体
+    - `task`: Runnable — 要执行的任务
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+AsteroidScheduler.runEntityTask(plugin, entity, () -> {
+    entity.teleport(location);
+});
+```
+</Callout>
+
+### `runLocationTask(plugin, location, task){:java}`
+- 在指定坐标所属的区域线程上执行任务，保证 Folia 下对该区域的操作线程安全
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `location`: Location — 目标坐标
+    - `task`: Runnable — 要执行的任务
+- **返回值**：`Object`（`Any?`）— 任务句柄，可能为 null
+- **调用示例**
+```java
+AsteroidScheduler.runLocationTask(plugin, location, () -> {
+    world.spawnParticle(...);
+});
+```
+</Callout>
+
+## 任务取消
+
+### `cancelTask(handle){:java}`
+- 取消指定句柄对应的任务，并从内部登记表中移除
+
+<Callout type="info">
+- **参数**：`handle`: Object（`Any?`）— 任务句柄，可为 null
+- **返回值**：无
+- **调用示例**
+```java
+Object handle = AsteroidScheduler.runTaskTimer(plugin, task, 0L, 20L);
+// ...
+AsteroidScheduler.cancelTask(handle);
+```
+</Callout>
+
+### `cancelAll(){:java}`
+- 取消所有经本调度器登记且仍在追踪的任务（常用于 `onDisable`）
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **调用示例**
+```java
+AsteroidScheduler.cancelAll();
+```
+</Callout>
+
+## 线程保障
+
+### `ensureMainThread(plugin, task){:java}`
+- 确保任务在主线程执行。非 Folia 下若当前已在主线程则直接执行，否则调度到主线程；Folia 下始终通过 `runTask` 调度
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+AsteroidScheduler.ensureMainThread(plugin, () -> {
+    // 保证在主线程执行，适合操作 Bukkit API
+    entity.teleport(location);
+});
+```
+</Callout>
+
+### `ensureAsyncThread(plugin, task){:java}`
+- 确保任务在异步线程执行。若当前已在主线程则调度到异步线程，否则直接执行
+
+<Callout type="info">
+- **参数**：
+    - `plugin`: Plugin — 插件实例
+    - `task`: Runnable — 要执行的任务
+- **返回值**：无
+- **调用示例**
+```java
+AsteroidScheduler.ensureAsyncThread(plugin, () -> {
+    // 保证在异步线程执行，适合 IO 操作
+    saveToDatabase();
+});
+```
+</Callout>
+
+## Plugin 扩展写法（Kotlin）
+
+以下方法均为 `Plugin` 的 Kotlin 扩展函数，等价于把 `plugin` 作为第一个参数传入对应的静态方法。仅在 Kotlin 中可用此简写，Java 请直接使用上文的静态调用形式。
+
+<Callout type="info">
+- `plugin.runTask(task)`
+- `plugin.runTaskLater(task, delayTicks)`
+- `plugin.runTaskTimer(task, delayTicks, periodTicks)`
+- `plugin.runAsync(task)`
+- `plugin.runAsyncLater(task, delayTicks)`
+- `plugin.runAsyncTimer(task, delayTicks, periodTicks)`
+- `plugin.runEntityTask(entity, task)`
+- `plugin.runLocationTask(location, task)`
+- `plugin.ensureMainThread(task)`
+- `plugin.ensureAsyncThread(task)`
+</Callout>

@@ -1,0 +1,60 @@
+---
+title: 客户端通信事件
+description: 客户端通道与自定义数据包事件
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 客户端通信事件
+
+- 与客户端网络通信相关的事件。
+
+## `ClientChannelEvent`
+- 客户端ArcartX通道建立时触发
+
+<Callout type="info">
+- **属性**：`player`: Player — 玩家
+- **可取消**：否
+</Callout>
+
+## `ClientCustomPacketEvent`
+- 收到客户端发来的自定义数据包时触发
+- 这是实现客户端与服务端自定义通信的核心事件
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 发送数据的玩家
+    - `id`: String — 数据包ID
+    - `data`: List&lt;String&gt; — 数据内容列表
+    - `argSize`: int — 参数数量
+- **可取消**：否
+</Callout>
+
+<Callout type="info">
+**内置参数解析方法**：
+
+`ClientCustomPacketEvent` 提供了一系列便捷方法来解析参数，解析失败时会返回默认值而不是抛出异常：
+
+| 方法 | 返回类型 | 失败默认值 |
+|------|----------|------------|
+| `getArg(index)` | String | `""` |
+| `getArgAsInt(index)` | int | `0` |
+| `getArgAsDouble(index)` | double | `0.0` |
+| `getArgAsBoolean(index)` | boolean | `false` |
+| `getArgAsLong(index)` | long | `0` |
+| `getArgAsFloat(index)` | float | `0` |
+| `getArgAsUUID(index)` | UUID? | `null` |
+</Callout>
+
+- **调用示例**
+```java
+@EventHandler
+public void onCustomPacket(ClientCustomPacketEvent event) {
+    if (event.getId().equals("my_plugin:action")) {
+        String action = event.getArg(0);
+        int value = event.getArgAsInt(1);
+        // 处理自定义数据包
+    }
+}
+```

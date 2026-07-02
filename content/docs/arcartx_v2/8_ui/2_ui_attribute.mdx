@@ -1,0 +1,140 @@
+---
+title: UI 属性
+description: UI 自身的配置属性
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## UI 属性
+
+UI 分为两种类型：
+- `Menu` — 打开后会弹出鼠标光标的界面（如背包、商店等）
+- `HUD` — 常驻于屏幕上的界面（如血条、状态栏等）
+
+两种类型共用同一套配置，但部分属性仅对特定类型生效。不需要更改默认值的属性可以省略不写。
+
+```yaml
+ui:
+  match: []
+  hide: []
+  itemSize: "16"
+  through: "false"
+  escClose: "true"
+  background: "true"
+  closeDied: "true"
+  show: "true"
+  jei: "false"
+  level: "0"
+  screenScale: true
+  isHud: "false"
+  defaultOpen: "true"
+  action:  # 详见 UI 触发器章节
+  packetHandler: # 详见 UI 通讯章节
+```
+
+### 属性详解
+
+<Callout>
+    **match**
+    - **脚本支持:** 否
+    - **生效对象:** Menu 类型
+    - **默认值:** 无
+    - **说明:** 用于替换原版界面。填写原版界面 ID，当玩家打开对应的原版界面时，会自动替换为你的自定义 UI。
+    - 如何获取原版界面 ID：打开客户端日志，每次打开一个界面都会输出对应的 ID。
+    - 支持正则匹配：开头使用 `[regex]` 即代表正则匹配，例如 `[regex].*Chest.*{:yaml}`
+    - 注意：ArcartX 内置了友好名称字典（中文），这是因为Fabric使用了中介名，难以理解含义。旧版教程中可能仍使用原始类名（英文），请分辨并替换为最新写法。
+    - 容器的匹配不包含颜色符号。
+    <img src="/ui/attribute-preview.png" alt="UI 界面 ID 示例"/>
+</Callout>
+<Callout>
+    **hide**
+    - **脚本支持:** 否
+    - **生效对象:** Menu 类型、HUD 类型
+    - **默认值:** 无
+    - **说明:** 当此 UI 存在时，隐藏指定的 HUD。ArcartX 自定义 HUD 填写对应 ID，原版 HUD 名称如下：
+    - `vignette` `spyglass` `helmet` `frostbite` `portal` `hotbar` `crosshair`
+    - `boss_event_progress` `player_health` `armor_level` `food_level` `air_level`
+    - `mount_health` `jump_bar` `experience_bar` `item_name` `sleep_fade`
+    - `potion_icons` `debug_text` `fps_graph` `record_overlay` `title_text` `subtitles`
+    - `scoreboard` `chat_panel` `player_list`
+    - `recipe_toast` `system_toast` `advancement_toast` `tutorial_toast`（右上角弹出消息）
+    - 1.20.1 以上版本：`player_state`（对应 player_health / armor_level / food_level / air_level 的合集）
+</Callout>
+<Callout>
+    **itemSize**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型
+    - **默认值:** 16
+    - **说明:** 点击槽位拿起物品后，鼠标指针上渲染的物品图标大小。
+</Callout>
+<Callout>
+    **through**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型、HUD 类型
+    - **默认值:** false
+    - **说明:** 是否开启穿透点击。为 true 时，重叠的组件会同时触发点击事件；为 false 时只触发最上层组件的事件。
+</Callout>
+<Callout>
+    **escClose**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型
+    - **默认值:** true
+    - **说明:** 是否允许按 ESC 关闭此 UI。
+</Callout>
+<Callout>
+    **background**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型
+    - **默认值:** true
+    - **说明:** 是否渲染半透明黑色背景（原版打开 UI 时的背景遮罩）。
+</Callout>
+<Callout>
+    **closeDied**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型
+    - **默认值:** true
+    - **说明:** 玩家死亡时是否关闭此 UI。如果你替换的是原版死亡界面，需要设为 false。
+</Callout>
+<Callout>
+    **show**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型、HUD 类型
+    - **默认值:** true
+    - **说明:** UI 是否渲染显示。
+</Callout>
+<Callout>
+    **jei**
+    - **脚本支持:** 是
+    - **生效对象:** Menu 类型
+    - **默认值:** false
+    - **说明:** 打开此 UI 时是否渲染 JEI 侧边栏。
+</Callout>
+<Callout>
+    **level**
+    - **脚本支持:** 是
+    - **生效对象:** HUD 类型
+    - **默认值:** 0
+    - **说明:** HUD 渲染优先级。数字越大越先渲染（显示在越底层）。
+</Callout>
+<Callout>
+    **isHud**
+    - **脚本支持:** 否
+    - **生效对象:** HUD 类型
+    - **默认值:** false
+    - **说明:** 是否作为 HUD 类型。设为 true 后此 UI 将作为常驻 HUD 显示。
+</Callout>
+<Callout>
+    **defaultOpen**
+    - **脚本支持:** 否
+    - **生效对象:** HUD 类型
+    - **默认值:** true
+    - **说明:** HUD 加载后是否立即打开。设为 false 时需要通过指令 `/a screen open` 或 API 手动控制。
+</Callout>
+<Callout>
+    **screenScale**
+    - **脚本支持:** 否
+    - **生效对象:** Menu 类型、HUD 类型
+    - **默认值:** true
+    - **说明:** 是否启用屏幕缩放适配。
+</Callout>

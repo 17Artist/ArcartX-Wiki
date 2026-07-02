@@ -1,0 +1,83 @@
+---
+title: 实体效果
+description: 实体对象:为实体添加、移除与查询药水效果
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
+- 药水效果名称使用 Minecraft 原版的药水效果 ID（如 `SPEED`、`SLOWNESS`、`REGENERATION` 等）。无效的名称会被忽略。
+
+## `addPotionEffect(id, duration, amplifier){:aria}`
+- 为实体添加一个药水效果
+<Callout type="info">
+    - **参数**：
+        - `id` — 字符串类型，药水效果名称
+        - `duration` — 整数类型，持续时间（tick）
+        - `amplifier` — 整数类型，效果等级（从 0 开始）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.addPotionEffect("SPEED", 200, 1)
+    ```
+</Callout>
+
+<Callout type="warn">
+参数数量必须为 3 个，否则不会执行。
+</Callout>
+
+## `removePotionEffect(id){:aria}`
+- 移除实体身上指定的药水效果
+<Callout type="info">
+    - **参数**：`id` — 字符串类型，药水效果名称
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.removePotionEffect("SPEED")
+    ```
+</Callout>
+
+## `clearPotionEffect(){:aria}`
+- 清除实体身上的全部药水效果
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.clearPotionEffect()
+    ```
+</Callout>
+
+## `hasPotionEffect(id){:aria}`
+- 判断实体是否拥有指定的药水效果
+<Callout type="info">
+    - **参数**：`id` — 字符串类型，药水效果名称
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.hasPotionEffect("SPEED")
+    ```
+</Callout>
+
+## `getPotionEffectDuration(id){:aria}`
+- 获取实体指定药水效果的剩余持续时间（tick）
+<Callout type="info">
+    - **参数**：`id` — 字符串类型，药水效果名称
+    - **返回值**：整数类型（无该效果时返回 0）
+    - **调用示例**
+    ```aria
+    实体对象.getPotionEffectDuration("SPEED")
+    ```
+</Callout>
+
+## `getPotionEffectAmplifier(id){:aria}`
+- 获取实体指定药水效果的等级
+<Callout type="info">
+    - **参数**：`id` — 字符串类型，药水效果名称
+    - **返回值**：整数类型（无该效果时返回 -1）
+    - **调用示例**
+    ```aria
+    实体对象.getPotionEffectAmplifier("SPEED")
+    ```
+</Callout>

@@ -1,0 +1,31 @@
+---
+title: UI定时任务
+description: UI定时任务
+---
+
+## UI 定时任务
+
+UI 定时任务用于在指定时间执行脚本，或按设定的周期循环执行脚本，适用于需要根据生命周期来执行的逻辑。
+
+配置格式如下：
+
+```yaml
+ui:
+  match:
+    - ChatScreen
+  background: false
+  through: true
+tasks:
+  测试延迟:
+    type: delay
+    time: 5000
+    run: |-
+      Message.chat("测试延迟任务")
+  测试循环:
+    type: loop
+    time: 3000
+    cycle: 1000
+    run: |-
+      Message.chat("测试循环任务")
+
+```

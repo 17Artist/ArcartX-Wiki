@@ -1,0 +1,28 @@
+---
+title: 模型刀光效果
+description: 通过定位器生成刀光特效
+---
+
+## 模型刀光效果
+
+刀光效果适用于技能、攻击等场景：
+
+<img src="/model/effects/slash-preview.png" alt="刀光效果"/>
+
+## 使用方式
+
+刀光效果需要两个定位器来确定刀光的起点和终点。定位器不一定要在生物模型上，也可以在物品模型上创建定位器，在生物模型的动作中执行。
+
+<img src="/model/effects/slash-locator.png" alt="定位器配置"/>
+
+在动画的指令帧中添加刀光命令：
+
+```
+arcartx:slash{color=255,0,0,255}
+arcartx:slash{color=255,0,0,255;keepTime=1000}
+```
+
+| 参数       |  类型  | 说明                  |
+|:---------|:----:|:--------------------|
+| color    | RGBA | 颜色值，格式为 R,G,B,A     |
+| keepTime | int  | 持续时间（毫秒），默认为动作结束后消失 |

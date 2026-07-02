@@ -1,0 +1,94 @@
+---
+title: Elastic-弹性动画插值
+description: 弹性动画插值对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+Elastic是一个模拟弹性运动的插值对象。通过设置振幅和周期，可以创建具有弹性效果的动画。
+</Callout>
+
+## 实例化方式
+
+### `Elastic`含参实例化
+<Callout type="info">
+- **描述**：创建一个弹性插值实例。
+- **参数**：
+  - `start`：数值类型，起始值
+  - `end`：数值类型，结束值
+  - `amplitude`：数值类型，振幅（控制弹性强度）
+  - `period`：数值类型，周期（控制弹性频率）
+  - `transferTime`：长整型，过渡时间（毫秒）
+- **调用示例**：
+```aria
+Elastic(0, 100, 1.0, 0.3, 1000) // 1秒内从0到100，标准振幅和周期
+```
+</Callout>
+
+### 默认参数
+<Callout type="info">
+当不提供完整参数时，使用以下默认值：
+- **振幅**: 1.0
+- **周期**: 0.3
+- **过渡时间**: 1000毫秒
+</Callout>
+
+### 参数说明
+<Callout type="info">
+- **振幅(amplitude)**：控制弹性效果的强度，值越大弹性越强
+- **周期(period)**：控制弹性振动的频率，值越小振动越快
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+- 获取当前插值计算的结果
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：数值类型
+- **说明**：根据当前时间计算带弹性效果的插值结果
+- **调用示例**：
+```aria
+Elastic(0, 100, 1.0, 0.3, 1000).get()
+```
+</Callout>
+
+### `reset(){:aria}`
+- 重置插值器状态
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：重置计时器并清除反向状态，重新开始动画
+- **调用示例**：
+```aria
+Elastic(0, 100, 1.0, 0.3, 1000).reset()
+```
+</Callout>
+
+### `reverse(){:aria}`
+- 反转动画方向
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+- **说明**：将动画方向反转，从当前位置开始向起始值过渡
+- **调用示例**：
+```aria
+Elastic(0, 100, 1.0, 0.3, 1000).reverse()
+```
+</Callout>
+
+## 类型转换
+
+Elastic对象支持以下类型转换：
+- **数值**：返回当前插值计算的结果
+- **布尔值**：当前值大于0时返回true，否则返回false
+- **字符串**：返回当前插值计算结果的字符串表示
+
+<Callout type="info">
+Elastic对象支持数学运算，可以直接参与计算表达式。
+</Callout>

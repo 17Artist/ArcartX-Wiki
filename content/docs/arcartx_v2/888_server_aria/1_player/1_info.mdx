@@ -1,0 +1,75 @@
+---
+title: 玩家信息
+description: 玩家对象:获取玩家状态信息
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**玩家**（`Player`），仅在目标为玩家时可用。
+
+## `isAfterJump(){:aria}`
+- 判断玩家是否处于「刚跳跃」的状态（起跳后的短暂时间窗口内）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isAfterJump()
+    ```
+</Callout>
+
+## `isSprinting(){:aria}`
+- 判断玩家是否正在奔跑
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isSprinting()
+    ```
+</Callout>
+
+## `isSneaking(){:aria}`
+- 判断玩家是否正在潜行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isSneaking()
+    ```
+</Callout>
+
+## `isFlying(){:aria}`
+- 判断玩家是否正在飞行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isFlying()
+    ```
+</Callout>
+
+## `getFood(){:aria}`
+- 获取玩家饱食度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getFood()
+    ```
+</Callout>
+
+## `getPlaceholder(placeholder){:aria}`
+- 以该玩家为对象解析 PlaceholderAPI 变量，并返回解析后的字符串
+<Callout type="info">
+    - **参数**：`placeholder` — 字符串类型，待解析的 PAPI 变量文本（如 `%player_name%`）
+    - **返回值**：字符串类型（解析结果；参数数量不为 1 时返回空字符串）
+    - **调用示例**
+    ```aria
+    玩家对象.getPlaceholder("%player_name%")
+    ```
+</Callout>

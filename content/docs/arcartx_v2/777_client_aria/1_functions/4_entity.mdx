@@ -1,0 +1,118 @@
+---
+title: Entity:实体操作
+description: Entity实体工具集
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## `Entity.isRendering(uuid){:aria}`
+- 检查指定UUID的实体是否正在渲染
+
+<Callout type="info">
+- **参数**：`uuid`: 字符串类型(实体UUID)
+- **返回值**：布尔类型
+- **调用示例**
+```aria
+Entity.isRendering("550e8400-e29b-41d4-a716-446655440000")
+```
+- **示例返回值**
+```aria
+true
+```
+</Callout>
+
+## `Entity.getMouseEntityName(){:aria}`
+- 获取鼠标指向实体的名称
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Entity.getMouseEntityName()
+```
+- **示例返回值**
+```aria
+"Steve"
+```
+</Callout>
+
+## `Entity.getMouseEntityDistance(){:aria}`
+- 获取玩家与鼠标指向实体的距离
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```aria
+Entity.getMouseEntityDistance()
+```
+- **示例返回值**
+```aria
+3.5
+```
+</Callout>
+
+## `Entity.getMouseEntityUUID(){:aria}`
+- 获取鼠标指向实体的UUID
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：字符串类型
+- **调用示例**
+```aria
+Entity.getMouseEntityUUID()
+```
+- **示例返回值**
+```aria
+"550e8400-e29b-41d4-a716-446655440000"
+```
+</Callout>
+
+## `Entity.getMouseEntityHealth(){:aria}`
+- 获取鼠标指向实体的当前生命值
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```aria
+Entity.getMouseEntityHealth()
+```
+- **示例返回值**
+```aria
+20.0
+```
+</Callout>
+
+## `Entity.getMouseEntityMaxHealth(){:aria}`
+- 获取鼠标指向实体的最大生命值
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：双精度浮点类型
+- **调用示例**
+```aria
+Entity.getMouseEntityMaxHealth()
+```
+- **示例返回值**
+```aria
+20.0
+```
+</Callout>
+
+## `Entity.isMouseEntityAdyeshach(){:aria}`
+- 检查鼠标指向的实体是否为Adyeshach实体
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    Entity.isMouseEntityAdyeshach()
+    ```
+    - **示例返回值**
+    ```aria
+    true
+    ```
+</Callout>

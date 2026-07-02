@@ -1,0 +1,65 @@
+---
+title: Fade-淡入淡出动画
+description: 淡入淡出动画对象及其函数
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+Fade是一个用于实现淡入淡出效果的动画对象。它可以在指定的时间内完成淡入、停留和淡出三个阶段，适用于字幕、UI元素等需要平滑过渡的场景。
+</Callout>
+
+## 实例化方式
+
+### `Fade`含参实例化
+<Callout type="info">
+- **描述**：创建一个淡入淡出动画实例，用于控制元素的不透明度变化。
+- **参数**：
+  - `fadeInDuration`：长整型，淡入阶段持续时间（毫秒）
+  - `stayDuration`：长整型，停留阶段持续时间（毫秒）
+  - `fadeOutDuration`：长整型，淡出阶段持续时间（毫秒）
+- **调用示例**：
+```aria
+Fade(500, 2000, 500) // 500ms淡入，2000ms停留，500ms淡出
+```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+- 获取当前不透明度值
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型，范围0.0-1.0
+    - **说明**：根据当前动画阶段计算不透明度值。淡入阶段从0逐渐增加到1，停留阶段保持为1，淡出阶段从1逐渐减少到0，完成阶段保持为0。
+    - **调用示例**：
+    ```aria
+    Fade(500, 2000, 500).get()
+    ```
+</Callout>
+
+### `reset(){:aria}`
+- 重置动画状态
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：将动画重置到淡入阶段的起始状态，不透明度重置为0，重新开始整个动画流程。
+    - **调用示例**：
+    ```aria
+    Fade(500, 2000, 500).reset()
+    ```
+</Callout>
+
+## 类型转换
+
+Fade对象支持以下类型转换：
+- **数值**：返回当前不透明度值（0.0-1.0）
+- **布尔值**：当不透明度大于0时返回true，否则返回false
+- **字符串**：返回当前不透明度值的字符串表示
+
+<Callout type="info">
+    Fade对象支持数学运算，可以直接参与计算表达式。
+</Callout>

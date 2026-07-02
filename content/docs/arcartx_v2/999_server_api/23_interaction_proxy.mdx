@@ -1,0 +1,173 @@
+---
+title: InteractionProxyManager:交互代理管理器
+description: 命中盒代理（交互代理）管理器 API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## InteractionProxyManager
+
+- 交互代理（命中盒代理）管理器，用于为一个实体创建独立的「代理实体」，为其提供可自定义尺寸的命中盒、骑乘、座位、受伤处理等能力。
+- 通过 `ArcartXAPI.getInteractionProxyManager()` 获取。
+
+<Callout type="info">
+下文中的 `CustomEntity` 为 ArcartX 内部实体封装类型（`priv.seventeen.artist.asteroid.entity.CustomEntity`），通常你只需持有它以做进一步操作，或直接使用返回的 Bukkit `Entity`。
+</Callout>
+
+## `createProxy(owner, width, height){:java}`
+- 为指定实体创建一个交互代理实体。若该实体已存在代理，会先移除旧代理再创建新代理。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`width`: double — 命中盒宽度；`height`: double — 命中盒高度
+- **返回值**：`Entity` — 新创建的代理实体（Bukkit 实体）
+- **调用示例**
+```java
+Entity proxy = ArcartXAPI.getInteractionProxyManager().createProxy(owner, 1.0, 2.0);
+```
+</Callout>
+
+## `removeProxy(owner){:java}`
+- 移除指定实体的交互代理，并清理其对应的实体缓存。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().removeProxy(owner);
+```
+</Callout>
+
+## `getProxy(owner){:java}`
+- 获取指定实体对应的代理实体对象。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体
+- **返回值**：`CustomEntity?` — 代理实体对象，不存在时为 null
+- **调用示例**
+```java
+CustomEntity proxy = ArcartXAPI.getInteractionProxyManager().getProxy(owner);
+```
+</Callout>
+
+## `getOwner(proxy){:java}`
+- 通过代理实体获取其所属的实体。存在 `Entity` 与 `UUID` 两个重载。
+
+<Callout type="info">
+- **参数**：`proxy`: Entity 或 UUID — 代理实体或其 UUID
+- **返回值**：`Entity?` — 代理所属的实体，不存在时为 null
+- **调用示例**
+```java
+Entity owner = ArcartXAPI.getInteractionProxyManager().getOwner(proxyEntity);
+Entity owner2 = ArcartXAPI.getInteractionProxyManager().getOwner(proxyUUID);
+```
+</Callout>
+
+## `getProxyFromEntity(proxy){:java}`
+- 通过代理实体反查其代理对象。
+
+<Callout type="info">
+- **参数**：`proxy`: Entity — 代理实体
+- **返回值**：`CustomEntity?` — 代理对象，不存在时为 null
+- **调用示例**
+```java
+CustomEntity proxy = ArcartXAPI.getInteractionProxyManager().getProxyFromEntity(proxyEntity);
+```
+</Callout>
+
+## `isOwner(ownerUUID){:java}`
+- 判断指定 UUID 的实体是否拥有交互代理。
+
+<Callout type="info">
+- **参数**：`ownerUUID`: UUID — 实体 UUID
+- **返回值**：`boolean` — 是否拥有代理
+- **调用示例**
+```java
+boolean isOwner = ArcartXAPI.getInteractionProxyManager().isOwner(uuid);
+```
+</Callout>
+
+## `isProxy(entity){:java}`
+- 判断指定实体是否为一个交互代理。存在 `Entity` 与 `UUID` 两个重载。
+
+<Callout type="info">
+- **参数**：`entity`: Entity 或 UUID — 待判断的实体或其 UUID
+- **返回值**：`boolean` — 是否为代理实体
+- **调用示例**
+```java
+boolean isProxy = ArcartXAPI.getInteractionProxyManager().isProxy(entity);
+```
+</Callout>
+
+## `hasProxy(entity){:java}`
+- 判断指定实体是否已存在交互代理。
+
+<Callout type="info">
+- **参数**：`entity`: Entity — 待判断的实体
+- **返回值**：`boolean` — 是否已存在代理
+- **调用示例**
+```java
+boolean has = ArcartXAPI.getInteractionProxyManager().hasProxy(entity);
+```
+</Callout>
+
+## `updateProxySize(owner, width, height){:java}`
+- 更新指定实体代理的命中盒尺寸。若代理不存在则不执行任何操作。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`width`: double — 新宽度；`height`: double — 新高度
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().updateProxySize(owner, 1.5, 2.5);
+```
+</Callout>
+
+## `setProxyMountType(owner, type){:java}`
+- 设置代理的骑乘类型。`type` 支持 `GROUND`、`FLY`、`BOAT`、`CAR`、`DIVING`（不区分大小写），其余值视为 `NONE`（即移除骑乘/交互能力）。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`type`: String — 骑乘类型
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().setProxyMountType(owner, "GROUND");
+```
+</Callout>
+
+## `setMountSpeed(owner, moveSpeed, flyUpSpeed, flyDownSpeed, boatTurnSpeed){:java}`
+- 设置代理骑乘时的移动参数。仅当代理已具备骑乘能力时生效。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`moveSpeed`: float — 移动速度；`flyUpSpeed`: float — 上升速度；`flyDownSpeed`: float — 下降速度；`boatTurnSpeed`: float — 船类转向速度
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().setMountSpeed(owner, 0.4f, 0.3f, 0.3f, 2.0f);
+```
+</Callout>
+
+## `addSeat(owner, x, y, z){:java}`
+- 为代理添加一个座位偏移点。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`x`: double、`y`: double、`z`: double — 座位相对偏移
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().addSeat(owner, 0.0, 1.2, 0.0);
+```
+</Callout>
+
+## `setDamageHandler(owner, callback){:java}`
+- 为代理设置受伤回调处理器，用于接管代理实体受到伤害时的逻辑。
+
+<Callout type="info">
+- **参数**：`owner`: Entity — 代理所属的实体；`callback`: DamageAbility.Callback — 受伤回调
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getInteractionProxyManager().setDamageHandler(owner, callback);
+```
+</Callout>

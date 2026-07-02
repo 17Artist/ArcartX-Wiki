@@ -1,0 +1,62 @@
+---
+title: BossBar使用说明
+description: BossBar使用说明
+---
+
+## BossBar 使用说明
+- Bossbar的配置格式和UI差不多，但是Bossbar是属于"零散的UI"，它是通过`BossBars`控件自动创建到UI中，而不是直接在UI中创建的。
+- 如果你跳过了前面的UI教学，*请不要尝试强行理解该章节*。
+- 本章节涉及两个控件： BossBars 和 BossBar，具体说明请查看本篇的控件类型。
+
+## 简单示例
+- Bossbar的配置位于ArcartX配置目录下的`boss_bar`文件夹，你可以创建多个BossBar配置。
+```yaml
+bossbar:
+  match:
+    - "boss" # 填写匹配生物名，不需要填写颜色代码。建议生物名匹配时添加特殊符号（如果你不希望玩家也被匹配到），因为匹配时不包含颜色代码
+root_control: # 填写控件片段，注意，如果你的载体BossBars控件已经使用了自适应布局控件作为父级，这里不需要再套一层
+  type: canvas
+  attribute:
+    width: 1000
+    height: 60
+  children:
+    name:
+      type: text
+      attribute:
+        center: true
+        x: 500
+        y: 5
+        fontSize: 32
+        texts: self.parent.entityName  # 生物名会作为变量加入到该血条的根控件中
+    bar:
+      type: bossbar
+      attribute:
+        width: 1000
+        height: 20
+        y: 30
+        textures: # 这里填写每层的贴图 填多少个就会分为多少层
+          - ~255,0,0
+          - ~0,255,0
+          - ~0,0,255
+
+```
+
+- 随后一切都由 ArcartX *自行处理*。
+- 当玩家交互/攻击实体时，匹配到生物名，ArcartX 会在所有正在渲染的 UI 中的 BossBars 控件中自动创建血条控件，在实体死亡或从世界移除后将会删除。
+- 你只需要在 UI 中创建一个 BossBars 控件即可。下面提供一个 UI 示例，你可以把这个复制到 ui 目录，然后把上面的复制到 boss_bars 目录，生成一个名为 boss 的实体，然后攻击该实体即可看到效果。
+```yaml
+ui:
+  isHud: true
+controls:
+  adaptive:
+    type: adaptive
+    attribute:
+      point: ~top_center
+      width: 1920
+      height: 1080
+    children:
+      bossBars:
+        type: bossBars
+        attribute:
+          point: ~top_center
+```

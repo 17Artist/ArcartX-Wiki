@@ -90,11 +90,11 @@ description: 服务端JS脚本使用指南
   script: |
     PlayerUtils.static.dispatchOpCommand(player,args.getString("command").replace("<player>",player.getName()));
 
-# 示例4. 通过ArcartXAPI让玩家客户端执行Shimmer脚本，配置中调用方式：执行脚本{script = Shimmer.println("Hello World!")}
+# 示例4. 通过ArcartXAPI让玩家客户端执行Aria脚本，配置中调用方式：执行脚本{script = Aria.println("Hello World!")}
 执行脚本:
   type: "normal"
   script: |
-    ArcartXAPI.static.getEntityManager().getPlayer(player).parseShimmer(args.getString("script"));
+    ArcartXAPI.static.getEntityManager().getPlayer(player).parseAria(args.getString("script"));
 
 # 示例5. 以控制台身份执行命令，配置中调用方式：控制台执行命令{command = say 你好! <player>}
 控制台执行命令:

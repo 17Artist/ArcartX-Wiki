@@ -1,0 +1,102 @@
+---
+title: Swing-摆动效果
+description: 摆动效果对象及其函数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout type="info">
+    Swing是一个用于创建钟摆式摆动效果的对象。它模拟物理钟摆运动，常用于悬挂物体或需要摇摆效果的元素，支持阻尼衰减和重力系数调节。
+</Callout>
+
+## 实例化方式
+
+### `Swing`含参实例化
+
+<Callout type="info">
+    - **描述**：创建一个摆动动画实例。
+    - **参数**：
+    - `centerAngle`：数值类型，中心角度（摆动的平衡点）
+    - `maxAngle`：数值类型，最大摆动角度
+    - `period`：长整型，摆动周期（一次完整摆动的时间，毫秒，最小100ms）
+    - `damping`：布尔值，是否启用阻尼（可选）
+    - `dampingFactor`：数值类型，阻尼系数（可选，默认0.98，范围0.001-1.0）
+    - `gravity`：数值类型，重力系数（可选，默认1.0，影响摆动速度）
+    - **调用示例**：
+    ```aria
+    Swing(0, 30, 2000) // 以0度为中心，最大摆动30度，2秒一个周期
+    Swing(0, 45, 1500, true, 0.95, 1.5) // 启用阻尼，增加重力
+    ```
+</Callout>
+
+## 函数
+
+### `get(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前摆动角度，使用余弦函数模拟钟摆运动。
+</Callout>
+
+### `velocity(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前摆动速度（角速度），可用于判断摆动方向和速度。
+</Callout>
+
+### `energy(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取摆动的动能（基于速度的平方），E = 0.5 * v²。
+</Callout>
+
+### `amplitude(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：数值类型
+    - **说明**：获取当前摆动幅度（考虑阻尼衰减），未启用阻尼时返回最大角度。
+</Callout>
+
+### `restart(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重新启动摆动，重置时间和反向状态。
+</Callout>
+
+### `reset(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：重置摆动状态，重新开始效果。
+</Callout>
+
+### `reverse(){:aria}`
+
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：无
+    - **说明**：反转摆动方向，保持当前摆动状态但反向运动。
+</Callout>
+
+## 类型转换
+
+Swing对象支持以下类型转换：
+- **数值**：返回当前摆动角度
+- **布尔值**：当前角度偏离中心角度时返回true，否则返回false
+- **字符串**：返回当前角度的字符串表示
+
+<Callout type="info">
+    Swing对象支持数学运算，可以直接参与计算表达式。
+</Callout>
+

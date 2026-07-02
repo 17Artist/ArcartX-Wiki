@@ -1,0 +1,29 @@
+---
+title: 实体声音
+description: 实体对象:为实体附近的可见玩家播放声音
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
+
+## `playSound(soundPath, soundCategory, distOrRoll, pitch, keepTime){:aria}`
+- 以该实体为声源，向其附近能看见它的玩家播放一段声音
+<Callout type="info">
+    - **参数**：
+        - `soundPath` — 字符串类型，声音资源路径
+        - `soundCategory` — 字符串类型，声音分类（如 `master`）
+        - `distOrRoll` — 整数类型，距离 / 衰减
+        - `pitch` — 双精度浮点数类型，音调
+        - `keepTime` — 整数类型，保持时间（毫秒）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    实体对象.playSound("sound/path", "master", 16, 1.0, 5000)
+    ```
+</Callout>
+
+<Callout type="warn">
+参数数量必须为 5 个，否则不会执行。
+</Callout>

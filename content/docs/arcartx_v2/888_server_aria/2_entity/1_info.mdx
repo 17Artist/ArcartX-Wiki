@@ -1,0 +1,152 @@
+---
+title: 实体信息
+description: 实体对象:获取实体的坐标、朝向、生命值与状态
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
+
+## `isInWater(){:aria}`
+- 判断实体是否在水中
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isInWater()
+    ```
+</Callout>
+
+## `isFallFlying(){:aria}`
+- 判断实体是否正在滑翔（鞘翅）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isFallFlying()
+    ```
+</Callout>
+
+## `isSwimming(){:aria}`
+- 判断实体是否正在游泳
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isSwimming()
+    ```
+</Callout>
+
+## `isSleeping(){:aria}`
+- 判断实体是否正在睡觉
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isSleeping()
+    ```
+</Callout>
+
+## `getPosX(){:aria}`
+- 获取实体的 X 坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getPosX()
+    ```
+</Callout>
+
+## `getPosY(){:aria}`
+- 获取实体的 Y 坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getPosY()
+    ```
+</Callout>
+
+## `getPosZ(){:aria}`
+- 获取实体的 Z 坐标
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getPosZ()
+    ```
+</Callout>
+
+## `getYaw(){:aria}`
+- 获取实体的水平旋转角度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getYaw()
+    ```
+</Callout>
+
+## `getPitch(){:aria}`
+- 获取实体的垂直旋转角度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getPitch()
+    ```
+</Callout>
+
+## `getAir(){:aria}`
+- 获取实体的剩余氧气值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    实体对象.getAir()
+    ```
+</Callout>
+
+## `isOnGround(){:aria}`
+- 判断实体是否在地面上
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isOnGround()
+    ```
+</Callout>
+
+## `getHealth(){:aria}`
+- 获取实体当前生命值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getHealth()
+    ```
+</Callout>
+
+## `getMaxHealth(){:aria}`
+- 获取实体最大生命值（读取通用最大生命值属性，无该属性时返回 20）
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getMaxHealth()
+    ```
+</Callout>
