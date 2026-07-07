@@ -10,7 +10,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ArcartX 支持两种模型格式：
 - bbmodel 格式：BlockBench 的原生格式，可读取 Java 模型、基岩模型、通用模型。推荐使用。
-- geo 格式：基岩模型的导出格式（`.geo.json` + `.animation.json` + `.png`）。
+- geo 格式：基岩模型的导出格式（`.geo.json` + `.animation.json` + `.png`）。请注意，该格式永久不再维护，请转向使用bbmodel格式。
 
 <Callout type="info">
     bbmodel 中一些复杂的运动方式（如 lk 等）在直接读取时无法解析，需要先在 BlockBench 中导出为 geo 格式然后再导到bbmodel里面
