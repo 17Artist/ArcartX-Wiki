@@ -1,0 +1,540 @@
+---
+title: 从 0 到 1 实战教学
+description: 从头开始，完整做出一套可玩的近战动作机制
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## 开始之前
+
+前面几章讲的是「每个字段是什么意思」，这一章讲的是「这些字段凑在一起，怎么做出**打起来舒服**的战斗」。它是经验性的实战流程，不是硬性规则——但每一步背后都有明确的机制原因，照着走能少踩很多坑。
+
+<Callout type="info">
+**心法：先做出最小可玩的闭环，再迭代手感。** 别一上来就配十段连招加分支。先让「点左键出一刀、有伤害、能连第二刀」跑通，感受节奏，再往上加窗口、派生、蓄力。**手感是调出来的，不是想出来的。**
+</Callout>
+
+本章用一把「横刀」从零搭起：基础姿态 → 四段连击 → 近战吸附 → 强化模式（强化普攻 + 蓄力斩）。跟着做一遍，你就能举一反三。
+
+<Callout type="info">
+本章的示例模型来自社区成员 [阿肆](https://arcartx.com/members/490/)。
+</Callout>
+
+---
+
+## P1 · 客户端模型准备
+
+先准备一个带动作的 `.bbmodel` 模型，放进资源目录。
+
+![准备 bbmodel 模型](/chronos/p1.png)
+![放入资源目录](/chronos/p2.png)
+
+<Callout type="warn">
+**资源目录的规划很重要。** ArcartX 的所有 ID 都是根据资源路径**自动生成**的。如果你打算对资源加密，切记全部用**英文命名**。
+</Callout>
+
+到这里，客户端侧的准备就完成了。
+
+---
+
+## P2 · 服务端目录准备
+
+装好插件后打开插件目录，你会看到这些文件：
+
+![插件目录结构](/chronos/p3.png)
+
+三个 `.yml` 文件在[配置目录结构](/docs/chronos/3_config)已经讲过，这里只关注两个文件夹：
+
+- **`client/`** — 放**客户端状态机**（定义每个状态下客户端播什么动画、有什么行为）
+- **`controllers/`** — 放**服务端控制器**（定义状态逻辑、输入、连招）
+
+<Callout type="warn">
+动手前，请确保你已经读过 [客户端状态机](/docs/chronos/7_client) 和 [服务端控制器](/docs/chronos/7_controller) 两章——本章默认你已经理解这两套状态机的分工。
+</Callout>
+
+先在 `client/` 建一个 yml（记住文件名），再在 `controllers/` 建一个 yml：
+
+![创建 client 文件](/chronos/p4.png)
+![创建 controllers 文件](/chronos/p5.png)
+
+---
+
+## P3 · 定义客户端状态机
+
+我们的示例模型只需要一条轨道，所以只定义一个 `main` 子控制器。先写**保留名状态**（`run`/`idle`/`walk` 这类自带条件判断、会自动触发的状态）。
+
+保留名状态是**从上往下取第一个成立的**，所以顺序 = 优先级。下面是一份比较通用的推荐顺序：
+
+```text
+sleep → ride_pig → ride_boat → ride → swim → swim_stand
+→ fly → fall_fly → climb_walk → climb
+→ ladder_up → ladder_down → ladder_idle
+→ jump → run → sneak_walk → walk → sneak → idle
+```
+
+<Callout type="warn">
+顺序不能乱写。`idle` 是兜底状态（条件恒为 `true`），**必须放在最后**——否则它会把后面所有状态都挡掉。
+</Callout>
+
+按模型的动画列表逐个填。模型没有的姿态（比如本例没有爬梯动画）直接删掉对应状态即可：
+
+```yaml title="client/示例状态机.yml"
+main:
+  initial_state: idle
+  states:
+    sleep:
+      animation: sleep
+    ride_pig:
+      animation: ride_pig
+    ride_boat:
+      animation: ride_pig
+    ride:
+      animation: ride
+    swim:
+      animation: swim
+    swim_stand:
+      animation: swim_stand
+    fly:
+      animation: fly
+    fall_fly:
+      animation: elytra_fly
+    jump:
+      animation: animation.横刀-跳跃
+    run:
+      animation: animation.横刀-跑步-循环
+    sneak_walk:
+      animation: sneak_walk
+    walk:
+      animation: animation.横刀-走路-循环
+    sneak:
+      animation: sneaking
+    idle:
+      animation: animation.横刀-待机
+```
+
+接着按模型内容**逐个精调**。这个模型给跳跃、跑步、走路都做了**结束动画**，用 `to` 挂上去——`to` 是「离开当前状态去往某状态时，先播的过渡动画」，key 填**目标状态名**：
+
+```yaml title="client/示例状态机.yml"
+jump:
+  animation: animation.横刀-跳跃
+  to:
+    # 只对 idle 配过渡：跳跃后落回待机才播落地动画
+    idle: animation.横刀-落地       # [!code highlight]
+run:
+  animation: animation.横刀-跑步-循环
+  to:
+    idle: animation.横刀-跑步-结束   # [!code highlight]
+walk:
+  animation: animation.横刀-走路-循环
+  to:
+    idle: animation.横刀-走路-结束   # [!code highlight]
+```
+
+<Callout type="info">
+`to` 的 key 是**目标状态名**——上面只对 `idle` 配了过渡，意味着「只有落回/停下到 `idle` 时才播结束动画」。如果玩家跳跃后接着跑、或跑步中直接转走路，就不会播这段收尾，衔接更自然。
+</Callout>
+
+至此保留名状态就定义完了。实际使用中动作往往还要反复微调，这部分请自行测试打磨。
+
+---
+
+## P4 · 服务端控制器地基
+
+客户端的基础姿态搭好后，先把服务端控制器的 `setting` 地基打好，连招和技能这些特殊状态后面再加。
+
+把刚才客户端状态机的**文件名**（不带 `.yml`）填到 `client_controller_id`，设好模型 ID 和缩放，配好输入缓冲：
+
+```yaml title="controllers/横刀.yml"
+setting:
+  # 对接 client/示例状态机.yml
+  client_controller_id: 示例状态机   # [!code highlight]
+  model: role/Female
+  model_scale: 0.8
+  enable_use: false
+  input_buffer:
+    enabled: true
+    max_size: 3
+    lifetime: 300
+```
+
+<Callout type="info">
+这里走的是 `model` 路径（直接换模型）。如果你用的是 ArcartX 内置玩家渲染器、想走动画包路径，则改用 `animation` 字段、并把 `model` 留空（详见 [服务端控制器 · model 与 animation](/docs/chronos/7_controller#model-与-animation-是二选一的)）。这套动作没有需要初始化的触发器变量，所以先不写 `action`。
+</Callout>
+
+地基打好后，就可以用指令或物品 tag 把这个控制器设给玩家了。**进客户端重载，先测一遍基础姿态动画是否符合预期**——不对就继续精调，对了再往下加连招。
+
+---
+
+## P5 · 定义特殊状态（连招段）
+
+特殊状态就是连招、技能、运动技这些**客户端不会自动触发**的状态，完全由 Chronos 接管。做法是两边都定义：**客户端状态机**管它的动画表现，**服务端控制器**管它的逻辑。
+
+先看模型有哪些普攻动画（每段攻击都配了一个「后摇」）：
+
+![模型的普攻动画列表](/chronos/p6.png)
+
+### 客户端侧：四段攻击
+
+按「二游」的手感，**停下来才播后摇，有后续操作就不播**——正好把后摇挂到 `to: idle` 上（只有回到待机才播后摇）。单轨控制器下，再加个 `moveLimit: 0.2` 让攻击时的滑步更自然：
+
+```yaml title="client/示例状态机.yml"
+attack1:
+  inTick: 0                          # 攻击要立即响应，进入不做混合
+  animation: animation.横刀-普攻-1
+  moveLimit: 0.2
+  to:
+    # 停下回 idle 才播后摇，有后续操作就不播
+    idle: animation.横刀-普攻-1-后摇   # [!code highlight]
+# attack2 / attack3 / attack4 结构完全相同，只改 animation 与后摇动画名
+```
+
+### 服务端侧：一段攻击的逻辑
+
+客户端定义了四个攻击状态后，在服务端控制器里给它们配逻辑。**这里只写第一段，2/3/4 段照此类推**（仅 `state_name` 和动画判定不同）：
+
+```yaml title="controllers/横刀.yml"
+state:
+  近战1段:
+    controller: main            # 客户端子控制器名
+    state_name: attack1         # 对应客户端刚定义的状态
+    duration: 700               # 动画时长，直接按动画秒数填
+    # 预输入落地时机 = 挥砍收手点，让下一段接得跟手
+    buffer_at: 450              # [!code highlight]
+    speed: 1
+    group: 攻击
+    charge: false
+    conditions:
+      blocked_group:
+        - 受控
+        - 特殊运动
+    windows:
+      cancel:                   # 取消窗口：这段时间内可被其它连招链打断
+        start: 0
+        end: 200
+      derive:                   # 派生窗口：这段时间内接收输入、衔接下一段
+        start: 0
+        end: 700
+    execute:
+      step1:
+        at: 350                 # 动画播到 350ms 时结算一次伤害
+        expression: |-
+          for(e in self.getLivingEntitiesInCone(4, 180)){
+            self.attack(e)
+          }
+# 近战2段 / 3段 / 4段 同理，仅 state_name 与动画判定不同
+```
+
+逐字段说明这些数值从哪来：
+
+| 字段               | 怎么定                                           |
+|------------------|-----------------------------------------------|
+| `controller`     | 客户端子控制器 ID（这里是 `main`）。                       |
+| `state_name`     | 该子控制器下、刚才定义的状态名（`attack1`）。                   |
+| `duration`       | 动画时长，按动画实际秒数填。                                |
+| `buffer_at`      | 预输入的落地时机——一般设在**挥砍收手**那一刻（本例 450ms），让下一段接得跟手。 |
+| `speed`          | 整段状态的速度，会缩放所有时间线。可用 Aria 表达式实现「攻速」。           |
+| `windows.cancel` | 可被打断的时机：在此窗口内输入别的连招链（如闪避），会中断当前链、转入那条。        |
+| `windows.derive` | 接收下一段输入的时机：要打击感就设 `0 ~ 动画结束`；要严格就在收手前关掉。      |
+| `execute`        | 在指定时间点跑脚本，是状态的「实际内容」。上例在 350ms 对面前扇形做一次范围伤害。  |
+
+<Callout type="warn">
+`execute` 的时间点是「相对状态生命周期」的。如果状态在 250ms 被取消，那么 **250ms 之后的所有执行点都不会触发**——这也是为什么伤害判定点要放在挥砍真正生效的那一刻，而不是一进状态就结算。
+</Callout>
+
+照此把 2/3/4 段也定义好，进入下一步。
+
+---
+
+## P6 · 连招链
+
+四段攻击的状态都齐了，用 `combo` 把它们串成一条链。这套普攻是最简单的**单轨 4A**——每段都是「点左键 → 派生下一段」：
+
+```yaml title="controllers/横刀.yml"
+combo:
+  近战1段:
+    input:
+      type: MOUSE_CLICK
+      value: LEFT
+    derive:
+      近战2段:
+        input:
+          type: MOUSE_CLICK
+          value: LEFT
+        derive:
+          近战3段:
+            input:
+              type: MOUSE_CLICK
+              value: LEFT
+            derive:
+              近战4段:
+                input:
+                  type: MOUSE_CLICK
+                  value: LEFT
+```
+
+写完进客户端、设控制器、重载，点鼠标左键就能打出四连击了。**至此，一套最小可玩的连招闭环就跑通了。**
+
+---
+
+## P7 · 进阶技巧
+
+一套好的动作机制不止连段。下面在跑通的基础上，加几个动作游戏里常见的进阶操作。
+
+### 一、自由镜头 + 近战吸附
+
+把客户端状态机的所有状态设成「攻击时不跟随相机」，再配合 Chronos 的吸附语句，就能实现动作游戏那种近战吸附——玩家不用分心把准心怼到怪头上，专注操作即可。
+
+<Steps>
+
+<Step>
+**所有状态锁定相机跟随。** 给 `main` 里每个状态都加上 `clientLock`，在 `input` 里放一个 `LOCK`，这样玩家左右键交互时身体不会转向镜头：
+
+```yaml title="client/示例状态机.yml"
+clientLock:
+  input:
+    - LOCK          # [!code highlight]
+```
+</Step>
+
+<Step>
+**攻击段额外锁定方向。** 给攻击状态再加 `DIRECTION`，攻击时就不能用方向键改变朝向了：
+
+```yaml title="client/示例状态机.yml"
+attack1:
+  inTick: 0
+  animation: animation.横刀-普攻-1
+  moveLimit: 0.2
+  to:
+    idle: animation.横刀-普攻-1-后摇
+  clientLock:
+    input:
+      - LOCK
+      - DIRECTION   # [!code highlight]
+```
+</Step>
+
+<Step>
+**服务端加吸附语句。** 在攻击状态的 `execute` 里、出手之前调一次 `turnToNearby`（自动转向最近的目标）：
+
+```yaml title="controllers/横刀.yml"
+execute:
+  step0:
+    at: 0
+    # 出手前吸附朝向最近目标（3 格内，强度 1 = 直接对准）
+    expression: |-              # [!code highlight]
+      self.turnToNearby(3, 1)   # [!code highlight]
+  step1:
+    at: 350
+    expression: |-
+      for(e in self.getLivingEntitiesInCone(4, 180)){
+        self.attack(e)
+      }
+```
+</Step>
+
+</Steps>
+
+这样，近战吸附就完整落地了。
+
+### 二、多攻击模式（强化状态）
+
+这套模型正好有个「放技能后开启第二形态」的动作。我们来做：**释放技能 → 进入 8 秒强化状态 → 强化期间解锁两条新路径**（强化普攻 + 蓄力斩）。
+
+<Steps>
+
+<Step>
+**用一个变量当「强化标记」。** 在服务端控制器的 `setting.action.init` 里初始化一个「强化时长」变量，记录强化状态的到期时间戳：
+
+```yaml title="controllers/横刀.yml"
+setting:
+  client_controller_id: 示例状态机
+  model: role/Female
+  model_scale: 0.8
+  enable_use: false
+  input_buffer:
+    enabled: true
+    max_size: 3
+    lifetime: 300
+  action:
+    # init 在「设上控制器」时执行一次，给变量赋初值
+    init: |-                 # [!code highlight]
+      var.强化时长 = 0
+```
+</Step>
+
+<Step>
+**做「启动技能」状态。** 释放后把「强化时长」设成「当前时间 + 8 秒」，于是接下来 8 秒都算强化态：
+
+```yaml title="controllers/横刀.yml"
+强化技能:
+  controller: main
+  state_name: skill-start
+  duration: 1580
+  buffer_at: 1500
+  speed: 1
+  group: 技能
+  charge: false
+  conditions:
+    blocked_group:
+      - 受控
+      - 特殊运动
+  execute:
+    step1:
+      at: 800
+      # 把强化到期时间设为「当前时间戳 + 8 秒」
+      expression: |-                            # [!code highlight]
+        var.强化时长 = datetime.now() + 8000
+```
+
+<Callout type="info">
+客户端状态机侧也要定义 `skill-start` 等这些新状态（管它们的动画表现），做法和普攻状态完全一样。本步骤起，客户端侧的定义都省略，只讲服务端逻辑。
+</Callout>
+</Step>
+
+<Step>
+**强化普攻：多一个进入条件。** 和普通普攻几乎一样，只是加一条「必须处于强化态」的条件。这里只贴一段：
+
+```yaml title="controllers/横刀.yml"
+近战1段-强化:
+  controller: main
+  state_name: attack1-强化
+  duration: 580
+  buffer_at: 500
+  speed: 1
+  group: 攻击
+  charge: false
+  conditions:
+    # 只在强化态内可进入：当前时间还没过「强化时长」
+    expression: var.强化时长 > datetime.now()   # [!code highlight]
+    blocked_group:
+      - 受控
+      - 特殊运动
+  windows:
+    cancel:
+      start: 0
+      end: 200
+    # ...（windows / execute 结构与普通普攻相同，略）
+```
+</Step>
+
+<Step>
+**蓄力斩：两段状态（蓄力 + 释放）。** 第一段长按蓄力（`charge: true`）、第二段松手结算，用 `self.getChargeTime()` 读蓄了多久：
+
+```yaml title="controllers/横刀.yml"
+蓄力开始:
+  controller: main
+  state_name: attack-蓄力开始
+  duration: 5000
+  buffer_at: 500
+  # 开始实时计时，离开本状态时冻结蓄力时长
+  charge: true                # [!code highlight]
+  group: 攻击
+  conditions:
+    expression: var.强化时长 > datetime.now()
+    blocked_group:
+      - 受控
+      - 特殊运动
+  windows:
+    cancel:
+      start: 0
+      end: 200
+    derive:                   # 整个蓄力过程都能松手释放
+      start: 0
+      end: 5000
+
+蓄力释放:
+  controller: main
+  state_name: attack-蓄力释放
+  duration: 580
+  buffer_at: 400
+  group: 攻击
+  conditions:
+    blocked_group:
+      - 受控
+      - 特殊运动
+  execute:
+    step0:
+      at: 0
+      expression: |-
+        self.turnToNearby(3, 1)
+    step1:
+      at: 200
+      # getChargeTime() 读到上一段冻结的蓄力时长（毫秒）
+      expression: |-                                             # [!code highlight]
+        self.jump(0.7)
+        self.sendMessage("蓄力强度 -> " + self.getChargeTime())
+        for(e in self.getLivingEntitiesInCone(4, 180)){
+          self.attack(e)
+        }
+```
+
+<Callout type="info">
+第一段必须开 `charge: true`，第二段才能用 `self.getChargeTime(){:aria}` 读到蓄力时长（单位毫秒）。`buffer_at` 大于 0 会抬高蓄力最小读数——想要精确的松手时长，把蓄力段的 `buffer_at` 设成 `-1`。蓄力强度怎么用（分档、乘伤害）由脚本自行决定；也可以用「不同蓄力等级进入不同状态」做多级蓄力。
+</Callout>
+</Step>
+
+<Step>
+**把新链接上连招树。** 蓄力斩是「长按左键 → 松开左键」的单线派生：
+
+```yaml title="controllers/横刀.yml"
+蓄力开始:
+  input:               # 长按左键
+    type: MOUSE_HOLD
+    value: LEFT
+  derive:
+    蓄力释放:
+      input:           # 松开左键
+        type: MOUSE_HOLD_RELEASE
+        value: LEFT
+```
+
+强化普攻链也照普通四连的写法加上（`近战1段-强化 → 近战2段-强化 → …`）。
+</Step>
+
+<Step>
+**处理优先级：强化链必须排在普通链前面。** 连招根节点是**按声明顺序判优先级**的，所以强化态的状态要写在普通状态**之前**。下面每个根节点的子结构用 `# ...` 略去，只看顺序：
+
+```yaml title="controllers/横刀.yml"
+combo:
+  # —— 声明顺序 = 优先级：强化态的三条链排在普通链之前 ——
+  强化技能:      # [!code highlight]
+    # ...（技能启动链）
+  蓄力开始:      # [!code highlight]
+    # ...（长按左键 → 松开释放）
+  近战1段-强化:   # [!code highlight]
+    # ...（强化普攻链）
+  近战1段:        # 兜底：普通普攻链，放最后
+    # ...
+```
+
+<Callout type="warn">
+**别忘了给普通 `近战1段` 加一条反向条件。** 因为强化两条链都带 `var.强化时长 > datetime.now()` 的进入条件，如果不给普通段加反条件，在**取消窗口**里可能会误进普通 `近战1段` 而不是强化段。给普通第一段补上：
+
+```yaml
+近战1段:
+  conditions:
+    # 非强化态才走普通链
+    expression: var.强化时长 < datetime.now()   # [!code highlight]
+```
+
+这条反条件**只需加在第一段**即可。
+</Callout>
+</Step>
+
+</Steps>
+
+---
+
+## P8 · 结语
+
+以上就是一套基础战斗机制的完整实战流程。在此之上还能做更多——闪避、格挡、处决、多级蓄力……但它们的思路都和本章一致：**客户端管表现、服务端管逻辑，用状态 + 窗口 + 连招 + 脚本拼出你想要的手感。** 跟着上面走一遍，相信你已经能融会贯通了。
+
+<Cards>
+  <Card title="服务端控制器" href="/docs/chronos/7_controller">
+  回头查每个字段的完整含义
+  </Card>
+  <Card title="Aria 脚本" href="/docs/chronos/8_aria/1_overview">
+  execute 里能调用的语句
+  </Card>
+</Cards>

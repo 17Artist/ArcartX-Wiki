@@ -1,0 +1,11 @@
+{
+    "title": "Aria 脚本",
+    "defaultOpen": false,
+    "pages": [
+        "1_overview",
+        "2_player_info",
+        "3_player_look",
+        "4_player_state",
+        "5_entity_selector"
+    ]
+}

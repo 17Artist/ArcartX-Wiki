@@ -1,6 +1,6 @@
 ---
 title: 基本设置
-description: Chronos 基本设置配置
+description: setting.yml 里的控制器分配规则：默认控制器、按主手 NBT 切换、复合触发器
 ---
 
 import { File, Folder, Files } from 'fumadocs-ui/components/files';
@@ -8,26 +8,38 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-## 配置文件
+## 这个文件解决什么问题
 
-在插件目录下打开 `setting.yml` 文件：
+Chronos 的一切都建立在「玩家身上挂着哪个控制器」之上。`setting.yml` 就是用来从配置层面解决这个问题：
+
+> 一名玩家在某个时刻，应该被自动挂上哪个控制器？
+
+它提供了三种由弱到强的规则：
+
+- **default_controller** —— 兜底。谁都没匹配上时用它。
+- **switch_by_main_hand** —— 看主手物品的一个 NBT 标签，标签值就是控制器 ID。简单直接，适合「一把武器一个控制器」。
+- **triggers（复合触发器）** —— 主手 + 副手 + PlaceholderAPI 的组合条件，适合「剑+盾」「同一把武器不同职业」这类需要多条件判断的场景。
+
+> 实战中，`switch_by_main_hand` 和 `triggers`  选择一个开启，具体关系看本文尾部视图。
+---
+
+## 配置文件全貌
 
 ```yaml
-# 默认控制器ID
+# 兜底：谁都没匹配上时用这个控制器
 default_controller: "idle"
 
-# 通过主手物品切换控制器
+# 规则一：按主手物品的 NBT 标签切换控制器
 switch_by_main_hand:
-  # 是否启用自动切换
   enable: false
-  # NBT路径，多层使用点号分隔
+  # NBT 路径，多层用点号分隔；该路径的值 = 控制器 ID
   path: "controller"
 
-# 复合触发器（与 switch_by_main_hand 互斥，后者优先）
+# 规则二：复合触发器（主手/副手 NBT + PAPI 组合条件）
 triggers:
   enable: false
   list:
-    触发器名称:
+    名称(这个名字随便):
       controller: "控制器ID"
       main_hand:
         path: "nbt路径"
@@ -39,197 +51,65 @@ triggers:
       papi_value: "期望值"
 ```
 
----
-
-## 配置项详解
-
-### default_controller - 默认控制器
-
-```yaml
-default_controller: "idle"
-```
-
-| 属性      | 说明                          |
-|---------|-----------------------------|
-| **作用**  | 玩家登录服务器时自动应用的控制器            |
-| **值**   | 控制器ID（controllers 文件夹中的文件名） |
-| **默认值** | `idle`                      |
-
-<Callout type="info">
-**重要：** Chronos 的所有功能都建立在控制器之上。玩家必须拥有一个控制器，才能使用动作系统。
+<Callout type="warn">
+默认发布的 `setting.yml` 里只有 `default_controller` 和 `switch_by_main_hand` 两段，**没有 `triggers` 段**。触发器功能代码是支持的，需要你手动把上面的 `triggers` 段补进去并 `enable: true`。
 </Callout>
 
-**示例配置：**
+---
+
+## default_controller —— 默认控制器
 
 ```yaml
-# 所有玩家默认使用待机控制器
 default_controller: "idle"
-
-# 或者让所有玩家默认使用剑士控制器
-default_controller: "sword"
 ```
+
+玩家登录、或所有切换规则都没命中时，自动挂载这个控制器。值就是 `controllers/` 里的文件名（不含 `.yml`）。
+
+<Callout type="info">
+建议至少准备一个「待机 / 空手」控制器作为默认值。玩家没有控制器时 Chronos 对他完全不生效，或者你希望玩家确实存在空状态（比如生存模式？）。
+</Callout>
+
+如果把它留空，且没有任何切换规则命中，玩家将不被挂任何控制器。
 
 ---
 
-### switch_by_main_hand - 自动切换控制器
+## switch_by_main_hand —— 按主手物品切换
 
-通过玩家手持物品的 NBT 数据自动切换控制器。
+最简单的自动切换：读玩家**主手物品**上某个 NBT 标签，标签的**值直接当作控制器 ID**。
 
 ```yaml
 switch_by_main_hand:
-  enable: false
+  enable: true
   path: "controller"
 ```
 
-| 属性         | 说明               |
-|------------|------------------|
-| **enable** | 是否启用此功能          |
-| **path**   | NBT 数据路径，多层用点号分隔 |
+| 字段       | 说明                                                 |
+|----------|----------------------------------------------------|
+| `enable` | 是否启用                                               |
+| `path`   | 要读取的 NBT 路径，多层用点号分隔（如 `arcartx.weapon.controller`） |
 
-**工作原理：**
+**说明**：给武器写一个 NBT 标签，值填控制器 ID。比如一把剑的 NBT 里有 `controller: "sword"`，玩家拿起它就会自动切到 `sword` 控制器。
 
-```mermaid
-flowchart TB
-    A["玩家切换手持物品"] --> B{"检查 NBT"}
-    B -->|"有 controller 标签"| C["读取标签值"]
-    C --> D["切换到对应控制器"]
-    B -->|"无 controller 标签"| E["回到默认控制器"]
+**多层路径示例**：`path: "arcartx.weapon.controller"` 对应的物品 NBT 是
+
+```text
+arcartx → weapon → controller = "sword"
 ```
 
-**示例：**
+**匹配不到时的回退**：如果主手物品没有这个标签、或标签值不是一个存在的控制器 ID，则回落到 `default_controller`；连默认控制器都为空时，玩家的控制器会被清空。
 
-假设你有一把剑，NBT 中包含：
-
-```yaml
-# 物品 NBT 结构
-{
-  controller: "sword"
-}
-```
-
-当玩家手持这把剑时，会自动切换到 `sword` 控制器。
-
-**多层路径：**
-
-```yaml
-switch_by_main_hand:
-  enable: true
-  path: "arcartx.weapon.controller"  # 多层NBT路径
-```
-
-对应的物品 NBT：
-```yaml
-{
-  arcartx: {
-    weapon: {
-      controller: "sword"
-    }
-  }
-}
-```
+触发时机：玩家切换手持栏位、关闭背包界面、以及加入服务器时都会重新读取一次主手物品。
 
 ---
 
-### triggers - 复合触发器
+## triggers —— 复合触发器
 
-通过主手物品、副手物品、PlaceholderAPI 占位符的组合条件来切换控制器。适用于需要根据双手装备搭配（如剑+盾）或外部插件状态来决定控制器的场景。
+当「一个物品对一个控制器」不够用时，用触发器。它能同时判断**主手 NBT、副手 NBT、PlaceholderAPI 占位符**，全部满足才切换。
 
-<Callout type="warn">
-`triggers` 与 `switch_by_main_hand` 互斥。当 `switch_by_main_hand.enable` 为 `true` 时，`triggers` 不会生效。
-</Callout>
+典型场景：
 
-```yaml
-triggers:
-  enable: true
-  list:
-    剑盾触发:
-      controller: "sword_shield"
-      main_hand:
-        path: "weapon_type"
-        value: "sword"
-      off_hand:
-        path: "weapon_type"
-        value: "shield"
-    双手剑触发:
-      controller: "greatsword"
-      main_hand:
-        path: "weapon_type"
-        value: "greatsword"
-    战士弓箭触发:
-      controller: "warrior_bow"
-      main_hand:
-        path: "weapon_type"
-        value: "bow"
-      papi: "%myrpg_class%"
-      papi_value: "warrior"
-```
-
-| 属性         | 说明                      |
-|------------|-------------------------|
-| **enable** | 是否启用复合触发器               |
-| **list**   | 触发器列表，key 为触发器名称（仅用于标识） |
-
-每个触发器条目支持以下字段：
-
-| 字段             | 必填 | 说明                                |
-|----------------|----|-----------------------------------|
-| **controller** | 是  | 匹配成功后切换到的控制器ID                    |
-| **main_hand**  | 否  | 主手物品匹配条件                          |
-| **off_hand**   | 否  | 副手物品匹配条件                          |
-| **papi**       | 否  | PlaceholderAPI 占位符（如 `%xxx_xxx%`） |
-| **papi_value** | 否  | 占位符的期望值                           |
-
-`main_hand` 和 `off_hand` 的子字段：
-
-| 字段        | 说明                  |
-|-----------|---------------------|
-| **path**  | 物品 NBT 数据路径，多层用点号分隔 |
-| **value** | 期望的 NBT 值           |
-
-**匹配规则：**
-
-- 同一个触发器内的所有条件是 **AND（与）** 关系，必须全部满足才算匹配
-- 触发器列表按**从上到下**的顺序匹配，第一个满足的生效
-- 未配置的条件视为自动通过（例如只配了 `main_hand`，则不检查副手和 PAPI）
-- 所有触发器都不匹配时，回退到 `default_controller`
-
-**工作原理：**
-
-```mermaid
-flowchart TB
-    A["玩家切换手持物品 / 关闭背包 / 加入服务器"] --> B["按顺序遍历触发器列表"]
-    B --> C{"触发器 1<br/>所有条件满足？"}
-    C -->|"是"| D["切换到触发器 1 的控制器"]
-    C -->|"否"| E{"触发器 2<br/>所有条件满足？"}
-    E -->|"是"| F["切换到触发器 2 的控制器"]
-    E -->|"否"| G["...继续检查"]
-    G --> H{"全部不匹配"}
-    H --> I["回退到默认控制器"]
-```
-
-**PAPI 周期检测：**
-
-当触发器包含 `papi` 条件时，系统会每秒自动重新检测一次。如果玩家当前通过触发器进入了某个控制器，但 PAPI 条件不再满足，会自动退出并重新匹配。
-
-```mermaid
-flowchart LR
-    A["每秒检测"] --> B{"PAPI 条件<br/>仍然满足？"}
-    B -->|"是"| C["保持当前控制器"]
-    B -->|"否"| D["重新评估所有触发器"]
-    D --> E["切换到新匹配 / 回退默认"]
-```
-
-<Callout type="info">
-PAPI 周期检测仅对通过触发器进入的控制器生效。通过命令或 API 设置的控制器不受影响。
-</Callout>
-
-<Callout type="info">
-如果服务器未安装 PlaceholderAPI，PAPI 条件会被自动跳过（视为通过），不会导致报错。
-</Callout>
-
-**实战示例 - 剑盾组合：**
-
-玩家主手持剑、副手持盾时进入剑盾控制器，只拿剑不拿盾时进入单手剑控制器：
+- 主手剑 + 副手盾 → 剑盾控制器；只拿剑 → 单手剑控制器
+- 同一把武器，战士拿是一套连招，法师拿是另一套（靠职业插件的 PAPI 区分）
 
 ```yaml
 triggers:
@@ -250,13 +130,41 @@ triggers:
         value: "sword"
 ```
 
+### 每个触发器条目的字段
+
+| 字段           | 必填 | 说明                                    |
+|--------------|----|---------------------------------------|
+| `controller` | 是  | 命中后切换到的控制器 ID                         |
+| `main_hand`  | 否  | 主手物品匹配条件：`path`（NBT 路径）+ `value`（期望值） |
+| `off_hand`   | 否  | 副手物品匹配条件：`path` + `value`             |
+| `papi`       | 否  | PlaceholderAPI 占位符，如 `%myrpg_class%`  |
+| `papi_value` | 否  | 占位符解析后应等于的值                           |
+
+`list` 下每一项的键名（如 `剑盾`）只是给你自己看的标识，不参与逻辑。
+
+### 匹配规则（务必记住）
+
+- **条目内是 AND**：一个触发器里配了几个条件，就必须**全部满足**才算命中。
+- **没配的条件视为通过**：只写了 `main_hand` 就只查主手，不管副手和 PAPI。
+- **按列表顺序取第一个命中**：从上往下逐条判断，命中第一个就停下。所以**更具体的条目要放在更宽松的条目前面**——上面例子里「剑盾」必须排在「单手剑」之前，否则拿着剑+盾也会先被「单手剑」抢先命中。
+- **全不命中就回落**：所有条目都不满足时，回到 `default_controller`。
+
 <Callout type="info">
-注意触发器的顺序很重要。上面的例子中，「剑盾」放在「单手剑」前面，这样主手剑+副手盾时会优先匹配到剑盾控制器，而不是单手剑。
+触发器的判定时机和主手切换一致：玩家切换手持栏位、关闭背包、加入服务器时检测。**含 PAPI 的条目**还会被周期性重新检测（见下）。
 </Callout>
 
-**实战示例 - 结合职业插件：**
+### PAPI 周期检测
 
-不同职业拿同一把武器时使用不同的控制器：
+物品变化能靠事件立刻感知，但 PAPI 的值（比如玩家职业、状态）可能在玩家没动任何物品的情况下改变。为此，只要触发器里存在 PAPI 条件，Chronos 会**每秒（每 20 tick）**重新检测一次。
+
+<Callout type="info">
+- 周期检测**只针对当前正通过触发器进入控制器的玩家**。用指令或 API 手动设置的控制器不会被周期检测覆盖掉。
+- 若服务器**没装 PlaceholderAPI**，所有 `papi` 条件自动视为通过。
+</Callout>
+
+### 实战：结合职业插件
+
+同一把剑，不同职业用不同控制器：
 
 ```yaml
 triggers:
@@ -278,15 +186,25 @@ triggers:
       papi_value: "mage"
 ```
 
+玩家转职（`%myrpg_class%` 变化）后，最迟一秒内就会自动切到对应控制器。
+
 ---
 
-## 下一步
+## 三种规则的关系
 
-<Cards>
-<Card title="注册按键" href="/docs/chronos/6_key">
-配置自定义按键
-</Card>
-<Card title="动作控制器" href="/docs/chronos/7_controller">
-创建你的第一个控制器
-</Card>
-</Cards>
+```mermaid
+flowchart TB
+    A["需要给玩家决定控制器"] --> B{"switch_by_main_hand<br/>enable?"}
+    B -->|"是"| C["只按主手 NBT 切换"]
+    B -->|"否"| D{"triggers.enable?"}
+    D -->|"是"| E["按触发器列表逐条匹配"]
+    D -->|"否"| F["用 default_controller"]
+    C -.-> G["匹配不到 → 回落 default_controller"]
+    E -.-> G
+```
+
+<Callout type="warn">
+`switch_by_main_hand` 和 `triggers` **不会同时生效**。前者启用时后者被完全忽略。要用触发器，请先把 `switch_by_main_hand.enable` 关掉。
+</Callout>
+
+

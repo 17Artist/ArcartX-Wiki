@@ -1,0 +1,55 @@
+---
+title: 朝向吸附
+description: Chronos 提供的近战朝向吸附语句（PlayerLook）
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+- 以下语句均由 **Chronos 插件**提供，目标对象为**玩家**（`Player{:aria}`）。
+- 这组语句用于**近战吸附**：出手前把玩家朝向自动转向目标，让攻击更容易命中。
+- 三个语句都带一个 `strength{:aria}` 吸附强度参数，取值范围 **0 ~ 1**（超出会被自动钳制）：`0` 表示完全不转，`1` 表示瞬间对准目标，中间值按比例插值。想要「柔和地拧过去」就用 `0.5` 左右。
+- 常见用法是放在攻击状态的 `execute` 里、在挥砍判定之前调用。
+
+## `turnToTarget(target, strength){:aria}`
+- 把玩家朝向吸附到**指定的目标生物**。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：
+        - `target` — 生物对象（`LivingEntity{:aria}`），通常来自实体选择器
+        - `strength` — 吸附强度（0 ~ 1）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    var.enemy = self.getNearestLivingEntity(5.0)
+    self.turnToTarget(var.enemy, 0.8)
+    ```
+</Callout>
+
+## `turnToNearby(radius, strength){:aria}`
+- 自动吸附到**半径范围内最近的生物**。范围内没有生物时不做任何操作。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：
+        - `radius` — 搜索半径（方块）
+        - `strength` — 吸附强度（0 ~ 1）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.turnToNearby(6.0, 0.6)
+    ```
+</Callout>
+
+## `turnToCone(radius, angle, strength){:aria}`
+- 在**面前的扇形范围内**寻找最近的生物并吸附朝向。相比 `turnToNearby`，它只锁定「视线前方一定角度内」的目标，不会把你拧向背后的敌人。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：
+        - `radius` — 搜索半径（方块）
+        - `angle` — 扇形总角度（度数，例如 `120` 表示正前方左右各 60°）
+        - `strength` — 吸附强度（0 ~ 1）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.turnToCone(5.0, 120, 0.7)
+    ```
+</Callout>

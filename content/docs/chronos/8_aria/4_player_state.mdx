@@ -1,0 +1,53 @@
+---
+title: 状态控制
+description: Chronos 提供的状态切换语句（PlayerState）
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+- 以下语句均由 **Chronos 插件**提供，目标对象为**玩家**（`Player{:aria}`）。
+- 这组语句让你**用脚本主动驱动状态机**——在表达式里直接让玩家进入某个状态，而不必等待玩家输入。常用于「满足条件时自动接一段动作」「被击中时强制进入受击状态」等场景。
+
+## `tryEnterState(stateId){:aria}`
+- **尝试**让玩家进入指定状态。会照常走该状态的 `conditions` 与冷却校验，不满足则不进入。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：`stateId` — 目标状态 ID（`state` 节点下的键名）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.tryEnterState("受击")
+    ```
+</Callout>
+
+## `tryEnterControlledState(stateId, duration){:aria}`
+- 让玩家进入一个**受控状态**（如硬直、被击退），并指定持续时长。
+- 与普通进入不同：如果玩家此刻正处于 `super_armor`（霸体）窗口，这次进入会**失败**——霸体正是用来抗住这类受控效果的。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：
+        - `stateId` — 目标状态 ID
+        - `duration` — 持续时长（毫秒）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.tryEnterControlledState("硬直", 500)
+    ```
+</Callout>
+
+## `forceEnterStateFromRoot(stateId){:aria}`
+- **强制**让玩家进入指定状态，**无视进入条件与冷却**。目标状态必须是某条连招链的根节点（在 `combo` 顶层声明过）。
+- 对应 Java API 的 `forceEnterStateFromRootChain`（脚本里与 Java 里名字略有差异，功能一致）。
+<Callout type="info">
+    - **对象**：Player
+    - **参数**：`stateId` — 目标根状态 ID
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    self.forceEnterStateFromRoot("处决")
+    ```
+</Callout>
+
+<Callout type="warn">
+`forceEnterStateFromRoot` 会绕过一切条件强行触发，请谨慎使用；一般情况下优先用 `tryEnterState`，把「能不能进」交给状态自己的 `conditions` 去判断。
+</Callout>

@@ -1,0 +1,34 @@
+---
+title: PlaceholderAPI 占位符
+description: Chronos 注册的占位符
+---
+
+
+## PlaceholderAPI 占位符
+
+装了 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) 后，Chronos 会自动注册 `chronos` 扩展，可在任何支持 PAPI 的地方（记分板、HUD、聊天格式、条件插件）读取玩家的实时动作信息。
+
+| 占位符                            | 返回               | 说明                   |
+|--------------------------------|------------------|----------------------|
+| `%chronos_controller%`         | 控制器ID / `none`   | 当前控制器                |
+| `%chronos_state%`              | 状态ID / `none`    | 当前正在播放的状态            |
+| `%chronos_state_group%`        | 状态组ID / `none`   | 当前状态所属组              |
+| `%chronos_in_state%`           | `true` / `false` | 是否正在播放某状态（非空闲）       |
+| `%chronos_window_derive%`      | `true` / `false` | 当前是否处于派生窗口           |
+| `%chronos_window_cancel%`      | `true` / `false` | 当前是否处于取消窗口           |
+| `%chronos_window_invincible%`  | `true` / `false` | 当前是否处于无敌帧            |
+| `%chronos_window_super_armor%` | `true` / `false` | 当前是否处于霸体窗口           |
+| `%chronos_charge_time%`        | 毫秒数              | 当前（或最近一次冻结的）蓄力时长     |
+| `%chronos_cooldown_<组名>%`      | 毫秒数              | 指定冷却组的剩余冷却（无冷却为 `0`） |
+
+<Callout type="info">
+    玩家未挂控制器时，除 `cooldown_` 外的占位符统一返回 `none`。`%chronos_cooldown_攻击%` 这类是**动态后缀**：`cooldown_` 后面直接跟冷却组名即可，无需预先声明。
+</Callout>
+
+**记分板显示当前动作：**
+
+```
+职业: %chronos_controller%
+动作: %chronos_state%
+闪避CD: %chronos_cooldown_闪避%
+```

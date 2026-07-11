@@ -1,6 +1,6 @@
 ---
-title: 动作控制器
-description: 动作控制器
+title: 服务端控制器
+description: 用 controllers/*.yml 编写状态机，从零搭出一套完整的连招武器
 ---
 
 import { File, Folder, Files } from 'fumadocs-ui/components/files';
@@ -8,514 +8,495 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-## 概念
+## 这一章在讲什么
 
-客户端控制器是一个状态机，它会根据玩家的状态来切换不同的动画。
+服务端控制器是 Chronos 的核心。在 `controllers/` 里写一份 YAML，就描述出了一整套战斗逻辑：玩家点了左键放第一段轻击，再点一下接第二段，长按右键蓄力，向后冲刺触发闪避……这些「什么输入 → 播什么动作 → 能接什么」的规则，全都写在这份文件里。
 
-关于这一部分就不在这里赘述了，详细介绍你可以在 [客户端动作控制器](/docs/arcartx_v1/core/10_controller/1_controller) 中了解。
+### 先分清两个「状态机」
+
+服务端和客户端各有一套状态机，名字很像，务必分清楚：
 
 <Callout type="info">
-  * Chronos 为你提供了状态机，在后文中我们会称其为 `服务端状态机`
-  * ArcartX 同样提供了状态机，但我们会称其为 `客户端状态机`
-  * 你需要结合前后端状态机，才能实现完整的功能。
+- **服务端控制器**（本章主角）：Chronos 插件里 `controllers/*.yml` 定义的状态机。它管的是**逻辑**——判定输入、跑连招、算伤害、控制冷却与窗口。
+- **客户端状态机**：Mod 端负责**播放动画**的状态机，写在插件的 `client/` 文件夹里，详见 [客户端状态机](/docs/chronos/7_client)。
 </Callout>
 
-## 注册控制器
+两者靠三个字符串对接。服务端每进入一个状态，就通知客户端「去播哪个动画」：
 
-你可以在插件目录下的 `📁controllers` 文件夹中随意创建 `xxx.yml` 文件。
+```mermaid
+flowchart LR
+    A["服务端控制器<br/>setting.client_controller_id"] -->|指向| B["客户端状态机 ID"]
+    C["state 的 controller 字段"] -->|指向| D["客户端状态机里的<br/>子控制器名"]
+    E["state 的 state_name 字段"] -->|指向| F["该子控制器下的<br/>状态名"]
+```
 
-**每一个**文件都会被 Chronos 加载，并注册为一个动作控制器。
+- `setting.client_controller_id`：整份控制器对接的客户端状态机 ID。
+- 每个 state 的 `controller`：客户端状态机里的**子控制器名**（例如 `main`）。
+- 每个 state 的 `state_name`：该子控制器下的**状态名**（例如 `attack1`）。
 
-控制器ID 就是你创建的 `xxx.yml` 文件的文件名。
+三者都是字符串。Chronos 在加载时会做交叉校验，拼错了会打印 WARN 提醒，但**不会阻断加载**——所以动作不播时，第一件事就是回来核对这三个字符串。
 
-Chronos 为你提供了一个默认配置文件以供参考学习。
+## 注册一个控制器
 
-但是由于文件太长了，我们分段展示。
+在插件目录的 `controllers/` 文件夹里随便建一个 `xxx.yml`，它就会被注册成一个控制器。**文件名（去掉 `.yml`）就是控制器 ID**。
+
+<Files>
+  <Folder name="controllers" defaultOpen>
+    <File name="太刀.yml" />
+    <File name="法杖.yml" />
+    <File name="默认控制器.yml" />
+  </Folder>
+</Files>
+
+一份控制器文件由三大块组成，下面逐块拆解：
+
+```yaml
+setting:   # 控制器级别的全局设置
+state:     # 声明这个控制器里所有可能用到的状态
+combo:     # 连招链：定义状态之间怎么衔接
+```
 
 ---
-### 基础设置
 
-这里几乎没有什么可以讲的，配置文件的注释已经非常详细。
+## setting：控制器全局设置
 
-``` yaml
-# 控制器基础设置
+`setting` 管的是「设上这个控制器时」以及「整个控制器共享」的东西。
+
+```yaml
 setting:
-  # 客户端控制器ID
-  client_controller_id: "idle"
-  # 继承某个控制器的所有状态（可选）支持多层继承
+  # 对接的客户端状态机 ID（动画从哪套状态机里找）
+  client_controller_id: "太刀动画"
+
+  # 继承另一个控制器的全部 state（可选，支持多层，有环检测）
   extends: ""
-  # 设为该控制器后设置玩家模型，如果不需要则留空或者删除该项
-  # 不过请注意，这个留空并非是不启用模型，而是不进行任何操作，如果你之前设置过模型，这里留空将不会移除之前的模型
-  model: "steve"
+
+  # —— model 与 animation 二选一 ——
+  # 设上该控制器时给玩家换模型；留空 = 不操作（不会移除玩家已有的模型）
+  model: "katana_player"
   model_scale: 1.0
-  # 启用原版左右键效果[不建议开启，这个开了将允许原版左键攻击和右键交互]
+  # 给玩家设置动画包 ID；仅当 model 为空时才生效（玩家模型路径）
+  animation: ""
+
+  # 是否放行原版左右键（原版攻击 / 交互）。做动作系统一般关掉，
+  # 否则点左键会同时触发连招和原版挥砍
   enable_use: false
-  # 输入缓冲设置
+
+  # 输入缓冲：玩家手速比动画快时，先把输入存起来，到点再兑现
   input_buffer:
-    enabled: true      # 是否启用
-    max_size: 3        # 最大缓冲数量
-    lifetime: 300      # 输入有效期(ms)
-  # 触发器
+    enabled: true    # 是否启用
+    max_size: 3      # 最多缓冲几个输入
+    lifetime: 300    # 输入有效期(ms)，超时丢弃
+
+  # 动作脚本，可写多个；init 在「设上该控制器时」执行一次
   action:
-    # 初始化 （这里顺便讲一下，每个玩家设置新的控制器会新建一个独立的上下文，你可以存储各种状态来辅助上下文条件判断等）
     init: |-
-      var.attackTag = false
-
+      var.combo = 0
 ```
 
-<Callout type="info">
-**输入缓冲参数说明：**
-- `enabled`: 是否启用输入缓冲
-- `max_size`: 最多缓冲多少个输入
-- `lifetime`: 输入的有效期（毫秒），超过这个时间的输入会被丢弃
+### model 与 animation 是二选一的
+
+这是最容易踩的点：`model` 和 `animation` 走的是**两条不同的路径**。
+
+- `model`：直接给玩家换一个**模型**（换皮）。
+- `animation`：给玩家设置一个**动画包 ID**（不换模型，只换这套动作动画 -> 玩家原版模型路径）。
+
+代码里的规则是：**只有当 `model` 为空时，`animation` 才会生效**。所以如果你两个都填了，`animation` 会被忽略。想用动画包路径，就把 `model` 留空。
+
+<Callout type="warn">
+- `model` 留空**不等于**「移除模型」，而是「这一项什么都不做」。如果玩家之前被别的控制器设过模型，这里留空并不会把它还原。需要还原时请显式指定要换回的模型。
+- 如果您完全不使用原版玩家模型+玩家动作，而是使用模型直接替代玩家模型，您如需实现时装之类的功能需要自行对接API：Chronos不管任何玩家模型或者动画包设置，而是由您的外观系统+职业系统进行设置。
 </Callout>
 
+### input_buffer：输入缓冲
+
+动作游戏里玩家的手速经常比动画快——第一段还没播完就已经点了第二下。如果直接丢弃这个「早到」的输入，手感会很卡。输入缓冲就是把这些输入**暂存**起来，等状态进入可以派生的时机再兑现。
+
+- `max_size`：最多缓冲几个输入（一般 2~3 个就够）。
+- `lifetime`：输入的有效期（毫秒）。超过这个时间还没兑现的输入会被丢掉，避免玩家几秒前的误触突然生效。
+
+它也是 `AND` / `SEQUENCE` 组合输入判定的基础（见后文连招链）。
+
+### action：触发器
+
+当前Chronos支持的触发器较少，我们逐个讲解：
+
+#### init -> 初始化
+
+每个玩家被设上一个控制器时，Chronos 会为他新建一个**独立的 Aria 上下文**。你可以在里面用 `var.` 存各种自定义状态，供后续的条件判断、伤害计算使用。`init` 就是在设上控制器的那一刻执行一次，通常用来给这些变量赋初值：
+
+```yaml
+action:
+  init: |-
+    var.combo = 0
+    var.rage = 0
+```
+
+之后在任何 state 的 `execute`、`conditions` 里，都能读写 `var.combo{:aria}`、`var.rage{:aria}`。
+
+#### damage -> 受伤
+
+顾名思义，玩家受伤的时候触发
+
+
 ---
-### 状态声明
 
-在文件中，你需要声明你控制器中所有可能会用到的状态。
+## state：声明状态
 
-状态声明必须位于 `state` 节点下。
+`state` 节点下声明这个控制器里**所有可能用到的状态**。顺序无所谓，这里只是声明；它们之间怎么衔接由后面的 `combo` 决定。
 
-顺序不分先后，这里只是注册状态，后续你可以在连招链中引用这些状态。
+先看一个状态的骨架，再逐字段展开：
 
-示例：
-``` yaml
-    ...
-    # 省略基本配置项，你可以参考上面的示例
+```yaml
 state:
-  状态ID:
-    # 客户端控制器对应的子控制器名称
+  轻击1:                      # 状态 ID（后续被 combo 引用，别重复）
+    controller: "main"        # 客户端子控制器名
+    state_name: "attack1"     # 客户端子控制器下的状态名
+    speed: "1"                # 播放速度（Aria 表达式）
+    duration: "500"           # 持续时长 ms（Aria 表达式）
+    buffer_at: -1             # 预输入衔接时间点
+    group: "攻击"             # 所属分组
+    charge: false             # 是否蓄力
+    move_cancel: -1           # 移动取消解锁点(ms)
+    conditions:               # 进入条件（见下）
+    cooldown:                 # 冷却（见下）
+    windows:                  # 窗口：取消 / 派生 / 无敌 / 霸体（见下）
+    execute:                  # 到点执行的脚本（见下）
+```
+
+### 基础三件套：controller / state_name / speed / duration
+
+| 字段           | 含义                         |
+|--------------|----------------------------|
+| `controller` | 客户端子控制器名，例如 `main`。        |
+| `state_name` | 该子控制器下的动画状态名，例如 `attack1`。 |
+| `speed`      | 播放速度，Aria 表达式。             |
+| `duration`   | 状态持续时长（毫秒），Aria 表达式。       |
+
+<Callout type="warn">
+**`state_name` 取代了旧的 `stateName`。** 旧键名 `stateName` 仍能读（向下兼容），但新配置一律用 `state_name`。
+</Callout>
+
+`speed` 有个关键副作用要记住：**它会同时缩放这个状态里所有的窗口时间和执行时间线**。比如某个窗口写的是 `start: 0, end: 100`，当 `speed` 设为 `2` 时，实际生效的窗口是 0~50ms。因为它是 Aria 表达式，你可以写成动态的，例如按玩家属性加速：
+
+```yaml
+speed: "1 + var.rage / 100"
+```
+
+### buffer_at：做「预输入」手感
+
+`buffer_at`（默认 `-1`）决定「在派生窗口内收到输入后，什么时候真正衔接到下一个动作」：
+
+- **`-1`**：在派生窗口内收到输入就**立即**衔接。实际手感稍差。
+- **`>= 0`**：把输入先存成**预输入**，一直等到状态生命周期的第 `buffer_at` 毫秒才落地衔接。
+
+后者用来做「预输入」——玩家可以提前把下一段的键按下去，动作会卡在一个固定的节奏点才接上，让整套连段的节奏稳定、不会因玩家手速忽快忽慢而错乱。
+
+<Callout type="info">
+`buffer_at` 会影响蓄力读数：如果一个 `charge: true` 的状态配了 `buffer_at >= 0`，玩家松手会走预输入、到点才落地，于是读到的最小蓄力时长约等于 `buffer_at`。想要精确的松手时长，就把蓄力状态的 `buffer_at` 设成 `-1`。
+</Callout>
+
+### group：状态分组
+
+`group` 给状态贴一个分组标签。它被两个地方引用：
+
+- `conditions.blocked_group`：玩家正处于某些组的状态时，禁止进入本状态。
+- `cooldown.group`：同组状态共享冷却。
+
+比如把所有闪避动作都归到 `闪避` 组，就能让它们共享冷却、也能被别的状态用「处于闪避组时不可进入」来排斥。
+
+### charge：跨状态的蓄力
+
+蓄力是本版本需要重点讲清的语义。`charge: true` 的状态从**进入的那一刻**开始实时计时；当它**离开时**（被派生、被打断、或自然结束）冻结这一次的蓄力时长。此后的状态用 `self.getChargeTime(){:aria}` 读到的就是这个**冻结值**（毫秒），直到下一次再进入某个 `charge` 状态才清零。
+
+换句话说，蓄力时长是「上一个蓄力状态攒下来的」，要在**下一个**状态里读。典型流程是「蓄力开始 → 蓄力释放」两个状态：
+
+v1迁移说明：以上是对蓄力的完整描述，相较于旧版，新版的蓄力机制更加“正确”，属于不得不做的调整。
+
+
+```yaml
+state:
+  # 蓄力开始：长按右键，进入后实时计时
+  蓄力开始:
     controller: "main"
-    # 客户端子控制器下的状态名称
-    stateName: "attack1"
-    # 播放速度 支持Glimmer【注意，速度会影响所有时间窗口以及执行时间线】
-    speed: "1"
-    # 持续时间[ms] 支持Glimmer
-    duration: "500"
-    # 缓冲释放衔接时间点[ms]，-1表示在派生窗口内立即衔接（默认），>=0表示存储预输入并在到达该时间点时衔接
-    # 例如: buffer_at 400 表示在400ms时如果有预输入则衔接，这样可以实现"预输入"效果
-    buffer_at: -1
-    # 状态所属分组
-    group: "攻击"
-    # 是否开启蓄力 开启后动作结束将对玩家上下文赋值蓄力时间[ms] 通过self.getChargeTime() 获取
-    charge: false
+    state_name: "charge"
+    duration: "3000"
+    charge: true          # ← 开始计时
+    buffer_at: -1         # 想精确读松手时长，务必 -1，大于0之后，蓄力时间最小值为这里设置的值。
+    windows:
+      derive:             # 整个蓄力过程都开着派生窗口，随时能松手释放
+        start: 0
+        end: 3000
 
+  # 蓄力释放：松开右键派生到这里，在这里读蓄了多久
+  蓄力释放:
+    controller: "main"
+    state_name: "charge_release"
+    duration: "600"
+    charge: false         # ← 离开「蓄力开始」时时长被冻结
+    execute:
+      结算:
+        at: 100
+        # self.getChargeTime() 读到的就是玩家实际蓄了多久(ms)，用来分档 / 乘伤害
+        expression: "var.chargeDamage = 10 + self.getChargeTime() / 100"
 ```
 
-### 状态进入条件
-
-每个状态都可以配置进入条件，只有满足条件时才能进入该状态：
-
-``` yaml
-state:
-  状态ID:
-    ...
-    # 状态进入条件
-    conditions:
-      # Glimmer 表达式 返回布尔类型
-      expression: "self.getFood() >= 6 && !self.isFlying()"
-      # 如果处于以下组的状态时，无法进入该状态
-      blocked_group:
-        - "受控"
-        - "特殊运动"
+```mermaid
+flowchart LR
+    A["蓄力开始<br/>charge: true<br/>进入即计时"] -->|松开右键 派生| B["蓄力释放<br/>charge: false"]
+    B -->|execute 里| C["self.getChargeTime()<br/>= 冻结的蓄力时长"]
 ```
 
-<Callout type="info">
-- `expression`: 使用 Glimmer 表达式进行动态判断
-- `blocked_group`: 当玩家当前处于这些状态组时，无法进入该状态
+连招部分（后文）会把「蓄力开始」的输入配成 `MOUSE_HOLD` `RIGHT`（长按右键），把「蓄力释放」的输入配成 `MOUSE_HOLD_RELEASE` `RIGHT`（松开右键）。
+
+### move_cancel：允许移动打断
+
+`move_cancel`（默认 `-1`）控制「玩家能不能靠移动打断当前状态」：
+
+- **`-1` 或省略**：该状态**不可**被移动打断。
+- **正数 N**：状态开始 N 毫秒后，允许玩家**主动移动**来打断当前状态。
+
+<Callout type="warn">
+**`move_cancel` 是整数毫秒。想让一个 300ms 后可以走位取消的动作，就写 `move_cancel: 300`。
 </Callout>
 
----
-### 冷却时间
-``` yaml
-# 状态声明
-state:
-  # 注意这个名字不要重复，后续作为状态ID
-  状态ID:
-    ...
-    # 省略基本配置项，你可以参考上面的示例
+配套的 `move_cancel_fresh_input`（默认 `false`）决定解锁点之后怎样算「一次移动」：
 
-    # 冷却设置
-    cooldown:
-      # 是否开启冷却
-      enable: false
-      # 冷却时间 支持Glimmer
-      time: "0"
-      # 冷却组
-      group: "-"
+- `false`：一直**按住**方向键，到解锁点即触发取消（动作游戏惯例，收招时按着方向就自然走位）。
+- `true`：要求解锁点之后出现**新的**移动输入（先松开、再按一次方向键）才取消，避免「按住前进砍完自动往前冲」。
+
+### conditions：进入条件
+
+只有条件满足才能进入这个状态：
+
+```yaml
+conditions:
+  # Aria 布尔表达式，默认 "true"
+  expression: "self.getFood() >= 6 && !self.isFlying()"
+  # 玩家正处于这些组的状态时，不可进入本状态
+  blocked_group:
+    - "受控"
+    - "特殊运动"
 ```
 
-<Callout type="info">
-**冷却组的作用：** 同一个冷却组的状态共享冷却时间。例如，所有闪避动作可以放在 "dodge" 组，这样玩家无论用哪种方式闪避，都会进入同一个冷却。
-</Callout>
+- `expression`：一段返回布尔的 Aria 表达式，可以读玩家属性、`var.` 变量等。
+- `blocked_group`：一组组名。玩家当前状态属于其中任何一组时，本状态进不去——常用来防止「被击飞/硬直期间还能出招」。
 
----
-### 窗口期
+### cooldown：冷却
 
-指在一个状态的生命周期内，玩家可以在哪个时间段内位于窗口。
+```yaml
+cooldown:
+  enable: false     # 是否开启冷却
+  time: "5000"      # 冷却时长 ms，Aria 表达式
+  group: "闪避"     # 冷却组，"-" 表示独立
+```
 
-<Callout type="info">
+`group` 是关键：**同一冷却组的状态共享同一份冷却**。比如四个方向的闪避都写 `group: "闪避"`，那玩家不管往哪个方向闪，都会一起进冷却，不能瞬间四连闪。`time` 是 Aria 表达式，可以按玩家属性动态计算。
 
-- **生命周期**：状态基本设置中的 `duration` 结束之前都是 `生命周期` 内的时间。
-- **开始时间**：窗口子属性中的 `start`，表示窗口开始的时间点。
-- **结束时间**：窗口子属性中的 `end`，表示窗口结束的时间点。
-- **时间段**：从 `开始时间[ms]` 到 `结束时间[ms]` 之间的这段时间。
-- **注意，这些周期都会被speed属性影响。**
-</Callout>
+### windows：四种窗口
 
-**可用窗口表**：
-
-| 窗口名称        | 翻译  | 作用                         |
-|-------------|-----|----------------------------|
-| cancel      | 取消  | 比如重击前摇 此时可以通过发起其它连招链的输入来取消 |
-| derive      | 派生  | 此时状态会接收下一步输入，来判断下一步转换为哪个状态 |
-| invincible  | 无敌帧 | 这个时间内是无敌的，可用于闪避            |
-| super_armor | 霸体  | 这个时间内不会进入受控状态              |
+窗口是「在状态生命周期的某段时间里，开启某种特性」。它是动作手感的灵魂——什么时候能取消、什么时候能接下一段、什么时候无敌，全部依靠这里设置。
 
 <Callout type="info">
-`invincible` 无敌帧有一个额外的属性 `invincible_tag_duration`，用于设置成功规避伤害标签持续时间，用于做完美闪避反击动作，当无敌窗口期成功阻止伤害，会对玩家添加该持续时间的标签，使 `self.isInvincibleTag()` 的返回值为true。
+- 时间都是**相对状态开始**的毫秒数，`start` 到 `end` 之间为该窗口生效区间。
+- 所有窗口时间都会被 `speed` 缩放（比如 `speed: 2` 时窗口时间减半）。
+- 不需要的窗口直接不写即可。
 </Callout>
 
-#### 单时间段配置
+| 窗口            | 作用                                                                 |
+|---------------|--------------------------------------------------------------------|
+| `cancel`      | **取消窗口**：这段时间内，玩家可以用「发起其它连招根节点的输入」来取消当前状态。常用于重击前摇——摇到一半发现要挨打，赶紧闪掉。 |
+| `derive`      | **派生窗口**：这段时间内接收输入，沿 `combo` 的 derive 分支转移到下一个状态。连段能不能接下去，就看这个窗口。  |
+| `invincible`  | **无敌帧**：这段时间内免疫伤害，用来做闪避。                                           |
+| `super_armor` | **霸体**：这段时间内不会被拉入受控状态（不被击退 / 打断）。                                  |
 
-最基础的窗口配置方式，设置一个开始时间和结束时间：
+**单段**窗口直接写 `start` / `end`：
 
-``` yaml
+```yaml
 windows:
   derive:
-    start: 300    # 开始时间 (ms)
-    end: 450      # 结束时间 (ms)
+    start: 300
+    end: 450
 ```
 
-#### 多时间段配置
+**多段**窗口用 `ranges`（一个状态里某种特性分成好几段生效）：
 
-支持在一个状态中设置多个激活时间段，适用于复杂的动作设计：
-
-``` yaml
+```yaml
 windows:
-  # 取消窗口 - 开始和结束时都可取消
-  cancel:
+  invincible:
     ranges:
       - start: 0
         end: 100
       - start: 400
         end: 500
-  
-  # 无敌帧 - 多段无敌
-  invincible:
-    ranges:
-      - start: 50
-        end: 200
-      - start: 300
-        end: 350
-    invincible_tag_duration: 500  # 无敌标记持续时间
+    # 成功免伤后，给玩家挂多久的「完美闪避」标签(ms)，供 self.isInvincibleTag() 读取
+    invincible_tag_duration: 1000
 ```
 
-#### 窗口时间线示例
+`invincible` 窗口独有一个 `invincible_tag_duration`：当无敌帧成功挡下一次伤害后，会给玩家挂上一个持续这么久的「完美闪避」标签，让 `self.isInvincibleTag(){:aria}` 返回 `true`。你可以在派生分支的条件里读它，做「完美闪避后才能触发的反击 / 处决」。
 
-理解窗口在状态生命周期中的分布：
+下面这张时间线能直观看出各窗口在一次闪避（`duration: 400`）里的分布：
 
 ```mermaid
 gantt
-    title 闪避状态窗口时间线 (duration: 400ms)
+    title 闪避状态窗口时间线 (duration 400ms)
     dateFormat X
-    axisFormat %L ms
-    
+    axisFormat %L
     section 无敌帧
-    无敌1     :active, 50, 200
-    无敌2     :active, 300, 350
-    
+    无敌1 :active, 0, 100
+    无敌2 :active, 400, 500
     section 派生窗口
-    派生      :crit, 300, 380
-    
+    派生 :crit, 200, 400
     section 取消窗口
-    取消      :380, 400
+    取消 :150, 400
 ```
-
-#### 完整窗口配置示例
-
-``` yaml
-# 状态声明
-state:
-  # 注意这个名字不要重复，后续作为状态ID
-  状态ID:
-    ...
-    # 省略基本配置项，你可以参考上面的示例
-
-    # 窗口阶段【如果不需要哪个窗口阶段，直接删除对应阶段的配置项】
-    windows:
-      # 取消窗口期 【比如重击前摇 此时可以通过发起其它连招链的输入来取消】
-      cancel:
-        # 开始时间[ms]（对于该状态生命周期)
-        start: 0
-        # 结束时间[ms] 同上，这个开始结束时间，会结合运算上方设置的speed的结果，比如设置的速度是2，那么此时这个窗口期是0-50毫秒
-        end: 100
-      # 派生状态窗口期【此时状态会接收下一步输入，来判断下一步转换为哪个状态】
-      derive:
-        start: 300
-        end: 450
-      # 无敌帧【这个时间内是无敌的，用于闪避】
-      invincible:
-        start: 0
-        end: 50
-        # 成功规避伤害标签持续时间，用于做完美闪避反击动作，当无敌窗口期成功阻止伤害，会对玩家添加该持续时间的标签，使 self.isInvincibleTag() 的返回值为true
-        invincible_tag_duration: 1000
-      # 霸体【这个期间不会进入受控状态】
-      super_armor:
-        start: 0
-        end: 50
-```
-
----
-### 执行设置
-
-在这里定义一些执行步骤，每个步骤都有一个开始时间 `at`，表示在这个时间点执行对应的表达式 `expression`。
-
-你可以在这里定义多个节点，分类给自己看。
-
-<Callout type="warn">
-- 执行设置中的 `at` 节点表示开始时间，单位为毫秒。
-- 执行设置中的 `at` 节点不能重复，重复的时间会相互覆盖，谁活下来就看运气了。
-</Callout>
-
-表达式：
-- 支持Glimmer表达式，你可以在表达式中使用 `self` 来调用玩家上下文的方法。
-- 例如：`self.dash(1.5, 0.3)` 表示设置自身的速度向量为水平轴1.5，垂直轴0.3。
-
-示例：
-``` yaml
-# 状态声明
-state:
-  # 注意这个名字不要重复，后续作为状态ID
-  状态ID:
-    ...
-    # 省略基本配置项，你可以参考上面的示例
-
-    # 执行设置
-    execute:
-      # 这里可以设置多个步骤 会按照设置的at(开始时间)顺序执行
-      默认:
-        # 开始时间
-        at: 6
-        # 执行表达式 Glimmer
-        expression: ""
-```
-
----
-### 完整实例
-
-``` yaml
-  # 注意这个名字不要重复，后续作为状态ID
-  近战1段:
-    # 客户端控制器对应的子控制器名称
-    controller: "main"
-    # 客户端子控制器下的状态名称
-    stateName: "attack1"
-    # 播放速度 支持Glimmer
-    speed: "1"
-    # 持续时间[ms] 支持Glimmer
-    duration: "500"
-    # 缓冲释放衔接时间点[ms]，-1表示在派生窗口内立即衔接（默认），>=0表示存储预输入并在到达该时间点时衔接
-    # 例如: buffer_at 400 表示在400ms时如果有预输入则衔接，这样可以实现"预输入"效果
-    buffer_at: -1
-    # 状态所属分组
-    group: "攻击"
-    # 是否开启蓄力 开启后动作结束将对玩家上下文赋值蓄力时间[ms] 通过self.getChargeTime() 获取
-    charge: false
-    # 状态进入条件
-    conditions:
-      # Glimmer 表达式 返回布尔类型
-      expression: "true"
-      # 如果处于以下组的状态时，无法进入该状态
-      blocked_group:
-        - "受控"
-        - "特殊运动"
-    # 冷却设置
-    cooldown:
-      # 是否开启冷却
-      enable: false
-      # 冷却时间 支持Glimmer
-      time: "0"
-      # 冷却组
-      group: "-"
-    # 窗口阶段【如果不需要哪个窗口阶段，直接删除对应阶段的配置项】
-    windows:
-      # 取消窗口期 【比如重击前摇 此时可以通过发起其它连招链的输入来取消】
-      cancel:
-        # 开始时间[ms]（对于该状态生命周期)
-        start: 0
-        # 结束时间[ms] 同上，这个开始结束时间，会结合运算上方设置的speed的结果，比如设置的速度是2，那么此时这个窗口期是0-50毫秒
-        end: 100
-      # 派生状态窗口期【此时状态会接收下一步输入，来判断下一步转换为哪个状态】
-      derive:
-        start: 300
-        end: 450
-      # 无敌帧【这个时间内是无敌的，用于闪避】
-      invincible:
-        start: 0
-        end: 50
-        # 成功规避伤害标签持续时间，用于做完美闪避反击动作，当无敌窗口期成功阻止伤害，会对玩家添加该持续时间的标签，使 self.isInvincibleTag() 的返回值为true
-        invincible_tag_duration: 1000
-      # 霸体【这个期间不会进入受控状态】
-      super_armor:
-        start: 0
-        end: 50
-    # 执行设置
-    execute:
-      # 这里可以设置多个步骤 会按照设置的at(开始时间)顺序执行
-      默认:
-        # 开始时间
-        at: 6
-        # 执行表达式 Glimmer
-        expression: ""
-```
-
----
-
-## 连招链
-
-在 `combo` 节点下为状态定义一个输入类型，以及可以衔接到的下一个状态。
-
-动作如何播放就取决于你设置状态的的输入类型。
-
-### 输入类型
-
-| 输入类型               | 翻译      | 作用                | 示例                                                                 |
-|--------------------|---------|-------------------|--------------------------------------------------------------------|
-| MOUSE_CLICK        | 鼠标点击    | 点击鼠标左键或右键         | `LEFT` `RIGHT`                                                     |
-| MOUSE_HOLD         | 鼠标长按    | 长按鼠标左键或右键（≥100ms） | `LEFT` `RIGHT`                                                     |
-| MOUSE_HOLD_RELEASE | 鼠标长按后释放 | 长按鼠标后释放           | `LEFT` `RIGHT`                                                     |
-| KEY_PRESS          | 按键按下    | 按下设定中的按键          | 对应 `keybinding` 中的 `keys` 字段，例如 `战技1` `战技2`                        |
-| KEY_HOLD           | 按键长按    | 长按设定中的按键（≥100ms）  | 同上                                                                 |
-| KEY_HOLD_RELEASE   | 按键长按后释放 | 长按按键后释放           | 同上                                                                 |
-| ACTION             | 动作判断    | 跳跃、冲刺、下蹲等         | `JUMP` `SNEAK` `SPRINT` `SPRINT_LEFT` `SPRINT_RIGHT` `SPRINT_BACK` |
-| AUTO               | 自动衔接    | 状态结束后自动进入下一个状态    | -                                                                  |
 
 <Callout type="info">
-- `combo` 总节点，你的连招链需要写在这个节点下面。
-
-- `input` 节点，对应了该连招会被什么触发。
-
-- `cancel` 节点，对应了你在注册状态时写下的窗口期；表示取消连招，进入下一个链条。
-
-- `derive` 节点，对应了你在注册状态时写下的窗口期；表示衔接哪些动作。
+**取消窗口 vs 派生窗口，别混。** 派生窗口走的是**当前连招树里预先定义好的分支**（接自己的下一段）；取消窗口允许你**跳出当前连招、从头发起另一棵连招树的根节点**（比如轻击摇到一半，直接闪避取消掉）。
 </Callout>
 
-### 基础连招配置
+### execute：到点执行脚本
 
-最简单的连招链配置，按顺序派生：
+`execute` 让你在状态生命周期的某个时刻执行一段 Aria 脚本——出手判定、位移都靠它。每个步骤有一个 `at`（毫秒）和一段 `expression`：
 
-``` yaml
-# 连招链设置
+```yaml
+execute:
+  前冲: # 这个名字随便，方便你记忆即可
+    at: 50
+    # 到 50ms 时给自己一个位移（水平 1.5，垂直 0.3）
+    expression: "self.dash(1.5, 0.3)"
+  出手:
+    at: 200
+    expression: "var.combo = var.combo + 1"
+```
+
+<Callout type="warn">
+**`at` 不能重复。** 同一状态里两个步骤用了同一个 `at`，后者会覆盖前者，并在加载期打印告警。步骤名（如 `前冲` / `出手`）只是给你自己看的注释，真正决定顺序的是 `at`。
+</Callout>
+
+<Callout type="info">
+一个状态被**打断**时，它还没执行到的 `execute` 步骤（尚未出手的伤害 / 位移）会随打断一并取消，不会补跑。
+</Callout>
+
+### 状态生命周期一览
+
+把上面的字段放到一条时间轴上，一个状态大致是这样运转的：
+
+```mermaid
+flowchart LR
+    A["输入触发 /<br/>被派生 / FORCE"] --> B{"check<br/>conditions + cooldown"}
+    B -->|不通过| X["不进入"]
+    B -->|通过| C["进入状态<br/>发 EnterState 事件<br/>通知客户端播动画"]
+    C --> D["按时间线推进<br/>窗口开合 · execute 到点执行"]
+    D --> E{"生命周期<br/>duration 结束?"}
+    E -->|自然结束| F["离开 · 发 LeaveState<br/>可触发 AUTO 衔接"]
+    E -->|被派生/取消/打断| G["离开 · 发 LeaveState<br/>切到新状态"]
+```
+
+---
+
+## combo：连招链
+
+`state` 只是把状态登记下来，真正让它们「连起来」的是 `combo`。在 `combo` 里为每个**根状态**定义一个触发输入，再用 `derive` 一层层往下挂能接的后续状态——这就构成了一棵**连招树**。
+
+```yaml
 combo:
-  # 这个名字对应上面的状态ID
-  近战1段:
-    # 输入
-    input:
-      # 输入类型 MOUSE_CLICK | MOUSE_HOLD | KEY_PRESS | KEY_HOLD | ACTION
+  轻击1:                    # 根节点：对应一个 state ID
+    input:                  # 什么输入能触发它
       type: MOUSE_CLICK
-      # 输入值
-      # MOUSE_CLICK  -> LEFT RIGHT
-      # MOUSE_HOLD  -> LEFT RIGHT
-      # KEY_PRESS  -> 按键设定中对应的按键名
-      # KEY_HOLD  -> 按键设定中对应的按键名
-      # ACTION ->   JUMP SPRINT SPRINT_LEFT SPRINT_RIGHT SPRINT_BACK SNEAK
-      # 这个ACTION详细讲解下，分别是玩家进行下蹲输入、跳跃输入、冲刺输入（分别是前后左右，对于第三人称相机自由模式或者转向锁定期间，只会触发向前）
       value: LEFT
-    derive:
-      近战2段:
+    derive:                 # 它在派生窗口里能接哪些状态
+      轻击2:
         input:
           type: MOUSE_CLICK
           value: LEFT
         derive:
-          近战3段:
+          轻击3:
             input:
               type: MOUSE_CLICK
               value: LEFT
-          近战重击:
-            input:
-              type: MOUSE_CLICK
-              value: RIGHT
 ```
 
----
+玩家点左键 → 进「轻击1」→ 在它的派生窗口里再点左键 → 进「轻击2」→ 再点 → 「轻击3」。这就是最基础的三连击。
 
-## 组合输入模式
+### 输入类型总表
 
-Chronos 支持三种组合输入模式，让你的连招系统更加丰富：
+`input.type` 决定这个节点被什么触发：
 
-### OR 模式 - 多种触发方式
+| 类型                   | 含义                    | value 取值                                                           |
+|----------------------|-----------------------|--------------------------------------------------------------------|
+| `MOUSE_CLICK`        | 鼠标点击                  | `LEFT` / `RIGHT`                                                   |
+| `MOUSE_HOLD`         | 鼠标长按（≥150ms）          | `LEFT` / `RIGHT`                                                   |
+| `MOUSE_HOLD_RELEASE` | 鼠标长按后释放               | `LEFT` / `RIGHT`                                                   |
+| `KEY_PRESS`          | 按键点击                  | keybinding 里的按键 ID，如 `战技1`                                         |
+| `KEY_HOLD`           | 按键长按（≥500ms）          | 同上                                                                 |
+| `KEY_HOLD_RELEASE`   | 按键长按后释放               | 同上                                                                 |
+| `ACTION`             | 玩家动作                  | `JUMP` `SNEAK` `SPRINT` `SPRINT_LEFT` `SPRINT_RIGHT` `SPRINT_BACK` |
+| `AUTO`               | 自动衔接（上一状态**播完**后自动进入） | 无                                                                  |
+| `FORCE`              | 强制衔接（满足条件即**打断**接上）   | 无                                                                  |
 
-任意一个输入满足即可触发。适用于同一个动作有多种触发方式的场景：
+<Callout type="warn">
+**长按阈值由客户端判定：鼠标 150ms、键盘 500ms。**
+</Callout>
 
-``` yaml
+`ACTION` 的冲刺分前后左右四个方向；但在第三人称自由相机非锁定期间，只会触发向前的 `SPRINT`。
+
+### 组合输入：AND / OR / SEQUENCE
+
+单个 `input` 只能配一种触发。想要「同时按」「多种触发」「搓招」这类，就用 `mode` + `inputs` 列表：
+
+**OR —— 任一满足即可（多种触发方式）。** 让玩家往任意方向冲刺都能触发闪避：
+
+```yaml
 闪避:
   input:
     mode: OR
     inputs:
-      - type: ACTION
-        value: SPRINT
-      - type: ACTION
-        value: SPRINT_LEFT
-      - type: ACTION
-        value: SPRINT_RIGHT
-      - type: ACTION
-        value: SPRINT_BACK
+      - { type: ACTION, value: SPRINT }
+      - { type: ACTION, value: SPRINT_LEFT }
+      - { type: ACTION, value: SPRINT_RIGHT }
+      - { type: ACTION, value: SPRINT_BACK }
 ```
 
-<Callout type="info">
-**使用场景示例：** 玩家可以通过向任何方向冲刺来触发闪避动作，无需为每个方向单独配置。
-</Callout>
+**AND —— 所有输入同时按下（组合键）。** 潜行 + 长按右键才触发蓄力重击：
 
-### AND 模式 - 组合键
-
-所有输入必须同时满足。适用于需要组合按键的高级技能：
-
-``` yaml
+```yaml
 蓄力重击:
   input:
     mode: AND
     inputs:
-      - type: ACTION
-        value: SNEAK        # 按住潜行
-      - type: MOUSE_HOLD
-        value: RIGHT        # 同时长按右键
+      - { type: ACTION, value: SNEAK }
+      - { type: MOUSE_HOLD, value: RIGHT }
 ```
 
-<Callout type="info">
-**使用场景示例：** 玩家需要同时按住潜行键和长按鼠标右键，才能触发蓄力重击。这适合设计高伤害但需要精确操作的技能。
-</Callout>
+**SEQUENCE —— 在时间窗口内按顺序完成（搓招）。** 格斗游戏味的升龙拳，必须在 `time_window` 毫秒内依次输入：
 
-### SEQUENCE 模式 - 搓招
-
-按顺序在时间窗口内完成。适用于格斗游戏风格的搓招技能：
-
-``` yaml
+```yaml
 升龙拳:
   input:
     mode: SEQUENCE
-    time_window: 500        # 必须在500ms内完成
+    time_window: 500      # 500ms 内完成整个序列
     inputs:
-      - type: ACTION
-        value: SPRINT_BACK  # 第1步: 后退
-      - type: ACTION
-        value: SPRINT       # 第2步: 前冲
-      - type: MOUSE_CLICK
-        value: LEFT         # 第3步: 攻击
+      - { type: ACTION, value: SPRINT_BACK }   # 后退
+      - { type: ACTION, value: SPRINT }        # 前冲
+      - { type: MOUSE_CLICK, value: LEFT }     # 攻击
 ```
 
 <Callout type="info">
-**使用场景示例：** 玩家需要在500毫秒内依次输入：后退 → 前冲 → 攻击，才能触发升龙拳技能。这种设计让高级技能需要玩家掌握一定的操作技巧。
+`AND` 和 `SEQUENCE` 都依赖 `setting.input_buffer`——它们要在缓冲区里回看最近的几个输入才能判定，所以别把 `input_buffer` 关掉。这两种模式至少要写 2 个 `inputs`，否则加载期会告警。
 </Callout>
 
----
+### AUTO 与 FORCE：两种「不用玩家输入」的衔接
 
-## 自动衔接 (AUTO)
+`AUTO` 和 `FORCE` 都不需要玩家再按键就能进入下一段，但触发时机完全不同，这是最容易混的地方：
 
-状态结束后自动进入下一个状态，无需玩家输入：
+|         | 触发时机                                                      | 典型用途                    |
+|---------|-----------------------------------------------------------|-------------------------|
+| `AUTO`  | 上一状态**自然播完后**才衔接                                          | 收招、蓄力起手状态到达超时阈值未进行释放输入时 |
+| `FORCE` | 上一状态**进行期间**，每 tick 持续判定目标状态的 `conditions`，一满足就**立即打断**接上 | 血量低于阈值自动接处决、进入某种状态自动变招  |
 
-``` yaml
+**AUTO** —— 冲刺斩播完，自动接收招动作，无需玩家操作：
+
+```yaml
 combo:
   冲刺斩:
     input:
@@ -524,65 +505,105 @@ combo:
     derive:
       冲刺斩收招:
         input:
-          type: AUTO  # 自动衔接，无需玩家输入
+        type: AUTO # 冲刺斩播完后自动进入
 ```
 
-<Callout type="info">
-**使用场景示例：** 冲刺斩动作结束后自动进入收招动作，让动作衔接更加流畅自然。
-</Callout>
+**FORCE** —— 条件驱动的强制衔接（本版本新增）。它不看玩家输入，而是在前一状态运行期间**每 tick 持续判定 FORCE 目标状态的 `conditions`**，一旦满足就立刻强制释放，**不必等前一个动作播完**。所以触发条件写在**目标 state 的 `conditions` 里**：
 
----
+```yaml
+state:
+  # 处决：只有当被锁定目标血量很低时才允许进入
+  处决:
+    controller: "main"
+    state_name: "execution"
+    duration: "1200"
+    conditions:
+      # 这段条件就是 FORCE 的触发开关：目标血量低于 20% 时为真
+      expression: "条件表达式"
 
-## 完整连招示例
-
-以下是一个包含多种输入模式的完整连招配置：
-
-``` yaml
 combo:
-  # 基础攻击链
-  攻击1段:
+  轻击3:
     input:
       type: MOUSE_CLICK
       value: LEFT
     derive:
-      攻击2段:
-        input:
-          type: MOUSE_CLICK
-          value: LEFT
-      闪避:
-        input:
-          mode: OR
-          inputs:
-            - type: ACTION
-              value: SPRINT
-            - type: ACTION
-              value: SPRINT_BACK
-
-  # 多方向闪避（根节点）
-  闪避:
-    input:
-      mode: OR
-      inputs:
-        - type: ACTION
-          value: SPRINT
-        - type: ACTION
-          value: SPRINT_LEFT
-        - type: ACTION
-          value: SPRINT_RIGHT
-        - type: ACTION
-          value: SPRINT_BACK
-    derive:
-      # 两个分支，根据顺序判断优先级
-      完美闪避反击:
-        input:
-          type: MOUSE_CLICK
-          value: LEFT
-      闪避反击:
-        input:
-          type: MOUSE_CLICK
-          value: LEFT
+      处决:
+        input:                # 无需输入；轻击3 期间只要条件满足就强制接处决
+          type: FORCE
+        force_window: derive  # 可选：只在轻击3的派生窗口内判定条件
 ```
 
 <Callout type="info">
-**派生优先级说明：** 当多个派生都满足条件时，按照配置的顺序判断优先级。上面的例子中，如果玩家处于无敌标记期间，会优先进入"完美闪避反击"；否则进入普通的"闪避反击"。
+`force_window` 是 FORCE 独有的可选项：
+- **不写**（默认）：在前一状态的**整个生命周期**持续判定条件，自由度最高。
+- **填 `derive` / `cancel`** 这类窗口类型：只在前一状态的**指定窗口内**才判定条件，便于把强制变招限制在特定节奏点。
+
+引擎对 FORCE 连跳有递归深度保护（上限 16），不用担心 `A → force → B → force → A` 这类环无限循环。
 </Callout>
+
+### goto 与 back：复用节点、成环
+
+一棵连招树经常需要「回到前面某一段」形成循环（比如三连击的第三段打完又回到第一段）。硬写会无限展开，所以有两个复用手段：
+
+**`goto`** —— 跳到**同一棵连招树里已经声明过的节点**，实现复用 / 成环：
+
+```yaml
+combo:
+  轻击1:
+    input:
+        type: MOUSE_CLICK
+        value: LEFT
+    derive:
+      轻击2:
+        input:
+            type: MOUSE_CLICK
+            value: RIGHT
+        goto: 轻击1          # 轻击2 之后又能接回轻击1，形成循环连段
+      轻击2-1:  # 这里示例一个不做goto的分支，这个分支继续往下走到 轻击3 而不是和上面这个一样回到第一段
+        input:
+            type: MOUSE_CLICK
+            value: LEFT
+        derive:
+          轻击3:
+            input:
+                type: MOUSE_CLICK
+                value: LEFT
+```
+
+**`back`** —— 当一个节点**没有任何 derive**时，`back: true` 会把它直接接回**根节点**，做最简单的循环：
+
+```yaml
+combo:
+  斩击:
+    input:
+        type: MOUSE_CLICK
+        value: LEFT
+    derive:
+      斩击2:
+        input:
+            type: MOUSE_CLICK
+            value: LEFT
+        back: true           # 收招播完回到「斩击」根节点
+```
+
+<Callout type="info">
+`goto` 和 `back` 只在当前节点**没有显式 derive 子节点**时才接管衔接。也就是说，一旦你给节点写了 `derive`，`goto` / `back` 就不生效——优先走你手写的派生分支。
+</Callout>
+
+### 派生优先级
+
+同一层的多个派生分支按**配置顺序**从上往下判定，命中第一个满足条件的就进入。所以要把「更严格 / 更特殊」的分支写在前面。比如「完美闪避后的反击」要排在「普通反击」之前：
+
+```yaml
+derive:
+  完美闪避反击:
+    input:
+      type: MOUSE_CLICK
+      value: LEFT
+    # 目标 state 的 conditions 里写 self.isInvincibleTag()，只有完美闪避后才进得来
+  普通反击:
+    input:
+      type: MOUSE_CLICK
+      value: LEFT
+    # 条件宽松，作为兜底
+```

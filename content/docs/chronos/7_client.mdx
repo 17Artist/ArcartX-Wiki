@@ -1,0 +1,336 @@
+---
+title: 客户端状态机
+description: 用 client/*.yml 定义玩家模型的动画状态机，供服务端控制器驱动
+---
+
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## 概述
+
+- **客户端状态机决定「玩家模型此刻播哪个动画，该玩家处于这个状态的时候，客户端有哪些行为 」。**
+- 它是一套动画状态机：定义「什么情况播什么动画」，它每一游戏刻自动判断玩家当前行为，切到对应动画——站着播待机、走路播行走、跑步播跑步。
+- 而攻击、连招这类动作，则由[服务端控制器](/docs/chronos/7_controller)在判定输入后驱动它切换。
+
+
+## 配置文件
+
+客户端状态机的配置放在插件的 `client/` 文件夹里，**每个 `.yml` 文件就是一套客户端状态机，文件名即它的 ID**：
+
+<Files>
+  <Folder name="ArcartX_Chronos" defaultOpen>
+    <Folder name="client" defaultOpen>
+      <File name="太刀动画.yml" />
+    </Folder>
+    <Folder name="controllers">
+      <File name="太刀.yml" />
+    </Folder>
+  </Folder>
+</Files>
+
+服务端控制器通过 `setting.client_controller_id` 指向某套客户端状态机，两者就绑在了一起：
+
+```yaml
+# controllers/太刀.yml（服务端控制器）
+setting:
+  client_controller_id: "太刀动画"   # ← 指向 client/太刀动画.yml
+```
+
+<Callout type="info">
+改完 `client/` 里的配置，和服务端控制器一样用 `/chronos reload` 重载即可。
+</Callout>
+
+---
+
+## 基本结构
+
+一套客户端状态机由若干**子控制器**组成，每个子控制器是一台独立运行的状态机。最简单的写法只有一个子控制器 `main`：
+
+```yaml
+# client/太刀动画.yml
+main:                    # 子控制器名，可自定义
+  initial_state: idle    # 初始状态
+  states:
+    run:
+      animation: 跑步
+    walk:
+      animation: 走路
+    idle:
+      animation: 待机
+```
+
+- `main` 是子控制器名，随意命名；一套状态机可以有多个子控制器（见 [多子控制器混合](#多子控制器混合)）。
+- `initial_state` 是玩家挂上这套状态机时的默认状态。
+- `states` 下声明所有状态，每个状态至少绑定一个 `animation`（动画名，来自模型里的动画）。
+
+子控制器**每一游戏刻从上到下**检查各状态的触发条件，取第一个成立的。`idle` 的条件恒成立，所以放最后当兜底。
+
+<Callout type="info">
+状态的判断顺序 = 你在 `states` 里写的顺序（从上到下）。**把优先级高的状态写在前面**——比如先判 `run` 再判 `walk`，否则跑步时会被走路盖掉。
+</Callout>
+
+---
+
+## 状态触发方式
+
+状态名分两类，决定它「谁来触发」：
+
+<Callout type="info">
+- **保留名**（如 `idle` `walk` `run` `sword`…）：状态机会**自动**根据玩家行为判定触发。完整列表见文末 [状态保留名](#状态保留名附录)。
+- **自定义名**（如 `attack1` `charge_release`…）：不会被自动触发，**只能由服务端控制器驱动**切换。连招、技能等动作都用自定义名。
+</Callout>
+
+这正是两个状态机的接缝：服务端控制器某个 state 的 `controller` 指向这里的**子控制器名**、`state_name` 指向这里的**状态名**。服务端一进入该 state，就通知客户端把对应子控制器切到那个动画。
+
+```yaml
+# controllers/太刀.yml（服务端）
+state:
+  一段轻击:
+    controller: "main"        # ← client 里的子控制器名
+    state_name: "attack1"     # ← 该子控制器下的状态名（自定义名）
+```
+
+```yaml
+# client/太刀动画.yml（客户端）
+main:
+  states:
+    attack1:                   # ← 服务端驱动它切换
+      animation: 太刀-普攻-1
+      exclusive: true
+```
+
+---
+
+## 状态属性
+
+每个状态支持以下配置项，全部可选（除 `animation` 外都有默认值）：
+
+| 配置键          | 类型     | 默认      | 说明                                                         |
+|--------------|--------|---------|------------------------------------------------------------|
+| `animation`  | string | `""`    | 主动画名（来自模型）                                                 |
+| `speed`      | double | `1.0`   | 动画播放速度                                                     |
+| `weight`     | double | `1.0`   | 动画权重（多子控制器混合时用，取值0.5-2，如果想该动画所驱动的骨骼 **完全不被其它动画影响** 则设置为-1） |
+| `inTick`     | int    | `5`     | **进入**该状态时的边界过渡时长                                          |
+| `outTick`    | int    | `-1`    | **离开**该状态时的边界过渡时长），设为`-1` 则用下一个状态的 `inTick`                |
+| `in`         | map    | `{}`    | 进入过渡动画：key = 来源状态名，value = 过渡动画名                           |
+| `to`         | map    | `{}`    | 离开过渡动画：key = 目标状态名，value = 过渡动画名                           |
+| `exclusive`  | bool   | `false` | 独占：抑制其它控制器的行为                                              |
+| `moveLimit`  | double | `1.0`   | 移动速度倍率（多状态叠加时相乘）                                           |
+| `clientLock` | object | `{}`    | 客户端输入锁定（下文详解）                                              |
+| `onStart`    | string | `""`    | 进入状态时执行的 Aria 脚本（仅针对使用该控制器的本地玩家，进入该状态时，该玩家客户端会执行此脚本）       |
+| `onEnd`      | string | `""`    | 离开状态时执行的 Aria 脚本（同上，离开状态时候运行）                              |
+
+<Callout type="info">
+`clientLock`、`onStart`、`onEnd` 都是客户端当前玩家自身生效的，比如可以操作玩家进入这个状态时候临时操作下相机位置之类的。
+</Callout>
+
+### 动画播放
+
+一个状态的动画完整性可以拆成三段：**进入动画（in）→ 主动画（play）→ 离开动画（out）**，三段无缝衔接，段与段之间没有过渡。
+
+主动画（`animation`）**是否循环，取决于动画本身在建模软件里的循环设定**：
+
+- 勾了「循环」的动画（待机、行走、跑步这类）会**一直循环**播放。
+- 没勾循环的动画（一次性动作，如攻击、收招）播完后**停在最后一帧**，（就算设置为“播放一次”也会按照停在最后一帧处理）。
+- 关于“停止在最后一帧”，这是设计使然，像是播放一次的动作，比如交互等，我们默认您是由Chronos完全接管，如需按照“原版”处理，请特化一个生存模式（无任何控制器接管）。
+- 也就是说，无Chronos这类动作控制引擎接管，播放一次性动画是不会停止的。
+
+### 过渡时长（inTick / outTick）
+
+状态之间的切换不是硬切换，而是有一段平滑混合。**过渡时长只作用在「状态与状态之间的边界」**——上一个状态收尾 → 下一个状态开头：
+
+- `inTick`：进入该状态时的混合时长。`inTick: 0` = 瞬间切入，没有混合（攻击这类要求立即响应的动作常设 0）。
+- `outTick`：离开该状态时的混合时长。`-1`（默认）= 交给下一个状态的 `inTick` 决定。
+
+### 过渡动画（in / to）
+
+有时两个状态之间需要一段**专门的过渡动画**，而不只是混合。用 `to` 指定「从当前状态切到某状态时」先播的过渡动画，设置该过渡模式时，平滑过渡强制为0：
+
+```yaml
+states:
+  run:
+    animation: 太刀-跑步-循环
+    to:
+      idle: 太刀-跑步-急停      # run → idle 时，先播「急停」再进 idle
+```
+
+`in` 则相反——指定「从某状态进入当前状态时」先播的过渡动画。key 用 `"*"` 可匹配任意来源/目标：
+
+```yaml
+  idle:
+    animation: 太刀-待机
+    in:
+      "*": 太刀-拔刀            # 从任何状态进 idle，都先播「拔刀」
+```
+
+### 独占（exclusive）
+
+`exclusive: true` 仅该控制器接管动画，其余控制器动画操作直接完全抑制
+
+### 移动限制（moveLimit）
+
+`moveLimit` 限制该状态下玩家的移动速度，取值 0~1：`0.5` = 减速一半，`0` = 完全不能动。多个子控制器的 `moveLimit` 会**相乘**。攻击时常配 `0.5` 防止玩家边打边乱跑。
+
+### 客户端输入锁定（clientLock）
+
+在某些状态下屏蔽玩家的部分输入：
+
+```yaml
+clientLock:
+  input:
+    - LOCK
+    - DIRECTION
+  action:
+    - JUMP
+    - SNEAK
+```
+
+`input` 可选值：
+- `LOCK` — 攻击这类动作期间，点击左右键**不把身体转向相机指向**（近战吸附时把相机与身体解耦，配合朝向吸附脚本用）。
+- `DIRECTION` — 锁定移动方向输入（第三人称自由相机下不因转视角、方向键而改变前进方向）。
+
+`action` 可选值：
+- `JUMP` — 禁止跳跃
+- `SNEAK` — 禁止下蹲
+- `MOVE` — 禁止所有方向的移动输入
+
+---
+
+## 多子控制器混合
+
+一套状态机里可以有**多个子控制器并行运行**，各管一部分骨骼。
+
+```yaml
+main:
+  initial_state: idle
+  states:
+    idle:
+        animation: 待机
+    walk:
+        animation: 走路
+    run:
+        animation: 跑步
+
+sub:
+  initial_state: empty
+  states:
+    empty:
+      animation: empty        # 不含任何骨骼动画的空动作
+    attack1:
+      animation: 挥剑1
+    attack2:
+      animation: 挥剑2
+```
+
+- `main` 负责全身移动动画。
+- `sub` 负责上半身。`empty` 是**默认状态**，指向一个「实际存在但不含任何骨骼动画」的空动作（需要在bbmodel真实存在）——玩家不攻击时，`sub` 就停在 `empty`，不干预 `main` 的骨骼。
+- `attack1`/`attack2` 是自定义名，由服务端连招驱动。
+- 关于`main` 和 `sub` 的命名，事实上是自定义的，实际执行根据声明顺序，也就是第一个声明的实际上默认为主状态机。
+
+<Callout type="warn">
+副控制器的默认状态（如 `empty`）必须对应一个**真实存在、但不含骨骼动画**的空动作；否则它会用一套空姿态覆盖掉主控制器的动画。
+</Callout>
+
+<Callout type="info">
+服务端控制器可以用 `state` 的 `controller` 字段分别驱动 `main` 和 `sub`：移动交给保留名自动判定，攻击段用 `controller: "sub"` 只切上半身。
+</Callout>
+
+---
+
+## 速查注释对照配置
+
+```yaml
+# 主状态机定义
+# 为什么这个叫主状态机？
+# -> 因为有些情况下，我们可能涉及走A等操作，这就需要副状态机或者更多状态机（比如专门有个状态机控制面部表情等）
+main:
+  initial_state: idle    # 默认状态
+  states:                # 有序：客户端按声明顺序取首个条件成立的状态，这需要您自行设计您所需的优先级，比如，睡觉 > 奔跑 > 蹲着走 > 走路 > 蹲着不动 > 待机
+                         # 也就是说，顺序不能乱写，比如如果待机状态不应该放在前面，一般情况下，他是兜底状态（条件恒为true）
+
+    <状态id>:            # 状态ID，状态ID分为保留ID和自定义ID，保留ID自带状态判断，如run、idle、walk等，自定义ID用于定义自定义状态，比如技能、连击这些特殊状态。
+      animation: xxx     # 主动画（除了循环播放模型，其余模式都是停在最后一帧）
+      in:                # 进入动画（key=来源状态id，"*"通配）
+                         # 这个用于做从上个动画变换到下一个动画的中间动画，恒定播放一次，key为上一个状态的ID。"*"匹配全部
+                         # 比如idle -> run有特殊过渡动作，而不依靠inTick平滑过渡，则填写 "idle": idleToRun <- 这里指代您的特殊过渡动作
+        "*": xx
+      to:                # 退出动画（key=目标状态id，"*"通配）
+                         # 同上，当前动画过渡到下一个状态时候的过渡动画
+        "*": xx
+      inTick: 5          # 状态边界混合tick（进入侧）如果设置了"in",该数值强制为0
+      outTick: -1        # 状态边界混合tick（离开侧，-1=用目标inTick）如果设置了"out",该数值强制为0
+      weight: 1.0        # 混合权重,-1为完全独占混合，一般取值为0.5-2
+      speed: 1.0         # 动画默认播放速度
+      exclusive: false   # 独占：抑制其它子状态机，进入本状态时，其他子状态机状态全部不叠加入动作，但是注意，这个模式只能在主状态机（第一个状态机）里面出现，否则会冲突造成恐怖的后果。
+      moveLimit: 1.0     # 移动限制，1为不限制，改为1以下小数限制玩家移动速度到指定百分比，比如0.3，玩家移动速度将被限制在原本移动速度的30%
+      clientLock:        # 客户端锁定选项，用于锁定客户端某些行为
+        input:           # 客户端输入锁定，例如列出 - LOCK / - DIRECTION
+        action:          # 客户端动作锁定，例如列出 - JUMP / - SNEAK / - MOVE
+      onStart: ""        # 进入Aria脚本（仅本地玩家自身客户端执行）
+      onEnd: ""          # 离开Aria脚本（仅本地玩家自身客户端执行）
+
+
+```
+
+## 状态保留名（附录）
+
+以下状态名会被客户端状态机**自动判定触发**。用了这些名字的状态，无需服务端驱动，玩家做对应行为时自动播放。
+
+### 基础姿态
+
+| 状态名          | 触发条件             |
+|--------------|------------------|
+| `idle`       | 恒成立（作默认兜底状态）     |
+| `walk`       | 移动中，速度 > 0.1     |
+| `run`        | 移动中且正在冲刺         |
+| `sneak`      | 下蹲               |
+| `sneak_walk` | 下蹲且移动（速度 > 0.05） |
+| `jump`       | 跳跃中              |
+| `sleep`      | 睡觉               |
+| `die`        | 死亡               |
+
+### 特殊移动
+
+| 状态名                                         | 触发条件         |
+|---------------------------------------------|--------------|
+| `swim`                                      | 游泳           |
+| `swim_stand`                                | 在水中（非游泳姿态）   |
+| `fly`                                       | 创造/旁观飞行      |
+| `fall_fly`                                  | 鞘翅滑翔         |
+| `climb`                                     | 匍匐           |
+| `climb_walk`                                | 匍匐移动         |
+| `ladder_up` / `ladder_down` / `ladder_idle` | 爬梯上 / 下 / 静止 |
+
+### 骑乘
+
+| 状态名         | 触发条件   |
+|-------------|--------|
+| `ride`      | 骑乘任意实体 |
+| `ride_pig`  | 骑猪     |
+| `ride_boat` | 骑船     |
+
+### 战斗与物品使用
+
+以下状态区分主手（`_right`）和副手（`_left`）：
+
+| 状态名                                          | 触发条件     |
+|----------------------------------------------|----------|
+| `sword`                                      | 主手挥剑     |
+| `punch`                                      | 主手空手攻击   |
+| `break_right` / `break_left`                 | 挥动手臂     |
+| `bow_right` / `bow_left`                     | 拉弓       |
+| `crossbow_right` / `crossbow_left`           | 弩蓄力 / 持弩 |
+| `trident_throw_right` / `trident_throw_left` | 投掷三叉戟    |
+| `shield_block_right` / `shield_block_left`   | 盾牌格挡     |
+| `eat_right` / `eat_left`                     | 进食 / 饮用  |
+| `spyglass_right` / `spyglass_left`           | 望远镜      |
+| `toot_horn_right` / `toot_horn_left`         | 山羊角      |
+| `brush_right` / `brush_left`                 | 刷子       |
+| `use_right` / `use_left`                     | 通用使用物品   |
+
+<Callout type="info">
+状态名不在上表内的，就是**自定义名**——不会被自动触发，只能由服务端控制器驱动切换（连招、技能就靠它）。
+</Callout>
+

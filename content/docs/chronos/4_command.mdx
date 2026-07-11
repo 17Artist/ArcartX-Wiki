@@ -1,6 +1,6 @@
 ---
 title: 指令
-description: Chronos 插件指令使用指南
+description: Chronos 插件的四条管理指令：设置、移除、试进状态、重载
 ---
 
 import { File, Folder, Files } from 'fumadocs-ui/components/files';
@@ -8,172 +8,194 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-## 指令概览
+## 这些指令是做什么的
 
-Chronos 提供了简洁的指令系统来管理玩家的动作控制器。
+Chronos 的指令非常简单，其核心是：**管理玩家身上的「服务端控制器」**。玩家有了控制器，才会拥有一整套连招、状态、窗口的动作逻辑；没有控制器，Chronos 对这名玩家就是完全静默的。
 
-### 指令前缀
-
-可以使用以下任意前缀：
-- `/arcartx_chronos` - 完整前缀
-- `/ac` - 简写前缀（推荐）
-
----
-
-## 指令列表
-
-| 指令                     | 作用       | 权限 |
-|------------------------|----------|----|
-| `/ac set <控制器ID> <玩家>` | 为玩家设置控制器 | OP |
-| `/ac remove <玩家>`      | 移除玩家的控制器 | OP |
-| `/ac reload`           | 重载所有配置文件 | OP |
-
-在后台输入 `/ac` 可以查看指令帮助：
-
-```log
-[18:44:55 INFO]: ♦ ArcartX-Chronos | 信息: 指令列表
-[18:44:55 INFO]: ♦ ArcartX-Chronos | 信息:  - /arcartx_chronos set - 设置玩家控制器
-[18:44:55 INFO]: ♦ ArcartX-Chronos | 信息:  - /arcartx_chronos remove - 移除玩家控制器
-[18:44:55 INFO]: ♦ ArcartX-Chronos | 信息:  - /arcartx_chronos reload - 重载
-```
-
----
-
-## 详细用法
-
-### set - 设置控制器
-
-为指定玩家设置动作控制器。
-
-**语法：**
-```
-/ac set <控制器ID> <玩家名称>
-```
-
-**参数说明：**
-
-| 参数      | 说明                                 |
-|---------|------------------------------------|
-| `控制器ID` | `controllers` 文件夹中的 yml 文件名（不含扩展名） |
-| `玩家名称`  | 在线玩家的游戏名                           |
-
-**示例：**
-```bash
-# 为玩家 Steve 设置剑士控制器
-/ac set sword Steve
-
-# 为玩家 Alex 设置弓箭手控制器
-/ac set bow Alex
-```
+日常你只会用到四条命令：给玩家挂载控制器、把控制器摘掉、手动让玩家进入某个状态（做测试或给其它插件调用）、以及改完配置后热重载。
 
 <Callout type="info">
-**控制器ID 就是文件名！** 如果你的配置文件是 `controllers/sword.yml`，那么控制器ID 就是 `sword`。
+这四条指令都需要 **OP** 身份，权限节点为 `chronos.admin`。普通玩家无法使用。
 </Callout>
+
+### 前缀与别名
+
+根指令是 `/arcartx_chronos`，同时注册了两个别名，随便用哪个都行：
+
+- `/arcartx_chronos`（完整）
+- `/ac`（推荐，最短）
+- `/chronos`
+
+下文示例统一用 `/ac`。
 
 ---
 
-### remove - 移除控制器
+## 指令一览
 
-移除指定玩家的当前控制器。
+| 指令                                | 作用          |
+|-----------------------------------|-------------|
+| `/ac set <控制器ID> <玩家>`            | 给玩家设置控制器    |
+| `/ac remove <玩家>`                 | 移除玩家的控制器    |
+| `/ac tryState <状态ID> <玩家> [失败提示]` | 尝试让玩家进入某个状态 |
+| `/ac reload`                      | 重载全部配置      |
 
-**语法：**
-```
-/ac remove <玩家名称>
-```
+---
 
-**示例：**
+## set —— 设置控制器
+
+给一名在线玩家挂上指定的控制器。
+
 ```bash
-# 移除玩家 Steve 的控制器
-/ac remove Steve
+/ac set <控制器ID> <玩家>
 ```
 
 <Callout type="warn">
-移除控制器后，玩家将无法使用 Chronos 的动作系统，直到重新设置控制器。
+**参数顺序是「控制器 ID 在前，玩家在后」**，和很多插件相反。写反了会因为找不到控制器而失败。
 </Callout>
+
+| 参数      | 说明                                                                             |
+|---------|--------------------------------------------------------------------------------|
+| `控制器ID` | `controllers/` 文件夹里的 yml **文件名**（不含 `.yml`）。文件名 `sword.yml` 的控制器 ID 就是 `sword` |
+| `玩家`    | 在线玩家的游戏名                                                                       |
+
+**示例：**
+
+```bash
+# 给玩家 Steve 设置剑士控制器（controllers/sword.yml）
+/ac set sword Steve
+
+# 给玩家 Alex 挂上弓箭手控制器
+/ac set bow Alex
+```
+
+
+若控制器 ID 不存在，会提示 `控制器 xxx 不存在`——先确认文件名，并执行过一次 `/ac reload`。
 
 ---
 
-### reload - 重载配置
+## remove —— 移除控制器
 
-重新加载所有配置文件，无需重启服务器。
+把玩家身上的控制器移除。之后这名玩家不再受 Chronos 动作系统管理，直到重新 `set` 或触发自动切换。
 
-**语法：**
+```bash
+/ac remove <玩家>
 ```
-/ac reload
-```
 
-**重载后控制台输出示例：**
-```log
-[18:20:32 INFO]: ♦ ArcartX-Chronos | 信息: 加载1个控制器配置
-[18:20:32 INFO]: ♦ ArcartX-Chronos | 信息: 注册动作客户端按键-> 战技1
-[18:20:32 INFO]: ♦ ArcartX-Chronos | 信息: 注册动作客户端按键-> 战技2
-[18:20:32 INFO]: ♦ ArcartX-Chronos | 信息: 注册动作控制器-> sword
-[18:20:32 INFO]: ♦ ArcartX-Chronos | 信息: 注册动作控制器-> bow
+**示例：**
+
+```bash
+/ac remove Steve
 ```
 
 <Callout type="info">
-**调试技巧：** 重载后查看控制台输出，可以确认：
-- 有多少个控制器被加载
-- 注册了哪些按键
-- 各控制器的ID
+如果 `setting.yml` 里配置了默认控制器或自动切换（见 [基本设置](/docs/chronos/5_setting)），玩家重新登录或切换手持物品时可能又会被自动挂上控制器。`remove` 只影响当下这一次。
 </Callout>
 
 ---
 
-## 使用流程
+## tryState —— 尝试让玩家进入状态
 
-典型的工作流程：
+让玩家**直接进入某个状态**，而不是靠玩家自己按键触发。这条指令会走正常的进入校验（状态的 `conditions` 条件、冷却等），校验不过就不会进入。这里需要注意，这种方式设置的状态是不进链的，也就是就算设置了对应连招链，该状态下玩家就算进行任何输入，都不会进行连段。
 
-```mermaid
-flowchart LR
-    A["编辑配置文件"] --> B["/ac reload"]
-    B --> C["查看控制台确认加载"]
-    C --> D["/ac set 控制器 玩家"]
-    D --> E["测试动作效果"]
-    E --> |"需要调整"| A
+
+```bash
+/ac tryState <状态ID> <玩家> [失败提示]
 ```
 
----
+| 参数     | 必填 | 说明                                   |
+|--------|----|--------------------------------------|
+| `状态ID` | 是  | 控制器里 `state.<状态ID>` 的键名              |
+| `玩家`   | 是  | 在线玩家的游戏名                             |
+| `失败提示` | 否  | 一段文本；**仅当进入失败时**发给该玩家，用于提示原因（如「冷却中」） |
 
-## 常见问题
+**典型用途**：从命令方块、其它插件、脚本里让玩家播放一个指定动作（例如表情、舞蹈），并在条件不满足时给玩家一句提示。
 
-<Callout type="error">
-**问题：找不到控制器ID**
+**示例：**
 
-确认步骤：
-1. 检查文件是否在 `controllers` 文件夹中
-2. 检查文件扩展名是否为 `.yml`
-3. 执行 `/ac reload` 重载配置
-4. 查看控制台输出确认控制器已注册
-</Callout>
+```bash
+# 让 Steve 进入「处决」状态；若条件不满足，给他发一句提示
+/ac tryState execute Steve "&c目标尚未进入可处决状态"
+```
 
-<Callout type="error">
-**问题：设置控制器后无效果**
-
-可能原因：
-1. 客户端未安装 ArcartX Mod
-2. 服务端状态名与客户端控制器不匹配
-3. 连招链配置有误
+<Callout type="info">
+进入成功与否取决于目标状态自身的 `conditions` 与冷却。想「无视条件强制进入」，需要用 Java API 的 `forceEnterStateFromRootChain`，且该状态必须在连招链根节点声明——见 [API/EVENT](/docs/chronos/9_api)。
 </Callout>
 
 ---
 
-## 通过 API 使用
+## reload —— 重载配置
 
-除了指令，你也可以通过 Java API 来管理控制器：
+改完 `setting.yml`、`keybinding.yml` 或 `controllers/`、`client/` 里的任意 yml 后，用这个指令重载。
+
+```bash
+/ac reload
+```
+
+重载会依次完成：
+
+- 重新读取 `setting.yml` / `keybinding.yml` / 全部控制器
+- 重新注册客户端按键
+- 重新注册所有控制器 / 状态机
+- **为当前在线玩家补建数据并重新下发控制器**
+
+重载后留意后台输出，可确认加载结果：
+
+```log
+[信息] 开始加载
+[信息] 按键分类: 克洛诺斯
+[信息] 加载2个按键配置
+[信息] 注册动作客户端按键-> 战技1
+[信息] 注册动作客户端按键-> 战技2
+[信息] 注册动作控制器-> sword
+[信息] 注册动作控制器-> bow
+[信息] 加载完成
+```
+
+<Callout type="info">
+**调试习惯**：每次改完配置先 `reload`，扫一眼后台——按键数量对不对、控制器有没有全部注册、有没有 WARN（拼错的 `controller` / `state_name` / 连招引用会在这里告警但不阻断加载）。
+</Callout>
+
+---
+
+## 典型工作流
+
+<Steps>
+<Step>
+编辑 `controllers/`  `client/`  下的 yml 配置
+</Step>
+<Step>
+`/ac reload` 重载，并查看后台确认无 WARN
+</Step>
+<Step>
+`/ac set <控制器ID> <玩家>` 把控制器挂到自己身上
+</Step>
+<Step>
+进游戏实测；需要调整就回到第一步
+</Step>
+</Steps>
+
+---
+
+## 也可以用 API
+
+除了指令，插件开发者可以用 Java API 完成同样的事：
 
 ```java
-// 获取 API
 ChronosAPI api = ChronosAPI.getInstanceAPI();
 
-// 为玩家设置控制器
+// 设置控制器（等价于 /ac set）
 api.setPlayerController(player, "sword");
 
-// 获取玩家当前控制器ID
+// 查询玩家当前控制器 ID（可能为 null）
 String controllerId = api.getPlayerControllerId(player);
 
-// 移除玩家控制器
+// 尝试进入状态（等价于 /ac tryState，走条件校验）
+boolean ok = api.tryEnterState(player, "execute");
+
+// 移除控制器（等价于 /ac remove）
 api.removePlayerController(player);
 ```
 
-详细 API 请参考 [API/EVENT](/docs/chronos/9_api)。
+完整方法与事件见 [API/EVENT](/docs/chronos/9_api)。
+
+

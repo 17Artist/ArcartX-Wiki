@@ -1,0 +1,88 @@
+---
+title: 实体选择器
+description: Chronos 提供的范围选取生物语句（EntitySelector）
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+- 以下语句均由 **Chronos 插件**提供，目标对象为**生物**（`LivingEntity{:aria}`）——玩家本身也是生物，所以 `self{:aria}` 可以直接调用；通过选择器拿到的其它生物也能继续调用。
+- 这组语句**以调用者为中心、按几何范围选取周围的生物**，用来做范围攻击、群体判定。除 `getNearestLivingEntity` 返回单个生物外，其余都返回**生物列表**，通常配合 `for` 循环逐个处理：
+
+```aria
+# 对面前扇形范围内的每个敌人各打一下（attack 为本体语句）
+for(e in self.getLivingEntitiesInCone(4.0, 120)){
+    self.attack(e)
+}
+```
+
+<Callout type="info">
+选取结果**不包含调用者自己**。
+</Callout>
+
+## `getLivingEntitiesInRadius(radius){:aria}`
+- 选取**球形半径**内的所有生物。
+<Callout type="info">
+    - **对象**：LivingEntity
+    - **参数**：`radius` — 半径（方块）
+    - **返回值**：生物列表（`List<LivingEntity>`）
+    - **调用示例**
+    ```aria
+    self.getLivingEntitiesInRadius(5.0)
+    ```
+</Callout>
+
+## `getLivingEntitiesInCone(radius, angle){:aria}`
+- 选取**面前扇形范围**内的生物，适合做朝向性的横扫攻击。
+<Callout type="info">
+    - **对象**：LivingEntity
+    - **参数**：
+        - `radius` — 半径（方块）
+        - `angle` — 扇形总角度（度数，例如 `180` 表示正前方半圆）
+    - **返回值**：生物列表
+    - **调用示例**
+    ```aria
+    self.getLivingEntitiesInCone(4.0, 180)
+    ```
+</Callout>
+
+## `getLivingEntitiesInBox(width, length, height){:aria}`
+- 选取**面前的矩形（长方体）区域**内的生物，适合做直线突刺、长条形范围。
+<Callout type="info">
+    - **对象**：LivingEntity
+    - **参数**：
+        - `width` — 宽度（左右方向的总宽）
+        - `length` — 长度（朝正前方延伸的距离）
+        - `height` — 高度（上下方向的总高）
+    - **返回值**：生物列表
+    - **调用示例**
+    ```aria
+    # 面前一条 2 宽 × 6 长 × 3 高的突刺范围
+    self.getLivingEntitiesInBox(2.0, 6.0, 3.0)
+    ```
+</Callout>
+
+## `getLivingEntitiesInRing(innerRadius, outerRadius){:aria}`
+- 选取**环形范围**（内圈到外圈之间）的生物，适合做「只打远处一圈、不打贴身」的冲击波类效果。
+<Callout type="info">
+    - **对象**：LivingEntity
+    - **参数**：
+        - `innerRadius` — 内半径（方块）
+        - `outerRadius` — 外半径（方块）
+    - **返回值**：生物列表
+    - **调用示例**
+    ```aria
+    self.getLivingEntitiesInRing(3.0, 6.0)
+    ```
+</Callout>
+
+## `getNearestLivingEntity(maxDistance){:aria}`
+- 选取**最近的单个生物**，找不到时返回空。常用来配合 [朝向吸附](/docs/chronos/8_aria/3_player_look) 或单体技能。
+<Callout type="info">
+    - **对象**：LivingEntity
+    - **参数**：`maxDistance` — 最大搜索距离（方块）
+    - **返回值**：单个生物（`LivingEntity{:aria}`），范围内无生物时返回空
+    - **调用示例**
+    ```aria
+    var.target = self.getNearestLivingEntity(5.0)
+    ```
+</Callout>

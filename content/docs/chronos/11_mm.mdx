@@ -1,0 +1,30 @@
+---
+title: MythicMobs 词条
+description: Chronos MythicMobs 词条
+---
+
+## MythicMobs 词条
+
+Chronos 会在 MythicMobs 加载时自动注册两个技能机制。它们都是**面向目标实体**的机制，只对玩家目标生效。
+
+| 机制（别名）                          | 作用                     | 参数                                                  |
+|---------------------------------|------------------------|-----------------------------------------------------|
+| `chronosControlledState`（`ccs`） | 让目标玩家进入**受控状态**（尊重霸体）  | `state`/`s`：状态ID；`duration`/`d`：毫秒，默认 `-1`（用状态自带时长） |
+| `chronosTryEnterState`（`ctes`）  | 让目标玩家**尝试进入状态**（走完整校验） | `state`/`s`：状态ID                                    |
+
+```yaml
+# MythicMobs 技能：命中玩家时打进受击，持续 800ms
+击飞技能:
+  Skills:
+  - chronosControlledState{state=受击;duration=800} @target
+  # 等价写法：- ccs{s=受击;d=800} @target
+
+# 让玩家触发一个受规则约束的状态（会被冷却/条件拦下）
+触发反击:
+  Skills:
+  - chronosTryEnterState{state=反击} @target
+```
+
+<Callout type="info">
+    这两个机制内部对应 `tryEnterControlledState` 和 `tryEnterState`，语义完全一致：前者尊重霸体，后者走冷却与条件校验。MythicMobs 技能可能在异步线程施放，机制内部已自动把操作回投主线程，你无需操心线程问题。
+</Callout>

@@ -1,5 +1,5 @@
 {
-    "title": "Chronos — 克洛诺斯 [v2]",
+    "title": "Chronos — 克洛诺斯",
     "icon": "logo/chronos-logo.svg",
     "root": true,
     "color": "#f97316",
@@ -19,9 +19,12 @@
         "4_command",
         "5_setting",
         "6_key",
+        "7_client",
         "7_controller",
-        "8_glimmer",
+        "8_aria",
         "9_api",
-        "10_best_practice"
+        "10_papi",
+        "11_mm",
+        "12_best_practice"
     ]
 }
