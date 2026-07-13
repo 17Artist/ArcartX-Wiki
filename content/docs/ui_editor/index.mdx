@@ -1,0 +1,126 @@
+---
+title: ArcartX UI Editor
+description: ArcartX 自定义界面（HUD / 菜单 / 物品提示）的可视化创作工具
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+![主界面](/ui_editor/main.png)
+
+## 这是什么
+
+**ArcartX UI Editor** 是用于创作 ArcartX Mod 自定义 UI（HUD / 菜单）的**可视化编辑器**，提供实时预览、Aria 脚本补全、以及 AI 辅助设计。
+
+-  **所见即所得**：拖拽摆放控件，画布实时渲染，接近真机效果。
+-  **脚本驱动**：控件属性即 Aria 表达式，每帧求值，轻松做动态界面（血量条、冷却遮罩……）。
+-  **AI 辅助**：内置 MCP，可让 Claude Code 等工具直接操控编辑器边改边截图自检。
+-  **多语言**：简中 / 繁中（台/港）/ 英 / 韩即时切换。
+
+<Callout type="warn">
+**ArcartX UI Editor 为 ArcartX 高级会员专属工具。** 开通高级会员即可下载使用：[前往高级会员页面 →](https://arcartx.com/resources/67/)
+</Callout>
+
+<Callout type="info">
+本手册讲解**编辑器**的使用。更深入的 UI 配置语法与脚本，请配合官方 Wiki 的 [ArcartX · 客户端 UI](/docs/arcartx_v2/8_ui) 与 [Aria 脚本引擎](/docs/aria) 章节阅读。适用版本：编辑器 2.0.0+（Aria 脚本引擎版）。
+</Callout>
+
+## AI 生成效果展示
+
+下面几套界面均由 **AI 在编辑器MCP自动生成**（每套六屏统一视觉语言，AI 边改边截图迭代而成），直观感受编辑器 + AI 的产能。
+
+### 暗黑奇幻 · Dark Fantasy
+
+暖黑石板底 + 古铜錾刻边框 + 亮金 / 血红双强调 + 羊皮纸内衬，方角与斜角线勾出厚重立体感。
+
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 my-4">
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-hud.png" alt="暗黑奇幻 · HUD 战斗界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">HUD 战斗界面（常驻）</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-backpack.png" alt="暗黑奇幻 · 背包 / 角色装备" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">背包 / 角色装备</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-talent.png" alt="暗黑奇幻 · 天赋树" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">天赋树</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-blackmarket.png" alt="暗黑奇幻 · 黑市商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">黑市商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-shop.png" alt="暗黑奇幻 · 普通商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">普通商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-fantasy-dialogue.png" alt="暗黑奇幻 · NPC 对话界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">NPC 对话界面</figcaption>
+  </figure>
+</div>
+
+### 暗系简约玻璃 · Dark Glass
+
+近黑炭底 + 磨砂玻璃面板（顶部高光线 + 柔和阴影 + 圆角），全屏仅香槟金一处强调，靠明度分层与发丝高光造深度。
+
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 my-4">
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-hud.png" alt="暗系简约玻璃 · HUD 战斗界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">HUD 战斗界面（常驻）</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-backpack.png" alt="暗系简约玻璃 · 背包 / 角色装备" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">背包 / 角色装备</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-talent.png" alt="暗系简约玻璃 · 天赋树" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">天赋树</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-blackmarket.png" alt="暗系简约玻璃 · 黑市商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">黑市商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-shop.png" alt="暗系简约玻璃 · 普通商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">普通商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/dark-glass-dialogue.png" alt="暗系简约玻璃 · NPC 对话界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">NPC 对话界面</figcaption>
+  </figure>
+</div>
+
+### 科幻全息 · Sci-Fi
+
+深空蓝黑底 + 抬升面板 + 青色全息描边 / 切角母题，琥珀橙仅用于冷却、告警等点睛，六边形与切角托架贯穿全套。
+
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 my-4">
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-hud.png" alt="科幻全息 · HUD 战斗界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">HUD 战斗界面（常驻）</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-backpack.png" alt="科幻全息 · 背包 / 角色装备" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">背包 / 角色装备</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-talent.png" alt="科幻全息 · 天赋树" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">天赋树</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-blackmarket.png" alt="科幻全息 · 黑市商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">黑市商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-shop.png" alt="科幻全息 · 普通商店" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">普通商店</figcaption>
+  </figure>
+  <figure className="m-0">
+    <img className="rounded-lg border border-black/10 dark:border-white/10 w-full" src="/ui_editor/sci-fi-dialogue.png" alt="科幻全息 · NPC 对话界面" />
+    <figcaption className="text-center text-sm opacity-70 mt-2">NPC 对话界面</figcaption>
+  </figure>
+</div>
+
+<Callout type="info">
+以上效果均为 AI 在编辑器内生成的**设计稿演示**，最终视觉以游戏内渲染为准。想自己动手？从 [快速上手](/docs/ui_editor/3_quickstart) 开始。
+</Callout>

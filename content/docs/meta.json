@@ -4,6 +4,7 @@
     "defaultOpen": true,
     "pages": [
         "arcartx_v2",
+        "ui_editor",
         "aria",
         "rondo",
         "symphony",

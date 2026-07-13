@@ -1,0 +1,38 @@
+---
+title: 常见问题 FAQ
+description: 贴图、字体、保存、动画、裁剪等常见问题
+---
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+## 常见问题（FAQ）
+
+<Accordions>
+<Accordion title="贴图不显示？">
+路径相对于 `data/resource/`（对应客户端的 `ArcartX/resource/`）；确认加了 `~` 前缀；首次加载为异步解码，大图会延迟一帧出现。
+</Accordion>
+
+<Accordion title="字体设置无效 / 提示未找到字体？">
+`font` 支持 `data/resource` 下的 ttf / otf 文件路径或系统字体名；`minecraft:xxx` 形式的游戏字体 ID 编辑器无法加载，会回退默认字体（仅提示一次）。
+</Accordion>
+
+
+<Accordion title="控件拖不动？">
+它的 x / y 是脚本表达式（位置由脚本决定）。改为字面量后即可拖动；多选时以主选控件为准。
+</Accordion>
+
+<Accordion title="动画在编辑模式很慢？">
+编辑模式 tick 为节能 30/s。切预览模式（对齐真机节奏），或改用毫秒制动画对象（`Lerp(0,100,500)`），后者在任何模式下速度都正确。
+</Accordion>
+
+<Accordion title="加了 rectClip 特效后控件消失了？">
+rectClip 默认宽高为 0 ＝ 全部裁掉（与真机一致），添加后立即填写有效的 x / y / width / height。常规矩形裁剪推荐用 `limitControl` 属性。
+</Accordion>
+
+<Accordion title="日志刷 SQLITE_BUSY / 启动卡顿？">
+通常是同时开了多个编辑器实例，关闭多余实例即可。
+</Accordion>
+
+<Accordion title="撤销能回退多少步？">
+30 步（压缩存储，大工程也不会占用过多内存）。
+</Accordion>
+</Accordions>

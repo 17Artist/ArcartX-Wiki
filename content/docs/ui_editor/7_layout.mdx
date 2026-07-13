@@ -1,0 +1,26 @@
+---
+title: 布局体系速记
+description: 锚点、容器与 HUD 定位要点
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 布局体系速记
+
+### 锚点（point）
+
+16 种：九宫方位 + 拉伸系（stretch 会把控件撑满父级对应方向）。
+
+<Callout type="warn">
+**锚点只在顶层控件或 Canvas / Adaptive 容器内生效**，Stack / Grid / Scroll 内无效。
+</Callout>
+
+### 容器
+
+- `Canvas` 自由布局；`Adaptive` 按设计分辨率整体等比缩放（做一套 1920×1080 的设计稿再自动适配）。
+- `VStack / HStack` 纵横排列（`spaceBetween` 间距）；`VGrid / HGrid` 网格（`row` / `column` 换行阈值）。
+- `Scroll` 滚动容器：只放一个布局控件，滚动需配合滑块控件驱动。
+
+<Callout type="info">
+- Stack / Grid 的宽高由内容决定，需要固定尺寸时外面套一层 `Canvas`。
+- HUD 元素用**锚点 + 小偏移**定位（如 `bottom_center` + `y:-40`），不要用绝对坐标，否则换分辨率就错位。
+</Callout>

@@ -1,0 +1,18 @@
+---
+title: 预览与模拟器
+description: 预览模式、模拟数据与真机差异
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 预览与模拟器
+
+- **预览模式**：以接近真机的节奏运行脚本、动画、特效、定时任务（tasks）。窗口失焦时自动降频省电。
+- **模拟器设置**（编辑器设置内）：虚拟屏幕分辨率（模拟 Minecraft GUI Scale）、玩家血量等游戏数据的**模拟值**——编辑器没有真实游戏环境，`Player.getHealth()` 等函数返回这里配置的假数据。
+
+<Callout type="warn">
+**编辑模式**是节能模式：逻辑帧（tick）约 30/s，低于真机；**按 tick 计数的动画在编辑模式下会偏慢**。切到预览模式，或使用毫秒制动画对象（Lerp / Breathe 等）则不受影响。
+</Callout>
+
+<Callout type="info">
+**预览与真机的已知差异**：Slot 物品 / Entity / Model 为占位图形；Frosted 毛玻璃为近似采样；部分着色器特效为近似实现。**最终视觉以游戏内为准。**
+</Callout>

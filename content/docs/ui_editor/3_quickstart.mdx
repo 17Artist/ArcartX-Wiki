@@ -1,0 +1,48 @@
+---
+title: 快速上手：第一个 HUD
+description: 五步做出一个底部居中的深色色块
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## 快速上手：第一个 HUD
+
+<Steps>
+<Step>
+### 新建工程
+
+`文件 → 新建`，输入工程名。
+</Step>
+
+<Step>
+### 拖一个 Texture
+
+左侧创建面板拖一个 **Texture** 到画布——这是一个色块 / 贴图控件。
+</Step>
+
+<Step>
+### 设置属性
+
+在右侧属性面板：
+
+- `normal` 填 `~30,30,40,200`（深色半透明色块；`~` 表示纯字面量，见 [属性面板与 `~` 规则](/docs/ui_editor/6_properties)）
+- `point` 选 `bottom_center`，`y` 填 `-40`（底部居中、向上偏移 40px）
+- `shape` 选 `round_rect`，`radius` 填 `8`
+</Step>
+
+<Step>
+### 预览
+
+顶栏切到 **预览** 看实际效果。
+</Step>
+
+<Step>
+### 保存
+
+`Ctrl+S` 保存。
+</Step>
+</Steps>
+
+<Callout type="info">
+恭喜，你已经做出了第一个 HUD 元素。接下来可以了解 [画布操作](/docs/ui_editor/4_canvas) 与 [布局体系](/docs/ui_editor/7_layout)。
+</Callout>

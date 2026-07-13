@@ -1,0 +1,42 @@
+---
+title: AI 辅助设计（MCP）
+description: 让 Claude Code 等 AI 直接操控编辑器边改边截图
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## AI 辅助设计（MCP）
+
+编辑器内置 **MCP 服务器**，可让 Claude Code 等 AI 工具直接操控编辑器：读取控件树、创建 / 修改控件、添加特效、**截图查看真实渲染效果**并迭代。
+
+<Steps>
+<Step>
+### 启用服务
+
+编辑器设置 → **MCP** 标签：启用服务（默认端口 `3100`，可设运行自启）。
+</Step>
+
+<Step>
+### 在 Claude Code 中连接
+
+```bash
+claude mcp add --transport sse arcartx-ui http://127.0.0.1:3100/sse
+```
+</Step>
+
+<Step>
+### AI技能
+
+使用配套技能操作MCP，AI 会自动掌握布局知识、`~` 规则、控件目录与设计配方。
+</Step>
+
+<Step>
+### 直接描述需求
+
+直接对 AI 说需求即可：「帮我做一个底部居中的血条 HUD，低血量变红」。AI 会**边改边截图自检**。
+</Step>
+</Steps>
+
+<Callout type="info">
+AI 也可以读取你的素材（`data/resource/` 下的贴图）来做素材驱动的设计。
+</Callout>

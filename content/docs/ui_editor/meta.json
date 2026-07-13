@@ -1,0 +1,30 @@
+{
+    "title": "UI Editor — 界面编辑器",
+    "description": "ArcartX 自定义界面（HUD / 菜单 / 物品提示）的可视化创作工具",
+    "icon": "logo.png",
+    "tags": [
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "工具", "color": "#38BDF8" }
+    ],
+    "root": true,
+    "color": "#8B5CF6",
+    "entry": "ui_editor",
+    "tagline": "可视化打造属于你的 ArcartX 界面",
+    "order": 5,
+    "defaultOpen": false,
+    "pages": [
+        "index",
+        "1_install",
+        "2_interface",
+        "3_quickstart",
+        "4_canvas",
+        "5_tree",
+        "6_properties",
+        "7_layout",
+        "8_preview",
+        "9_ai",
+        "10_i18n_theme",
+        "11_shortcuts",
+        "12_faq"
+    ]
+}
