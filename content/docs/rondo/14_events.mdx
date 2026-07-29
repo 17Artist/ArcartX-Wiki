@@ -1,0 +1,93 @@
+---
+title: 事件
+description: 监听并取消 Rondo 的存取、转账与兑换操作
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rondo 在资金操作前触发 Bukkit 事件。三个事件都可以取消。
+
+## EconomyTransactionEvent
+
+存入、扣除或直接设置余额前触发：
+`EconomyTransactionEvent.source` 可用于区分操作来源。
+```kotlin
+class EconomyTransactionEvent(
+    val playerUuid: UUID,
+    val currency: Currency,
+    val action: Action,
+    val amount: BigDecimal,
+    val oldBalance: BigDecimal,
+    val newBalance: BigDecimal,
+    val source: String
+) : Event, Cancellable
+
+enum class Action {
+    DEPOSIT,
+    WITHDRAW,
+    SET
+}
+```
+
+取消大额存入示例：
+
+```kotlin
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import priv.seventeen.artist.rondo.api.EconomyTransactionEvent
+import java.math.BigDecimal
+
+class EconomyGuard : Listener {
+    @EventHandler
+    fun onTransaction(event: EconomyTransactionEvent) {
+        if (
+            event.action == EconomyTransactionEvent.Action.DEPOSIT &&
+            event.amount > BigDecimal("10000")
+        ) {
+            event.isCancelled = true
+        }
+    }
+}
+```
+
+---
+
+## EconomyTransferEvent
+
+玩家间转账提交前触发：
+
+```kotlin
+class EconomyTransferEvent(
+    val from: UUID,
+    val to: UUID,
+    val currency: Currency,
+    val amount: BigDecimal,
+    val taxAmount: BigDecimal
+) : Event, Cancellable
+```
+
+## EconomyExchangeEvent
+
+兑换事务提交前触发：
+
+```kotlin
+class EconomyExchangeEvent(
+    val playerUuid: UUID,
+    val fromCurrency: Currency,
+    val toCurrency: Currency,
+    val fromAmount: BigDecimal,
+    val toAmount: BigDecimal
+) : Event, Cancellable
+```
+
+## 线程语义
+
+事件在**调用 RondoAPI 的同一线程**上触发：
+
+- 主线程发起操作时，事件是同步 Bukkit 事件。
+- 异步任务发起操作时，事件构造为异步 Bukkit 事件。
+
+<Callout type="error">
+异步事件中访问世界、实体或背包前，需要切回服务端主线程。
+</Callout>
+

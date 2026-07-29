@@ -1,0 +1,52 @@
+---
+title: Vault 集成
+description: 将一种 Rondo 货币注册为 Vault Economy Provider
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rondo 可以注册为 Vault Economy Provider，让商店、领地、任务等依赖 Vault 的插件使用指定的 Rondo 货币。
+
+## 启用
+
+1. 安装 Vault。
+2. 在 `config.yml` 中启用：
+
+```yaml
+features:
+  vault-hook: true
+```
+
+3. 在一种货币配置中选择 Vault 主货币：
+
+```yaml
+# currencies/gold.yml
+vault-primary: true
+```
+
+4. 重启服务端。只修改 `vault-primary` 时，也可以执行 `/rondo reload`。
+
+<Callout type="warn">
+全局只能设置一个 Vault 主货币。
+</Callout>
+
+---
+
+## 注意事项
+
+- 通过 Vault 完成的操作会记录 `source: vault` 的流水。
+- Vault 操作同样会触发 `EconomyTransactionEvent`。
+- 格式化金额会包含货币颜色和符号，例如 `§6G1500.00`。
+- Vault 使用 `double`；需要完整十进制精度时请使用 [RondoAPI](/docs/rondo/13_rondo_api)。
+
+Rondo 不支持 Vault 银行账户功能。
+
+---
+
+## 关闭集成
+
+如果不需要 Vault：
+
+1. 设置 `features.vault-hook: false`；
+2. 将全部货币的 `vault-primary` 设为 `false`；
+3. 重启服务端。

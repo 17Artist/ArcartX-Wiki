@@ -1,0 +1,29 @@
+---
+title: 权限
+description: Rondo 玩家和管理员权限节点
+---
+
+玩家权限默认开放，管理员权限默认仅 OP 拥有。
+
+## 权限列表
+
+| 权限节点             | 默认     | 说明                 |
+|------------------|--------|--------------------|
+| `rondo.use`      | `true` | 查看自己的余额            |
+| `rondo.transfer` | `true` | 转账给其他玩家            |
+| `rondo.exchange` | `true` | 使用货币兑换             |
+| `rondo.log`      | `true` | 查看自己的交易流水          |
+| `rondo.top`      | `true` | 查看排行榜              |
+| `rondo.admin`    | `op`   | 使用全部 `/rondo` 管理命令 |
+
+---
+
+## 禁用某项功能
+
+若服务器不开放玩家间转账，可以在权限插件中显式拒绝：
+
+```yaml
+rondo.transfer: false
+```
+
+权限只控制命令，不会限制第三方插件调用 RondoAPI。

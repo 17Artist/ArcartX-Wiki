@@ -1,0 +1,59 @@
+---
+title: PlaceholderAPI 集成
+description: 在计分板、TAB 与全息图中显示 Rondo 余额和排行榜
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rondo 的占位符可用于计分板、TAB、全息图和聊天格式。
+
+## 启用
+
+1. 安装与目标服务端兼容的 PlaceholderAPI。
+2. 确认 `config.yml` 中启用：
+
+```yaml
+features:
+  papi-hook: true
+```
+
+3. 重启服务端。
+
+---
+
+## 占位符
+
+| 占位符                              | 说明         | 示例输出         |
+|----------------------------------|------------|--------------|
+| `%rondo_balance_<ID>%`           | 仅余额数字      | `1500`       |
+| `%rondo_balance_formatted_<ID>%` | 货币颜色、符号与余额 | `§6G1500.00` |
+| `%rondo_total_earned_<ID>%`      | 累计获得       | `25000`      |
+| `%rondo_total_spent_<ID>%`       | 累计消耗       | `18000`      |
+| `%rondo_top_<ID>_<排名>_name%`     | 第 N 名玩家名   | `Steve`      |
+| `%rondo_top_<ID>_<排名>_balance%`  | 第 N 名余额    | `99999`      |
+| `%rondo_rank_<ID>%`              | 当前玩家排名     | `5`          |
+
+排行榜占位符要求货币设置 `ranking-enabled: true`。玩家未上榜时返回 `未上榜`，名次没有数据时返回 `---`。
+
+---
+
+## 示例
+
+```text
+%rondo_balance_gold%
+%rondo_balance_formatted_points%
+%rondo_top_gold_1_name%: %rondo_top_gold_1_balance%
+%rondo_rank_gold%
+```
+
+计分板配置示例：
+
+```yaml
+lines:
+  - "&6G 金币: &f%rondo_balance_gold%"
+  - "&bP 点券: &f%rondo_balance_points%"
+  - "&dH 荣誉: &f%rondo_balance_honor%"
+  - ""
+  - "&e排名: #%rondo_rank_gold%"
+```
+

@@ -1,0 +1,96 @@
+---
+title: API 概览
+description: 从 Java 或 Kotlin 插件引入 RondoAPI
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rondo 提供 Java/Kotlin API，可查询货币、读写余额、转账、兑换、读取排行榜与流水，并监听可取消的 Bukkit 事件。
+
+## 引入依赖
+
+### Gradle Kotlin DSL
+
+```kotlin
+repositories {
+    maven("https://repo.arcartx.com/repository/maven-public/")
+}
+
+val rondoVersion = "<与服务端 JAR 相同的已发布版本>"
+
+dependencies {
+    compileOnly("priv.seventeen.artist:rondo:$rondoVersion")
+}
+```
+
+<Callout type="warn">
+将 `rondoVersion` 替换为服务器安装的 Rondo 版本。
+</Callout>
+
+### plugin.yml
+
+```yaml
+depend: [Rondo]
+```
+
+可选依赖使用：
+
+```yaml
+softdepend: [Rondo]
+```
+
+使用 `softdepend` 时，请先检查 Rondo 是否已启用。
+
+---
+
+## 核心入口
+
+```kotlin
+import priv.seventeen.artist.rondo.api.RondoAPI
+```
+
+## 快速示例
+
+```kotlin
+import priv.seventeen.artist.rondo.api.RondoAPI
+import java.math.BigDecimal
+
+val currencyIds: Set<String> = RondoAPI.getAllCurrencyIds()
+val balance = RondoAPI.getBalance(player.uniqueId, "gold")
+
+// UI、HUD 等高频展示：只读内存，未命中时返回 null
+val snapshot = RondoAPI.getEconomySnapshot(player.uniqueId)
+val displayBalance = snapshot?.getBalance("gold")
+
+// 需要加载离线玩家快照时使用异步接口
+RondoAPI.getEconomySnapshotAsync(player.uniqueId).thenAccept { loaded ->
+    val loadedBalance = loaded.getBalance("gold")
+}
+
+val charged = RondoAPI.withdraw(
+    player.uniqueId,
+    "gold",
+    BigDecimal("100.00"),
+    "my_plugin:shop"
+)
+
+if (!charged) {
+    player.sendMessage("余额不足或操作被拒绝")
+}
+```
+
+## 重要约定
+
+- 货币 ID 不区分大小写，注册表返回规范小写 ID。
+- 金额使用 `BigDecimal`，最多保留 4 位小数。
+- `source` 建议使用 `插件名:功能`，长度为 1–128 个字符。
+- 权威余额查询和资金操作是同步接口，可能执行 SQLite/MySQL I/O。
+- `getEconomySnapshot` 只读内存，适合展示；不能用快照判断扣款是否成功。
+- `getEconomySnapshotAsync` 的回调在 Rondo 异步任务线程执行，调用 Bukkit 主线程 API 前需要切回主线程。
+- 资金操作会在调用线程触发可取消事件。
+- 业务校验失败返回 `false` 或失败结果；存储故障可能抛出异常。
+
+<Callout type="warn">
+不要在主线程批量查询或修改离线玩家余额。
+</Callout>
+

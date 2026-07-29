@@ -1,0 +1,96 @@
+---
+title: 安装与部署
+description: Rondo 的单服、MySQL 与跨服安装流程
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## 环境要求
+
+| 项目         | 要求                            |
+|------------|-------------------------------|
+| **Java**   | 17                            |
+| **服务端**    | Spigot/Paper 1.18.2+ API 兼容版本 |
+| **跨服额外服务** | 共享 MySQL/InnoDB 与 Redis       |
+| **可选插件**   | Vault、PlaceholderAPI          |
+
+---
+
+## 单服安装
+
+<Steps>
+
+<Step>
+### 放入插件
+
+将 `Rondo-<版本>.jar` 放入 `plugins/`，使用 Java 17+ 完整启动服务端。
+</Step>
+
+<Step>
+### 检查首次生成
+
+确认 `plugins/Rondo/` 已生成配置文件，且控制台没有报错。
+</Step>
+
+</Steps>
+
+SQLite 是默认存储。安装和升级后请完整重启服务端，不要热加载经济插件。
+
+
+
+---
+
+## MySQL 部署
+
+修改 `config.yml`：
+
+```yaml
+storage:
+  type: mysql
+  write-through: true
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    database: database
+    username: rondo
+    password: "change-me"
+    ssl-mode: VERIFY_IDENTITY
+    allow-public-key-retrieval: false
+    pool-size: 10
+```
+
+---
+
+## 跨服部署
+
+1. 所有子服安装相同版本的 Rondo。
+2. 全部节点设置 `storage.type: mysql`，并连接同一数据库。
+3. 全部节点连接同一 Redis 逻辑库与 `sync-channel`。
+4. 先启动一个节点并确认建表完成，再启动其余节点。
+
+完整配置见[跨服同步](/docs/rondo/6_cross_server)。MySQL 或 Redis 连接失败时，跨服模式不会启动。
+
+---
+
+## 从 SQLite 切换到 MySQL
+
+当前版本没有自动 SQLite → MySQL 迁移命令。只修改 `storage.type` 会得到一套新的空数据库，旧余额不会自动转移。
+
+迁移前请停服并备份 `data.db`，再使用外部脚本转换余额、兑换记录和流水。迁移完成后抽查玩家余额，确认无误再开放服务器。
+
+---
+
+## 故障排查
+
+### 插件未启用
+
+- 确认实际运行时为 Java 17+。
+- 检查配置、数据库连接和 Blink 运行库下载错误。
+
+### MySQL 连接失败
+
+- 检查数据库名、账号权限、TLS 与防火墙。
+
+### Redis 连接失败
+
+- 检查地址、密码、TLS 与 ACL 权限。

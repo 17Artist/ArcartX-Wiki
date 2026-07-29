@@ -1,0 +1,68 @@
+---
+title: 跨服同步
+description: 共享 MySQL 与 Redis Pub/Sub 的职责、配置和故障语义
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+跨服模式使用共享 MySQL 保存余额，Redis 负责通知其他服务器刷新缓存。
+
+## 架构
+
+```mermaid
+flowchart LR
+    A["节点 A<br/>在线账户缓存"] -->|"资金事务"| M["共享 MySQL / InnoDB<br/>唯一事实源"]
+    B["节点 B<br/>在线账户缓存"] -->|"资金事务"| M
+    A -->|"提交成功后发布失效通知"| R["Redis Pub/Sub"]
+    R -->|"通知重新读取 MySQL"| B
+    B -->|"提交成功后发布失效通知"| R
+    R -->|"通知重新读取 MySQL"| A
+```
+
+## 完整配置
+
+所有子服必须使用相同 Rondo 版本、同一 MySQL 数据库、同一 Redis 逻辑库与通道：
+
+```yaml
+storage:
+  type: mysql
+  write-through: true
+  mysql:
+    host: db.internal
+    port: 3306
+    database: rondo
+    username: rondo
+    password: "change-me"
+    ssl-mode: VERIFY_IDENTITY
+    allow-public-key-retrieval: false
+    pool-size: 10
+
+cross-server:
+  enabled: true
+  redis:
+    host: redis.internal
+    port: 6379
+    username: rondo
+    password: "change-me"
+    database: 0
+    ssl: true
+    timeout-millis: 3000
+    pool-size: 8
+  sync-channel: "rondo:sync"
+```
+
+<Callout type="warn">
+跨服模式必须使用 MySQL。所有节点需要使用相同版本、数据库和 Redis 通道。
+</Callout>
+
+---
+
+## 常见故障
+
+| 故障                  | 行为                    |
+|---------------------|-----------------------|
+| 启动时 MySQL/Redis 不可用 | 跨服模式不会启动              |
+| 运行中 Redis 不可用       | MySQL 仍可写入，缓存通知会失败并重试 |
+| 运行中 MySQL 不可用       | 余额操作失败                |
+
+部署后请在两台子服间测试余额刷新、转账和兑换确保验证联通成功。

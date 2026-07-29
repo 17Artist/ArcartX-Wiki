@@ -1,20 +1,36 @@
 {
     "title": "Rondo — 回旋曲",
-    "icon": "logo/rondo-logo.svg",
+    "icon": "logo/rondo-logo.png",
     "tags": [
-        { "label": "开源",     "color": "#22C55E" },
+        { "label": "开源", "color": "#22C55E" },
         { "label": "免费", "color": "#2DD4BF" },
         { "label": "经济", "color": "#EAB308" },
-        { "label": "API",  "color": "#8B5CF6" }
+        { "label": "API", "color": "#8B5CF6" }
     ],
     "root": true,
     "color": "#FBBF24",
-    "entry": "rondo",
+    "entry": "rondo/1_start",
     "tagline": "自定义多经济系统",
     "order": 7,
     "defaultOpen": true,
     "pages": [
-        "---ArcartX-核心教学---",
-        "index"
+        "---开始使用---",
+        "1_start",
+        "2_installation",
+        "---核心配置---",
+        "3_configuration",
+        "4_currencies",
+        "5_exchange",
+        "6_cross_server",
+        "7_commands",
+        "8_permissions",
+        "9_messages",
+        "---插件集成---",
+        "10_vault",
+        "11_placeholderapi",
+        "---开发接口---",
+        "12_api",
+        "13_rondo_api",
+        "14_events"
     ]
 }

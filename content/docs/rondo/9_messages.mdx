@@ -1,0 +1,48 @@
+---
+title: 消息配置
+description: 自定义 Rondo 命令消息、变量与颜色代码
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+玩家与管理员命令的消息位于 `plugins/Rondo/messages.yml`。修改后可执行 `/rondo reload`，无需重启服务端。
+
+## 变量格式
+
+消息使用 `{变量名}` 作为运行时替换标记：
+
+| 变量               | 说明     | 变量          | 说明     |
+|------------------|--------|-------------|--------|
+| `{prefix}`       | 消息前缀   | `{player}`  | 玩家名    |
+| `{color}`        | 货币颜色代码 | `{target}`  | 目标玩家名  |
+| `{symbol}`       | 货币符号   | `{sender}`  | 发送方玩家名 |
+| `{display_name}` | 货币显示名  | `{tax}`     | 税额     |
+| `{balance}`      | 余额     | `{rank}`    | 排名     |
+| `{amount}`       | 金额     | `{page}`    | 当前页码   |
+| `{total_pages}`  | 总页数    | `{my_rank}` | 自己的排名  |
+| `{time}`         | 时间     | `{action}`  | 流水操作类型 |
+| `{source}`       | 操作来源   | `{id}`      | 货币 ID  |
+| `{name}`         | 名称或查询值 |             |        |
+
+兑换成功消息 `exchange-success` 使用两组专属变量：
+
+| 变量                                                 | 说明            |
+|----------------------------------------------------|---------------|
+| `{from_color}` / `{from_symbol}` / `{from_amount}` | 源货币颜色、符号与消耗量  |
+| `{to_color}` / `{to_symbol}` / `{to_amount}`       | 目标货币颜色、符号与获得量 |
+
+<Callout type="info">
+每条消息支持的变量不同，请以生成的 `messages.yml` 默认内容为准。
+</Callout>
+
+
+
+### 示例
+
+```yaml
+prefix: "§8[§6Rondo§8] "
+transfer-success: "{prefix}§a已向 {target} 转账 {color}{symbol}{amount} §7(税额 {tax})"
+error-player-not-found: "{prefix}§c找不到玩家 {name}"
+```
+
+修改后执行 `/rondo reload` 即可生效。若重载失败，请查看控制台错误。

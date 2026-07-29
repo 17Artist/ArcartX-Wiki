@@ -1,0 +1,242 @@
+---
+title: RondoAPI
+description: Rondo 核心 API 的方法签名、返回值与错误约定
+---
+
+`priv.seventeen.artist.rondo.api.RondoAPI` 是 Rondo 的公开 API 门面。
+
+## 货币注册表
+
+### getCurrency
+
+```kotlin
+fun getCurrency(id: String): Currency?
+```
+
+按 ID 获取货币定义；不存在时返回 `null`。
+
+### getAllCurrencies
+
+```kotlin
+fun getAllCurrencies(): List<Currency>
+```
+
+返回全部货币。
+
+### getAllCurrencyIds
+
+```kotlin
+fun getAllCurrencyIds(): Set<String>
+```
+
+返回规范小写的货币 ID。结果是调用时的快照，不会随之后的配置重载变化。
+
+### isCurrencyRegistered
+
+```kotlin
+fun isCurrencyRegistered(id: String): Boolean
+```
+
+---
+
+## 余额操作
+
+### getBalance
+
+```kotlin
+fun getBalance(player: UUID, currencyId: String): BigDecimal
+```
+
+权威查询在线或离线玩家余额，访问数据库。
+
+### getEconomySnapshot
+
+```kotlin
+fun getEconomySnapshot(
+    player: UUID
+): PlayerEconomySnapshot?
+```
+
+只读内存，不执行数据库 I/O；没有缓存时返回 `null`。适合 UI、HUD、PAPI 等展示，不能用于资金校验。
+
+### getEconomySnapshotAsync
+
+```kotlin
+fun getEconomySnapshotAsync(
+    player: UUID
+): CompletableFuture<PlayerEconomySnapshot>
+```
+
+已有快照时立即返回，否则在后台一次性加载玩家的全部货币。同一玩家的并发加载会合并；Future 在 Rondo 异步任务线程完成。
+
+快照提供：
+
+```kotlin
+class PlayerEconomySnapshot {
+    val playerUuid: UUID
+    val currencies: Map<String, CurrencyEconomySnapshot>
+    val revision: Long
+    val updatedAtEpochMillis: Long
+
+    fun getCurrency(currencyId: String): CurrencyEconomySnapshot?
+    fun getBalance(currencyId: String): BigDecimal?
+}
+
+data class CurrencyEconomySnapshot(
+    val balance: BigDecimal,
+    val totalEarned: BigDecimal,
+    val totalSpent: BigDecimal
+)
+```
+
+`revision` 只在当前在线会话内递增，不是跨服数据库版本号。
+
+### hasBalance
+
+```kotlin
+fun hasBalance(
+    player: UUID,
+    currencyId: String,
+    amount: BigDecimal
+): Boolean
+```
+
+检查余额是否充足。
+
+### deposit
+
+```kotlin
+fun deposit(
+    player: UUID,
+    currencyId: String,
+    amount: BigDecimal,
+    source: String
+): Boolean
+```
+
+存入正数金额。金额会按货币的 `decimal-places` 四舍五入，并受余额上限和数据库精度限制。
+
+### withdraw
+
+```kotlin
+fun withdraw(
+    player: UUID,
+    currencyId: String,
+    amount: BigDecimal,
+    source: String
+): Boolean
+```
+
+扣除正数金额，失败时返回 `false`。
+
+### setBalance
+
+```kotlin
+fun setBalance(
+    player: UUID,
+    currencyId: String,
+    amount: BigDecimal,
+    source: String
+): Boolean
+```
+
+直接设置余额。
+
+---
+
+## 转账
+
+```kotlin
+fun transfer(
+    from: UUID,
+    to: UUID,
+    currencyId: String,
+    amount: BigDecimal
+): TransferResult
+```
+
+```kotlin
+data class TransferResult(
+    val success: Boolean,
+    val message: String,
+    val taxAmount: BigDecimal = BigDecimal.ZERO
+)
+```
+
+转账会自动计算税额。失败原因可从 `message` 读取。
+
+发送方扣款（含税）和接收方入账会在同一个存储事务内完成；接收方超过余额上限时操作失败。
+
+---
+
+## 兑换
+
+```kotlin
+fun exchange(
+    player: UUID,
+    ruleId: String,
+    targetAmount: BigDecimal
+): ExchangeResult
+```
+
+```kotlin
+data class ExchangeResult(
+    val success: Boolean,
+    val message: String,
+    val fromAmount: BigDecimal = BigDecimal.ZERO,
+    val toAmount: BigDecimal = BigDecimal.ZERO
+)
+```
+
+`targetAmount` 是希望获得的目标货币数量。
+
+源余额、目标余额和周期兑换额度会在同一个存储事务内提交。
+
+---
+
+## 排行榜
+
+```kotlin
+fun getRanking(
+    currencyId: String,
+    page: Int,
+    pageSize: Int = 10
+): List<RankingEntry>
+```
+
+`page` 从 1 开始，`pageSize` 允许 `1..100`。
+
+```kotlin
+fun getPlayerRank(
+    player: UUID,
+    currencyId: String
+): Int?
+```
+
+未上榜时返回 `null`。
+
+---
+
+## 流水日志
+
+```kotlin
+fun getLog(
+    player: UUID,
+    currencyId: String?,
+    page: Int,
+    pageSize: Int = 10
+): List<TransactionLog>
+```
+
+`currencyId` 传 `null` 表示查询全部货币。
+
+---
+
+## 返回与异常
+
+- 业务失败返回 `false` 或 `success=false`。
+- 数据库连接失败时可能抛出异常。
+- 权威余额与资金操作是同步接口，不要在主线程批量调用。
+- `getEconomySnapshot` 是非阻塞内存读取；未命中时再使用异步版本。
+- 经济事件的同步/异步状态与调用线程一致。
+- 跨服模式以共享 MySQL 为权威账本，Redis 只负责发布缓存失效通知。

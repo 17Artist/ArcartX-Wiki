@@ -1,0 +1,82 @@
+---
+title: 兑换系统
+description: 配置货币汇率、最小兑换量与周期额度
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+兑换系统允许玩家按固定规则，将一种货币兑换为另一种货币。规则统一写在 `plugins/Rondo/exchange.yml`。
+
+## 配置示例
+
+```yaml
+exchanges:
+  honor_to_gold:
+    from: honor
+    to: gold
+    # 消耗 rate 个源货币，获得 1 个目标货币
+    rate: 0.1
+    # 最小目标货币数量
+    min-amount: 100
+    # 每周期最多兑换多少目标货币；-1=无限
+    max-per-period: -1
+    # NONE / DAILY / WEEKLY / MONTHLY
+    period: NONE
+    enabled: true
+```
+
+规则 ID、源货币和目标货币统一使用小写。
+
+---
+
+## 汇率怎么算
+
+`rate` 表示获得 1 单位目标货币需要消耗多少源货币：
+
+```text
+源货币消耗 = 目标货币数量 × rate
+```
+
+例如 `rate: 0.1` 时，兑换 500 金币需要 50 荣誉点。
+
+```bash
+/money exchange honor gold 500
+```
+
+<Callout type="info">
+最后一个参数表示**希望获得的目标货币数量**，不是投入的源货币数量。
+</Callout>
+
+---
+
+## 周期额度
+
+`max-per-period` 本周期可兑换的最大**目标货币数量**。
+
+| `period`  | 重置时间              |
+|-----------|-------------------|
+| `NONE`    | 不启用周期限制           |
+| `DAILY`   | 系统时间 每日 00:00     |
+| `WEEKLY`  | 系统时间 每周一 00:00    |
+| `MONTHLY` | 系统时间 每月 1 日 00:00 |
+
+只有 `max-per-period` 为正数且 `period` 不是 `NONE` 时，周期额度才生效。
+
+## API 调用
+
+```kotlin
+import priv.seventeen.artist.rondo.api.RondoAPI
+import java.math.BigDecimal
+
+val result = RondoAPI.exchange(
+    playerUuid,
+    "honor_to_gold",
+    BigDecimal("500")
+)
+
+if (result.success) {
+    logger.info("消耗 ${result.fromAmount}，获得 ${result.toAmount}")
+}
+```
+
+完整方法见 [RondoAPI](/docs/rondo/13_rondo_api)。

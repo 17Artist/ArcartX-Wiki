@@ -1,0 +1,122 @@
+---
+title: 主配置
+description: config.yml 的存储、性能、功能开关与跨服参数
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+主配置位于 `plugins/Rondo/config.yml`。字段填写错误时，插件会拒绝启动并在控制台说明原因。
+
+<Callout type="warn">
+`/rondo reload` **不会重载 `config.yml`**，只会重载消息、货币和兑换规则。修改存储、连接、跨服或定时参数后必须重启服务端。
+</Callout>
+
+---
+
+## 完整配置
+
+```yaml
+storage:
+  # sqlite / mysql
+  type: sqlite
+  # 单服余额变更是否立即落库；生产环境保持 true
+  write-through: true
+  mysql:
+    host: localhost
+    port: 3306
+    database: rondo
+    username: rondo
+    password: ""
+    # DISABLED / PREFERRED / REQUIRED / VERIFY_CA / VERIFY_IDENTITY
+    ssl-mode: PREFERRED
+    allow-public-key-retrieval: false
+    pool-size: 10
+
+performance:
+  # 仅 write-through=false 的单服缓冲模式使用
+  save-interval: 100
+  log-queue-size: 1000
+  ranking-refresh: 6000
+  ranking-size: 100
+  # 玩家离线后保留只读经济快照的秒数；0=立即清除
+  read-cache-offline-ttl-seconds: 300
+  # 最多保留的离线快照数；在线玩家不计入
+  read-cache-max-offline-entries: 10000
+
+features:
+  vault-hook: true
+  papi-hook: true
+  transaction-log: true
+  # -1=永久；其他值必须为正整数
+  log-retention-days: 30
+
+cross-server:
+  enabled: false
+  redis:
+    host: localhost
+    port: 6379
+    username: ""
+    password: ""
+    database: 0
+    ssl: false
+    timeout-millis: 3000
+    pool-size: 8
+  sync-channel: "rondo:sync"
+```
+
+---
+
+## 存储模式
+
+### SQLite
+
+- 数据文件：`plugins/Rondo/data.db`
+- 适合单服使用
+- 跨服模式不能使用 SQLite
+
+### MySQL
+
+- 适合单服或跨服
+- 跨服时所有节点必须连接同一数据库
+
+### write-through
+
+建议保持 `true`，让余额变更立即写入数据库。设为 `false` 后会按 `save-interval` 批量保存，服务器异常退出时可能丢失尚未保存的余额。跨服模式始终立即写入 MySQL。
+
+---
+
+## 连接安全
+
+- 跨主机 MySQL 建议使用 `VERIFY_IDENTITY`，并正确部署 CA 与主机名证书。
+- Redis 使用 ACL 时填写 `username`；多组服务器共用 Redis 时，分别设置 `database` 和 `sync-channel`。
+- `allow-public-key-retrieval` 在生产环境建议保持 `false`。
+
+---
+
+## 参数边界
+
+| 参数                                           | 允许范围                    |
+|----------------------------------------------|-------------------------|
+| `performance.save-interval`                  | 不小于 20 tick             |
+| `performance.log-queue-size`                 | 100–100000              |
+| `performance.ranking-refresh`                | 不小于 200 tick            |
+| `performance.ranking-size`                   | 1–10000                 |
+| `performance.read-cache-offline-ttl-seconds` | 0–86400 秒               |
+| `performance.read-cache-max-offline-entries` | 1–1000000               |
+| `cross-server.redis.database`                | 0–15                    |
+| `cross-server.redis.timeout-millis`          | 500–30000 ms            |
+| `cross-server.redis.pool-size`               | 2–128                   |
+| `cross-server.sync-channel`                  | 1–128 位字母、数字、冒号、下划线或连字符 |
+
+余额最多保留 4 位小数，绝对范围为 `-9999999999999999.9999` 至 `9999999999999999.9999`。
+
+---
+
+## 排行榜、只读快照与流水
+
+- `ranking-refresh`：排行榜快照的刷新间隔，并非实时查询。
+- `ranking-size`：排行榜快照最多保留的人数。
+- `read-cache-offline-ttl-seconds`：玩家离线后，PAPI、Vault 与外部 API 还能读取快照的时间。
+- `read-cache-max-offline-entries`：离线快照容量上限；在线玩家不占用该额度。
+- `transaction-log`：是否记录交易流水。
+- `log-retention-days`：流水保留天数，`-1` 表示永久。

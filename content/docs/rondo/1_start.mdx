@@ -1,0 +1,77 @@
+---
+title: 说明
+description: Rondo 多货币经济系统简介与快速开始
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明
+
+Rondo 是一款面向 Spigot/Paper 的**多货币经济插件**。你可以用 YAML 创建货币、设置转账税和兑换规则，并通过 Vault、PlaceholderAPI 或 RondoAPI 接入其他插件。
+
+- 开源地址：[17Artist/Rondo](https://github.com/17Artist/Rondo)
+- 开源协议：[Apache-2.0](https://github.com/17Artist/Rondo#Apache-2.0-1-ov-file)
+
+---
+
+## 核心能力
+
+| 能力        | 说明                                                  |
+|-----------|-----------------------------------------------------|
+| **多货币**   | 在 `currencies/` 中新增 YAML 即可注册货币                     |
+| **转账与税率** | 每种货币可独立决定是否允许转账，并配置额外扣除的转账税                         |
+| **货币兑换**  | 支持固定汇率、最小兑换量，以及日、周、月周期额度                            |
+| **流水与排行** | 异步记录资金流水，按配置周期维护排行榜快照                               |
+| **单服与跨服** | 单服可用 SQLite/MySQL，跨服使用 MySQL 与 Redis                |
+| **外部集成**  | 支持 Vault、PlaceholderAPI，以及供 Java/Kotlin 插件使用的公开 API |
+
+<Callout type="warn">
+跨服模式下，余额保存在 MySQL；Redis 只负责通知其他服务器刷新缓存。
+</Callout>
+
+---
+
+## 配置文件
+
+| 路径                 | 作用                     |
+|--------------------|------------------------|
+| `config.yml`       | 存储、性能、功能开关与跨服连接        |
+| `currencies/*.yml` | 每个文件定义一种货币             |
+| `exchange.yml`     | 定义货币间的兑换规则             |
+| `messages.yml`     | 自定义玩家与管理员命令消息          |
+| `data.db`          | SQLite 模式首次使用后生成的本地数据库 |
+| `libs/`            | Blink 首次启动下载的运行库       |
+
+---
+
+## 快速开始
+
+<Steps>
+<Step>
+### 安装插件
+
+将 `Rondo-<版本>.jar` 放入服务端 `plugins/`，使用 Java 17 完整重启服务端。
+</Step>
+
+<Step>
+### 检查启动结果
+
+确认控制台没有报错，并检查 `plugins/Rondo/` 已生成配置文件。
+</Step>
+
+<Step>
+### 基础命令
+
+```bash
+/money bal
+/rondo give Steve gold 1000
+/money pay Alex gold 10
+/money exchange honor gold 5
+/money top gold
+```
+
+将 `Steve`、`Alex` 替换为实际玩家名。
+</Step>
+
+</Steps>

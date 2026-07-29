@@ -1,0 +1,80 @@
+---
+title: 指令
+description: Rondo 玩家与管理员命令参考
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Rondo 提供两组根命令：玩家使用 `/money`，管理员使用 `/rondo`。
+
+## 玩家命令
+
+| 命令                                    | 权限               | 发送者 | 说明          |
+|---------------------------------------|------------------|-----|-------------|
+| `/money bal`                          | `rondo.use`      | 玩家  | 查看自己的所有货币余额 |
+| `/money pay <玩家> <货币ID> <数量>`         | `rondo.transfer` | 玩家  | 向在线或曾登录玩家转账 |
+| `/money exchange <源货币> <目标货币> <目标数量>` | `rondo.exchange` | 玩家  | 按规则兑换货币     |
+| `/money log [货币ID/all] [页码]`          | `rondo.log`      | 玩家  | 查看自己的交易流水   |
+| `/money top <货币ID> [页码]`              | `rondo.top`      | 全部  | 查看货币排行榜     |
+| `/money help`                         | 无                | 全部  | 查看帮助        |
+
+### 转账
+
+```bash
+/money pay Steve gold 500
+```
+
+若金币税率为 5%，发送方扣除 525，接收方得到 500。货币需要设置 `transferable: true`。
+
+### 兑换
+
+```bash
+/money exchange honor gold 500
+```
+
+最后一个参数是**希望获得的目标货币数量**。
+
+### 流水
+
+以下写法均有效：
+
+```bash
+/money log
+/money log 2
+/money log gold
+/money log gold 2
+/money log all 2
+```
+
+---
+
+## 管理员命令
+
+| 命令 | 权限 | 说明 |
+|---|---|---|
+| `/rondo give <玩家> <货币ID> <数量>` | `rondo.admin` | 发放货币 |
+| `/rondo take <玩家> <货币ID> <数量>` | `rondo.admin` | 扣除货币 |
+| `/rondo set <玩家> <货币ID> <数量>` | `rondo.admin` | 直接设置余额 |
+| `/rondo check <玩家> [货币ID]` | `rondo.admin` | 查看一种或全部余额 |
+| `/rondo log <玩家> [货币ID/all] [页码]` | `rondo.admin` | 查看玩家流水 |
+| `/rondo reset <玩家> <货币ID>` | `rondo.admin` | 恢复为该货币的默认余额 |
+| `/rondo reload` | `rondo.admin` | 原子重载消息、货币与兑换规则 |
+| `/rondo help` | `rondo.admin` | 查看管理员帮助 |
+
+### 离线玩家
+
+管理员命令支持在线玩家和**曾经登录过**的离线玩家：
+
+```bash
+/rondo give OfflinePlayer points 1000
+```
+
+不存在或从未登录的玩家名会被拒绝。
+
+### reload 的边界
+
+`/rondo reload` 会重载 `messages.yml`、`currencies/*.yml` 和 `exchange.yml`。
+
+<Callout type="warn">
+`config.yml` 不在热重载范围内。修改存储类型、数据库连接、跨服、日志或排行榜周期后必须完整重启服务端。
+</Callout>
