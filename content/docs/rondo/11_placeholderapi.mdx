@@ -35,6 +35,10 @@ features:
 
 排行榜占位符要求货币设置 `ranking-enabled: true`。玩家未上榜时返回 `未上榜`，名次没有数据时返回 `---`。
 
+余额与累计值占位符只读取不可变内存快照，不会在 PlaceholderAPI 调用线程同步访问数据库。离线玩家首次读取、TTL 到期或容量驱逐后会先返回 `---`，同时发起一次去重的后台整账户加载；后续刷新会显示实际值。
+
+离线快照的存活时间与容量分别由 `performance.read-cache-offline-ttl-seconds` 和 `performance.read-cache-max-offline-entries` 控制。在线快照会在本服资金事务、跨服失效通知和 Redis 重连校准后更新。
+
 ---
 
 ## 示例
@@ -56,4 +60,3 @@ lines:
   - ""
   - "&e排名: #%rondo_rank_gold%"
 ```
-

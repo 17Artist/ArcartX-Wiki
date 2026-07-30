@@ -51,7 +51,8 @@ ranking-enabled: true
 | `decimal-places`    | 小数位数，范围 `0..4`                     |
 | `max-balance`       | 余额上限，`-1` 表示不限制                    |
 | `default-balance`   | 新玩家初始余额                            |
-| `negative-allowed`  | 是否允许负余额                            |
+| `negative-allowed`  | 是否允许扣款、转账与兑换后的源货币余额为负数             |
+| `tradeable`         | 供第三方插件读取的可交易标记；Rondo 当前不据此拦截操作     |
 | `transferable`      | 是否允许 `/money pay` 与 API 转账         |
 | `transfer-tax-rate` | 转账税率，`0.05` 表示额外扣除 5%              |
 | `vault-primary`     | 是否作为 Vault 主货币，全局最多一个              |
@@ -70,6 +71,4 @@ ranking-enabled: true
 <Callout type="warn">
 删除货币配置不会自动删除数据库中的余额和流水。
 </Callout>
-
-
 

@@ -7,6 +7,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Rondo 在资金操作前触发 Bukkit 事件。三个事件都可以取消。
 
+事件回调不会持有 Rondo 的内部玩家顺序锁，监听器可以安全调用其他 RondoAPI。事件结束后 Rondo 才进入最终原子事务，因此事件字段表示本次操作的**提交提案**：`oldBalance` / `newBalance` 是触发前观察值，并发写入可能使最终提交失败。取消事件可保证本次 Rondo 操作不提交；未取消不等于提交必然成功，调用方仍应检查 API 返回值。
+
 ## EconomyTransactionEvent
 
 存入、扣除或直接设置余额前触发：
@@ -20,7 +22,7 @@ class EconomyTransactionEvent(
     val oldBalance: BigDecimal,
     val newBalance: BigDecimal,
     val source: String
-) : Event, Cancellable
+) : Event(!Bukkit.isPrimaryThread()), Cancellable
 
 enum class Action {
     DEPOSIT,
@@ -63,7 +65,7 @@ class EconomyTransferEvent(
     val currency: Currency,
     val amount: BigDecimal,
     val taxAmount: BigDecimal
-) : Event, Cancellable
+) : Event(!Bukkit.isPrimaryThread()), Cancellable
 ```
 
 ## EconomyExchangeEvent
@@ -77,7 +79,7 @@ class EconomyExchangeEvent(
     val toCurrency: Currency,
     val fromAmount: BigDecimal,
     val toAmount: BigDecimal
-) : Event, Cancellable
+) : Event(!Bukkit.isPrimaryThread()), Cancellable
 ```
 
 ## 线程语义
@@ -90,4 +92,3 @@ class EconomyExchangeEvent(
 <Callout type="error">
 异步事件中访问世界、实体或背包前，需要切回服务端主线程。
 </Callout>
-

@@ -80,6 +80,19 @@ public interface EconomyProvider {
 ```
 </Callout>
 
+### Rondo 内置兼容
+
+服务端安装并启用 Rondo 时，ArcartX 会在启动阶段为 Rondo 当前注册的每一种货币创建一个经济提供者。提供者标识就是 Rondo 的规范小写货币 ID：
+
+```java
+EconomyProvider gold = ArcartXLinkManager.INSTANCE.getEconomyProvider("gold");
+```
+
+- 展示名默认读取 Rondo 的货币 `display-name`；`plugins/ArcartX/link/economy.yml` 中的同名配置仍可覆盖。
+- 存入和扣除分别调用 Rondo 的原子 `deposit`、`withdraw` API，交易来源记录为 `arcartx:link`。
+- `EconomyProvider` 使用 `double`，Rondo 会再按对应货币的小数位规则归一金额；`NaN` 和无穷大金额会被拒绝。
+- 新增或移除货币 ID 后需要完整重启服务端，使 ArcartX 重新建立提供者列表。只调整已有 ID 的展示名或余额规则时，Rondo 当前配置会在后续调用中生效。
+
 ## 物品系统
 
 ### `registerItemProvider(itemProvider){:java}`

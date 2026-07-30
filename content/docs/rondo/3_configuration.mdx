@@ -19,8 +19,6 @@ import { Callout } from 'fumadocs-ui/components/callout';
 storage:
   # sqlite / mysql
   type: sqlite
-  # 单服余额变更是否立即落库；生产环境保持 true
-  write-through: true
   mysql:
     host: localhost
     port: 3306
@@ -33,8 +31,6 @@ storage:
     pool-size: 10
 
 performance:
-  # 仅 write-through=false 的单服缓冲模式使用
-  save-interval: 100
   log-queue-size: 1000
   ranking-refresh: 6000
   ranking-size: 100
@@ -79,9 +75,6 @@ cross-server:
 - 适合单服或跨服
 - 跨服时所有节点必须连接同一数据库
 
-### write-through
-
-建议保持 `true`，让余额变更立即写入数据库。设为 `false` 后会按 `save-interval` 批量保存，服务器异常退出时可能丢失尚未保存的余额。跨服模式始终立即写入 MySQL。
 
 ---
 
@@ -97,7 +90,6 @@ cross-server:
 
 | 参数                                           | 允许范围                    |
 |----------------------------------------------|-------------------------|
-| `performance.save-interval`                  | 不小于 20 tick             |
 | `performance.log-queue-size`                 | 100–100000              |
 | `performance.ranking-refresh`                | 不小于 200 tick            |
 | `performance.ranking-size`                   | 1–10000                 |
@@ -116,7 +108,9 @@ cross-server:
 
 - `ranking-refresh`：排行榜快照的刷新间隔，并非实时查询。
 - `ranking-size`：排行榜快照最多保留的人数。
-- `read-cache-offline-ttl-seconds`：玩家离线后，PAPI、Vault 与外部 API 还能读取快照的时间。
+- `read-cache-offline-ttl-seconds`：玩家离线后，PAPI、Vault 与外部 API 还能热读快照的时间；到期后 PAPI 异步预热，Vault 冷查询同步加载权威值。
 - `read-cache-max-offline-entries`：离线快照容量上限；在线玩家不占用该额度。
 - `transaction-log`：是否记录交易流水。
-- `log-retention-days`：流水保留天数，`-1` 表示永久。
+- `log-retention-days`：交易流水与内部兑换审计记录的保留天数，`-1` 表示永久；即使关闭新流水记录，既有记录仍按此策略清理。
+
+只读快照只服务于 PAPI、Vault 热查询和外部 UI/HUD。存入、扣除、设置、转账与兑换的最终校验始终由数据库事务完成。

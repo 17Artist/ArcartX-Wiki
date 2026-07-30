@@ -58,12 +58,12 @@ import java.math.BigDecimal
 val currencyIds: Set<String> = RondoAPI.getAllCurrencyIds()
 val balance = RondoAPI.getBalance(player.uniqueId, "gold")
 
-// UI、HUD 等高频展示：只读内存，未命中时返回 null
-val snapshot = RondoAPI.getEconomySnapshot(player.uniqueId)
+// UI、HUD 等高频展示：只读内存探测，未命中时返回 null
+val snapshot = RondoAPI.peekEconomySnapshot(player.uniqueId)
 val displayBalance = snapshot?.getBalance("gold")
 
-// 需要加载离线玩家快照时使用异步接口
-RondoAPI.getEconomySnapshotAsync(player.uniqueId).thenAccept { loaded ->
+// 缓存未命中时异步加载，Future 成功时一定包含快照
+RondoAPI.getEconomySnapshot(player.uniqueId).thenAccept { loaded ->
     val loadedBalance = loaded.getBalance("gold")
 }
 
@@ -85,12 +85,14 @@ if (!charged) {
 - 金额使用 `BigDecimal`，最多保留 4 位小数。
 - `source` 建议使用 `插件名:功能`，长度为 1–128 个字符。
 - 权威余额查询和资金操作是同步接口，可能执行 SQLite/MySQL I/O。
-- `getEconomySnapshot` 只读内存，适合展示；不能用快照判断扣款是否成功。
-- `getEconomySnapshotAsync` 的回调在 Rondo 异步任务线程执行，调用 Bukkit 主线程 API 前需要切回主线程。
+- 每次成功的资金操作都已经在数据库事务中提交；Rondo 没有待保存的内存余额。
+- `peekEconomySnapshot` 只读内存且允许返回 `null`，适合每 tick 的 UI/HUD 探测。
+- `getEconomySnapshot` 返回 `CompletableFuture`；已有缓存时立即完成，未命中时异步加载全部货币。
+- 快照只用于展示，不能用来判断扣款是否成功。
+- `getEconomySnapshot` 的异步回调可能在 Rondo 任务线程执行，调用 Bukkit 主线程 API 前需要切回主线程。
 - 资金操作会在调用线程触发可取消事件。
 - 业务校验失败返回 `false` 或失败结果；存储故障可能抛出异常。
 
 <Callout type="warn">
 不要在主线程批量查询或修改离线玩家余额。
 </Callout>
-

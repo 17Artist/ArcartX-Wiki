@@ -47,27 +47,29 @@ fun isCurrencyRegistered(id: String): Boolean
 fun getBalance(player: UUID, currencyId: String): BigDecimal
 ```
 
-权威查询在线或离线玩家余额，访问数据库。
+同步查询在线或离线玩家的权威余额，会访问 SQLite/MySQL。只读快照不参与该方法的最终结果；货币未注册时返回 `BigDecimal.ZERO`。
+
+### peekEconomySnapshot
+
+```kotlin
+fun peekEconomySnapshot(
+    player: UUID
+): PlayerEconomySnapshot?
+```
+
+只读内存，不执行数据库 I/O；没有缓存时返回 `null`。`null` 明确表示“当前没有快照”，不表示玩家余额为零或默认余额。
 
 ### getEconomySnapshot
 
 ```kotlin
 fun getEconomySnapshot(
     player: UUID
-): PlayerEconomySnapshot?
-```
-
-只读内存，不执行数据库 I/O；没有缓存时返回 `null`。适合 UI、HUD、PAPI 等展示，不能用于资金校验。
-
-### getEconomySnapshotAsync
-
-```kotlin
-fun getEconomySnapshotAsync(
-    player: UUID
 ): CompletableFuture<PlayerEconomySnapshot>
 ```
 
-已有快照时立即返回，否则在后台一次性加载玩家的全部货币。同一玩家的并发加载会合并；Future 在 Rondo 异步任务线程完成。
+已有快照时 Future 立即完成，否则在后台一次性加载玩家的全部货币。同一玩家的并发加载会合并；存储失败时 Future 异常完成，不会返回 `null` 或伪造默认余额。
+
+Future 的回调可能在 Rondo 异步任务线程执行。回调中操作玩家、世界、实体或背包前必须切回合法的 Bukkit 线程。
 
 快照提供：
 
@@ -89,7 +91,7 @@ data class CurrencyEconomySnapshot(
 )
 ```
 
-`revision` 只在当前在线会话内递增，不是跨服数据库版本号。
+`revision` 只表示当前 Rondo 进程内的快照发布顺序，不是跨服数据库版本号，也不能用于数据库乐观锁。
 
 ### hasBalance
 
@@ -101,7 +103,7 @@ fun hasBalance(
 ): Boolean
 ```
 
-检查余额是否充足。
+检查余额是否充足。货币未注册、金额为负数或金额超出存储范围时返回 `false`。
 
 ### deposit
 
@@ -236,7 +238,10 @@ fun getLog(
 
 - 业务失败返回 `false` 或 `success=false`。
 - 数据库连接失败时可能抛出异常。
+- API 返回成功时，余额已经提交到 SQLite/MySQL；不存在退出时再保存的可写内存账户。
 - 权威余额与资金操作是同步接口，不要在主线程批量调用。
-- `getEconomySnapshot` 是非阻塞内存读取；未命中时再使用异步版本。
+- `peekEconomySnapshot` 是 nullable 的非阻塞内存探测。
+- `getEconomySnapshot` 返回 Future，负责处理缓存命中或异步加载。
+- 快照只用于展示与高频读取，不作为资金事务的最终判断依据。
 - 经济事件的同步/异步状态与调用线程一致。
 - 跨服模式以共享 MySQL 为权威账本，Redis 只负责发布缓存失效通知。

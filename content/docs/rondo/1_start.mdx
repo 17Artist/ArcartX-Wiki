@@ -11,7 +11,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 Rondo 是一款面向 Spigot/Paper 的**多货币经济插件**。你可以用 YAML 创建货币、设置转账税和兑换规则，并通过 Vault、PlaceholderAPI 或 RondoAPI 接入其他插件。
 
 - 开源地址：[17Artist/Rondo](https://github.com/17Artist/Rondo)
-- 开源协议：[Apache-2.0](https://github.com/17Artist/Rondo#Apache-2.0-1-ov-file)
+- 开源协议：[Apache-2.0](https://github.com/17Artist/Rondo/blob/main/LICENSE)
 
 ---
 
@@ -27,7 +27,7 @@ Rondo 是一款面向 Spigot/Paper 的**多货币经济插件**。你可以用 Y
 | **外部集成**  | 支持 Vault、PlaceholderAPI，以及供 Java/Kotlin 插件使用的公开 API |
 
 <Callout type="warn">
-跨服模式下，余额保存在 MySQL；Redis 只负责通知其他服务器刷新缓存。
+SQLite/MySQL 是唯一可写账本。内存层只保存不可变展示快照；跨服 Redis 也只负责通知其他服务器刷新快照。
 </Callout>
 
 ---
