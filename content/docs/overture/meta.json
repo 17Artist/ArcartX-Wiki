@@ -32,6 +32,8 @@
         "---开发接口---",
         "13_api",
         "14_extensions",
-        "15_events"
+        "15_events",
+        "---生态兼容---",
+        "16_arcartx_compat"
     ]
 }

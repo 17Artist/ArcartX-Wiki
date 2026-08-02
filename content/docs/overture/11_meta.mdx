@@ -33,7 +33,6 @@ Meta 写在物品的 `meta` 节点中，并在候选物品快照创建时解析�
 | `native`            | 向物品 NBT 根节点写入原生数据          |
 | `shiny`             | 无需可见附魔的发光效果                |
 | `rarity`            | 使用 `rarity.yml` 的品质与掉落发光颜色 |
-| `drop`              | ArcartX 客户端掉落模型路径          |
 
 ## 属性
 
@@ -98,7 +97,6 @@ meta:
   color: "#FF8000"
   shiny: true
   rarity: LEGENDARY
-  drop: "weapons/legendary_blade"
 ```
 
 头颅、药水与原生 NBT 的常用格式：
@@ -118,7 +116,6 @@ meta:
 
 `shiny` 在 1.20.4 及以下通过隐藏的 `unbreaking I` 兼容实现，并先于显式附魔应用；1.20.5 及以上使用原生 glint 组件。
 
-`drop` 只在检测到 ArcartX 服务端 API 时写入根 NBT；玩家还必须安装协议匹配的 ArcartX 客户端，并加载包含该模型路径的资源，才能看到掉落模型。
 
 ## 何时实现自定义 Meta
 

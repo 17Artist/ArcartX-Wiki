@@ -80,6 +80,7 @@ public interface EconomyProvider {
 ```
 </Callout>
 
+
 ### Rondo 内置兼容
 
 服务端安装并启用 Rondo 时，ArcartX 会在启动阶段为 Rondo 当前注册的每一种货币创建一个经济提供者。提供者标识就是 Rondo 的规范小写货币 ID：
@@ -124,6 +125,25 @@ public interface ItemProvider {
 }
 ```
 </Callout>
+
+### Overture 内置兼容
+
+服务端同时安装并启用 Overture 时，ArcartX 会注册标识严格为 `Overture` 的物品提供者：
+
+```kotlin
+val provider = ArcartXLinkManager.getItemProvider("Overture")
+val item = provider?.generateItemStack("example_sword")
+```
+
+```java
+ItemProvider provider = ArcartXLinkManager.INSTANCE.getItemProvider("Overture");
+ItemStack item = provider == null ? null : provider.generateItemStack("example_sword");
+```
+
+- 名称查找区分大小写，必须写成 `Overture`。
+- 未知物品 ID 或 Overture 构建取消时返回 `null`。
+- `ItemProvider` 只有物品 ID 参数，因此该桥接按 `player = null` 生成。需要玩家参与条件展示或渲染时，应直接调用 `OvertureAPI.generateItem(id, player)`。
+- 提供者只负责生成物品；ArcartX 特殊 Tag 的 Overture 配置方式见 [Overture 兼容](/docs/arcartx_v2/999_server_api/24_overture_compat)。
 
 ## PlaceholderAPI
 

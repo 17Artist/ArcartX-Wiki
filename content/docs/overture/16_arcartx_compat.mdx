@@ -1,0 +1,71 @@
+---
+title: ArcartX 兼容
+description: 由 ArcartX 向 Overture 注册客户端特殊 Tag Meta 与统一物品提供器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn">
+这些扩展由 ArcartX 提供，不属于 Overture 的独立功能。只安装 Overture 不会写入或消费任何 ArcartX 特殊 Tag。
+</Callout>
+
+## 可用 Meta
+
+所有条目都写入物品 NBT 根节点，键名与 ArcartX `ItemStackUtils` 读取的 Tag 完全一致。
+
+| Overture Meta           | 根 Tag           | 用途                                                    | 消费方         |
+|-------------------------|-----------------|-------------------------------------------------------|-------------|
+| `arcartx:icon`          | `icon`          | 客户端物品图标贴图路径                                           | ArcartX 客户端 |
+| `arcartx:drop`          | `drop`          | 物品掉落时的附加模型 ID                                         | ArcartX 客户端 |
+| `arcartx:model`         | `model`         | 物品 3D 模型 ID                                           | ArcartX 客户端 |
+| `arcartx:armor_texture` | `armor_texture` | 盔甲穿戴贴图 ID                                             | ArcartX 客户端 |
+| `arcartx:costume_model` | `costume_model` | 时装模型 ID                                               | ArcartX 客户端 |
+| `arcartx:costume_hide`  | `costume_hide`  | 是否隐藏物品本体；接受布尔值、`yes/no`、`on/off` 或 `1/0`，最终写为 `1`/`0` | ArcartX 客户端 |
+| `arcartx:fp_model`      | `fp_model`      | 第一人称模型 ID                                             | ArcartX 客户端 |
+| `arcartx:extra_model`   | `extra_model`   | 定位器名称到额外模型 ID 的映射                                     | ArcartX 客户端 |
+| `arcartx:url`           | `url`           | UI 中使用的物品贴图路径                                         | ArcartX 客户端 |
+| `arcartx:cooldown`      | `cooldown`      | 共享冷却分组标识                                              | ArcartX 服务端 |
+
+## 完整配置示例
+
+下面的条目用于集中展示全部字段。实际物品通常只配置与其资源和用途相关的子集。
+
+```yaml
+arcartx_showcase:
+  icon: IRON_CHESTPLATE
+  display: equipment_display
+  meta!!:
+    arcartx:icon: "astral_chestplate.png"
+    arcartx:drop: "astral_chestplate_drop"
+    arcartx:model: "astral_chestplate"
+    arcartx:armor_texture: "astral_armor.png"
+    arcartx:costume_model: "astral_body"
+    arcartx:costume_hide: true
+    arcartx:fp_model: "astral_chestplate_fp"
+    arcartx:extra_model:
+      chest_locator_extra: "astral_core"
+      back_locator_extra: "astral_wings_glow"
+    arcartx:url: "ui/items/astral_chestplate.png"
+    arcartx:cooldown: "astral_equipment"
+```
+
+这里使用 `meta!!`，表示物品版本更新时先清理旧的同名根 Tag，再写入新值。若使用普通 `meta`，新生成物品仍会写入这些 Tag，但已有物品在版本更新检查中会遵循 Overture 的未锁定 Meta 保留规则。
+
+移除某个 `arcartx:*` 配置后，Overture 会根据 Meta 历史调用 ArcartX 注册的清理实例并删除对应根 Tag；`arcartx:extra_model` 会整体替换或移除 `extra_model` compound，不会保留已经从配置删除的定位器。
+
+
+## ArcartX 统一物品提供器
+
+ArcartX 启用后会注册标识为 `Overture` 的 `ItemProvider`，供使用 ArcartX 统一物品接口的模块生成 Overture 物品：
+
+```kotlin
+val provider = ArcartXLinkManager.getItemProvider("Overture")
+val itemStack = provider?.generateItemStack("arcartx_showcase")
+```
+
+```java
+ItemProvider provider = ArcartXLinkManager.INSTANCE.getItemProvider("Overture");
+ItemStack itemStack = provider == null ? null : provider.generateItemStack("arcartx_showcase");
+```
+
+提供器名称区分大小写。该统一接口没有玩家参数，因此内部调用等价于 `OvertureAPI.generateItem(id, null)`；需要玩家条件展示或 RenderEntry 上下文时，应直接调用 `OvertureAPI.generateItem(id, player)`。
