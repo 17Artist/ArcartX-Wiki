@@ -1,0 +1,64 @@
+---
+title: Bukkit 事件
+description: 监听 Overture 的构建、释放、更新、发放与重载生命周期
+---
+
+Overture 使用标准 Bukkit 事件总线，普通 JavaPlugin 直接注册 `Listener` 即可。
+
+## 事件列表
+
+| 事件                               | 可取消 | 主要用途                       |
+|----------------------------------|-----|----------------------------|
+| `ItemBuildEvent.Pre`             | 是   | 构建前修改名称/Lore 变量或阻止构建       |
+| `ItemBuildEvent.Post`            | 否   | 构建完成后读取生成流                 |
+| `ItemReleaseEvent.Release`       | 否   | 释放为 ItemStack 时修改 ItemMeta |
+| `ItemReleaseEvent.SelectDisplay` | 否   | 替换要使用的展示方案 ID              |
+| `ItemReleaseEvent.Display`       | 否   | 注入名称和 Lore 变量              |
+| `ItemReleaseEvent.Final`         | 否   | 最终替换生成的 ItemStack          |
+| `ItemUpdateEvent`                | 是   | 阻止已有物品的版本更新                |
+| `ItemGiveEvent`                  | 是   | 阻止发放或替换发放物品                |
+| `PluginReloadEvent`              | 否   | 读取重载提交或回滚报告                |
+
+## 监听示例
+
+```kotlin
+class OvertureListener : Listener {
+    @EventHandler
+    fun onFinal(event: ItemReleaseEvent.Final) {
+        val replacement = event.itemStack.clone()
+        val meta = replacement.itemMeta
+        meta.setDisplayName("§d由附属插件替换")
+        replacement.itemMeta = meta
+        event.itemStack = replacement
+    }
+
+    @EventHandler
+    fun onReload(event: PluginReloadEvent) {
+        if (event.report.success) {
+            // 新快照已经提交，此时再刷新附属插件缓存
+        }
+    }
+}
+```
+
+`PluginReloadEvent` 在候选快照成功提交或失败回滚后触发。只有 `report.success == true` 时才能依赖新定义；从非主线程调用 `reloadWithReport()` 会在事务开始前直接返回失败报告，因此不会触发该事件。
+
+## 主要字段
+
+- `ItemBuildEvent.Pre/Post`：`player`、`itemId`、`ItemStreamGenerated stream`；Pre 可取消。
+- `ItemReleaseEvent.Release`：可修改 `itemMeta`；`SelectDisplay.displayId`、`Display.nameVars/loreVars` 与 `Final.itemStack` 均可替换或修改。
+- `ItemUpdateEvent`：`player`、原 `itemStack` 与当前 `OvertureItem` 定义；可取消更新。
+- `ItemGiveEvent`：`player`、`itemId` 与可替换的 `itemStack`；可取消发放。
+- `PluginReloadEvent.report`：包含成功状态、回滚状态、耗时、计数、问题与冲突。
+
+Build/Release 事件暴露的 stream 是低层可变视图，仅在当前回调内有效；不要缓存、跨线程传递或持久化。持久数据请使用组件与 `ItemDataView` / `MutableItemData` API。
+
+## 线程语义
+
+- `ItemBuildEvent.Pre/Post` 与 `ItemReleaseEvent.*` 的 `isAsynchronous` 会根据调用线程动态设置。
+- 异步监听器不能直接操作世界、实体、背包或其他只允许主线程访问的 Bukkit API。
+- `ItemGiveEvent`、`ItemUpdateEvent` 和 `PluginReloadEvent` 是标准同步 Bukkit 事件。
+
+## 第三方 Bukkit 事件
+
+Overture 不接管其他插件的 Listener。第三方插件应注册 namespaced TriggerKey，在自己的事件监听器中调用 `dispatchExternalTrigger`，并把结果物品写回正确槽位或实体。详见[扩展注册](/docs/overture/14_extensions)。

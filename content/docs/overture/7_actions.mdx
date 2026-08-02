@@ -1,0 +1,87 @@
+---
+title: 动作系统
+description: 使用 Aria 脚本和触发器编写物品交互
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+物品动作写在 `event` 节点中。Overture 会在加载或重载时编译脚本，触发时使用新的 Aria Context 执行。
+
+## 执行上下文
+
+| 变量           | 说明                         |
+|--------------|----------------------------|
+| `val.item`   | 当前处理链的实时 `ItemStream`，始终存在 |
+| `val.player` | 当前玩家；没有玩家上下文时不存在           |
+
+Overture 不注入 Bukkit Event、`self` 或任意变量 Map。第三方 Behavior 的 `variables` 也不会进入 Aria Context。
+
+`event.data` 会展开为第三方 `ItemBehaviorContext.variables`。外部触发器传入的 `variables` 会与其合并，同名时以外部值为准：
+
+```yaml
+event:
+  data:
+    skill:
+      group: sword
+```
+
+## 示例
+
+```yaml
+example_sword:
+  event:
+    on_right_click!!: |
+      if (val.player.checkItemCooldown('skill', 3000)) {
+        val.player.setItemCooldown('skill')
+        val.item.damage(5)
+      }
+    on_attack: |
+      val.item.damage(1)
+```
+
+`!!` 只作用于 Aria 动作：Behavior 先执行；若处理链继续，Overture 会在对应 Aria 动作开始前取消原 Bukkit 事件。若 Behavior 返回 `stopPropagation`，该 Aria 动作与其 `!!` 都不会执行；Behavior 仍可通过 `cancelEvent` 独立取消事件。脚本本身不能访问或取消事件对象。
+
+## 内置触发器
+
+| 配置键                     | 触发时机               |
+|-------------------------|--------------------|
+| `on_left_click`         | 左键交互               |
+| `on_right_click`        | 右键交互               |
+| `on_right_click_entity` | 右键实体               |
+| `on_attack`             | 攻击实体               |
+| `on_damage`             | Overture 接管物品耐久伤害时 |
+| `on_consume`            | 消耗物品               |
+| `on_drop`               | 丢弃物品               |
+| `on_pick`               | 拾取物品               |
+| `on_block_break`        | 破坏方块               |
+| `on_item_break`         | 自定义耐久耗尽            |
+| `on_swap_to_offhand`    | 切换到副手              |
+| `on_swap_to_mainhand`   | 切换到主手              |
+| `on_build`              | 物品构建阶段             |
+| `on_release`            | 释放为 ItemStack 阶段   |
+| `on_release_display`    | 生成 Display 阶段      |
+
+第三方 TriggerKey 使用完整 `namespace:key`，并由对应插件显式转发事件。
+
+未识别的内置短键会记录警告并忽略；namespaced 键仍需第三方插件注册并主动 dispatch，写入 YAML 本身不会监听 Bukkit 事件。
+
+## 使用次数
+
+```yaml
+teleport_scroll:
+  data:
+    uses: 3
+  event:
+    on_right_click!!: |
+      if (val.item.uses() > 0) {
+        val.item.use()
+      }
+```
+
+`val.item.use()` 默认减少一次，归零时会把当前物品数量设为 0。
+
+<Callout type="info">
+`on_consume` 不改变原版容器规则：比如生存模式喝完普通药水后仍得到玻璃瓶，创造模式保留原物品。需要自定义结果物品时，应由 Behavior 或外部 Trigger 处理。
+</Callout>
+
+

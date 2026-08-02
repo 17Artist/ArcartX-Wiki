@@ -1,0 +1,55 @@
+---
+title: 分组系统
+description: 用 items 目录组织物品并配置菜单分组
+---
+
+`items/` 下的每个文件夹都会成为一个分组，支持多级嵌套。
+
+```text
+items/
+├── weapons/
+│   ├── __group__.yml
+│   ├── swords.yml
+│   └── rare/
+│       └── legendary.yml
+├── armor/
+│   └── sets.yml
+└── misc.yml
+```
+
+对应分组 ID 为 `weapons`、`weapons/rare` 和 `armor`；根目录文件中的物品直接显示在根菜单。
+
+## 分组配置
+
+在分组目录创建 `__group__.yml`：
+
+```yaml
+priority: 10
+icon: DIAMOND_SWORD
+name: "&b武器"
+lore:
+  - "&7各类武器收藏"
+```
+
+| 字段         | 说明                           |
+|------------|------------------------------|
+| `priority` | 数值越小越靠前，默认 0                 |
+| `icon`     | Bukkit `Material`，默认 `CHEST` |
+| `name`     | 菜单显示名，默认使用文件夹名               |
+| `lore`     | 分组描述                         |
+
+## 浏览菜单
+
+```text
+/ot list
+/ot list weapons
+/ot list weapons/rare
+```
+
+菜单先显示子分组，再显示当前分组的物品。该菜单只能由游戏内 OP 通过 `/ot list` 打开，点击物品时还会重新校验 OP 状态；普通玩家不能访问或领取。
+
+## 扫描规则
+
+- `__group__.yml` 只用于分组，不会作为物品文件加载。
+- 以 `__` 开头的文件名和键名会被跳过。
+- 以 `$` 结尾的键会注册为事件模型，不会显示在菜单中。

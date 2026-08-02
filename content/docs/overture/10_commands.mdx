@@ -1,0 +1,47 @@
+---
+title: 命令与权限
+description: Overture 仅限 OP 的管理、检查与诊断入口
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+主命令为 `/overture`，别名 `/ot`、`/oi`。
+
+所有命令固定要求 OP，不提供面向普通玩家的命令或可配置授权节点。
+
+| 命令                                         | 权限    | 说明                             |
+|--------------------------------------------|-------|--------------------------------|
+| `/ot list [group]`                         | OP 玩家 | 打开物品菜单，可指定分组                   |
+| `/ot give <item> [player] [amount]`        | OP    | 向玩家发放物品                        |
+| `/ot get <item> [amount]`                  | OP 玩家 | 获取物品到自己的背包                     |
+| `/ot rebuild`                              | OP 玩家 | 按当前定义强制重建手持物品                  |
+| `/ot serialize`                            | OP 玩家 | 把手持物品序列化为 schema v2 JSON       |
+| `/ot info`                                 | OP 玩家 | 查看手持物品 ID、版本和数据                |
+| `/ot diagnostics components`               | OP    | 查看组件 codec 的 owner、优先级与 schema |
+| `/ot inspect [itemId\|reload\|registries]` | OP    | 查看指定物品来源、冲突、动作链、耗时或重载报告        |
+| `/ot reload`                               | OP    | 重载主配置、语言、物品快照与附属样式             |
+
+## 访问边界
+
+普通玩家不会收到 Overture 根命令或补全，直接输入 `/overture`、`/ot`、`/oi` 及其 namespaced 形式也会在分发前被拒绝。这里依据 Bukkit 的 OP 状态判断，不读取额外 permission 节点。
+
+`/ot list`、`/ot get`、`/ot rebuild`、`/ot serialize` 与 `/ot info` 需要游戏内 OP 玩家上下文。物品菜单在打开和每次点击时都会重新校验 OP。
+
+控制台可以执行 `/ot give`、`/ot diagnostics`、`/ot inspect` 和 `/ot reload`；控制台执行 `/ot give` 时应显式提供目标玩家。
+
+
+## 重载与诊断
+
+`/ot reload` 依次应用主配置、读取语言文件，再构建并校验物品、事件模型、Display 与分组候选快照。候选快照提交成功后，还会刷新 `rarity.yml` 和 `drop-labels.yml`。
+
+任一物品 YAML、Provider、组件 codec、Aria 动作或条件展示出现错误时，物品、模型、Display 与分组会回滚到旧快照；已经应用的主配置和成功读取的语言文件不会随之回滚。语言文件无效时会保留上一次有效文本并报告警告。命令帮助中的描述需要重启服务端才能更新。
+
+```text
+/ot inspect reload
+/ot inspect registries
+/ot diagnostics components
+```
+
+<Callout type="info">
+`/ot serialize` 保存的是持久化数据，不包含构建后的名称、Lore 或 Bukkit ItemMeta；它不适合诊断物品外观。
+</Callout>

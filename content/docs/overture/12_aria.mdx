@@ -1,0 +1,55 @@
+---
+title: Aria 对象函数
+description: Overture 向物品动作提供的 ItemStream 与玩家冷却函数
+---
+
+Overture 的脚本上下文只包含 `val.item` 和可选的 `val.player`。每次执行都会创建新的 Context。
+
+<Callout type="warn">
+    Overture 只提供物品与冷却相关对象函数。玩家消息、声音、药水、移动等能力需要由 ArcartX、Chronos 或其他插件注册。
+</Callout>
+
+## `val.item`
+
+| 调用                          | 返回        | 说明                 |
+|-----------------------------|-----------|--------------------|
+| `val.item.damage(n)`        | `none`    | 扣除自定义耐久            |
+| `val.item.repair(n)`        | `none`    | 恢复自定义耐久，不超过上限      |
+| `val.item.durability()`     | `number`  | 当前耐久，未配置时为 0       |
+| `val.item.maxDurability()`  | `number`  | 最大耐久，未配置时为 0       |
+| `val.item.consume(n?)`      | `none`    | 减少堆叠数量，默认 1        |
+| `val.item.data(key)`        | 值或 `none` | 读取 `overture.data` |
+| `val.item.data(key, value)` | `none`    | 写入数字、字符串或布尔数据      |
+| `val.item.removeData(key)`  | `none`    | 删除数据               |
+| `val.item.update()`         | `none`    | 标记物品需要重建           |
+| `val.item.id()`             | `string`  | 获取 Overture 物品 ID  |
+| `val.item.amount()`         | `number`  | 获取堆叠数量             |
+| `val.item.uses()`           | `number`  | 获取 `data.uses`     |
+| `val.item.use(n?)`          | `none`    | 减少使用次数，默认 1        |
+
+`data(key, value)` 的数字会写为整数；布尔值以 NBT Byte 保存，读取时表现为 `0` 或 `1`。复杂 List/Map 不属于该便捷函数的输入范围。
+
+## `val.player`
+
+Overture 只注册物品冷却函数：
+
+| 调用                                          | 返回        | 说明                 |
+|---------------------------------------------|-----------|--------------------|
+| `val.player.checkItemCooldown(key, ms)`     | `boolean` | 冷却结束或不存在时返回 `true` |
+| `val.player.setItemCooldown(key)`           | `none`    | 记录当前时间为冷却起点        |
+| `val.player.itemCooldownRemaining(key, ms)` | `number`  | 返回剩余毫秒数            |
+
+```txt
+if (val.player.checkItemCooldown('fireball', 5000)) {
+  val.player.setItemCooldown('fireball')
+  val.item.damage(10)
+}
+```
+
+冷却按玩家 UUID 与键隔离，玩家退出时清理。
+
+## 能力边界
+
+- Aria 脚本不能直接取消事件，只能使用配置键的 `!!` 后缀；Behavior 可返回 `cancelEvent`。
+- Overture 不注入 Bukkit Event、`self` 或 Behavior variables。
+

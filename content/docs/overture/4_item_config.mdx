@@ -1,0 +1,132 @@
+---
+title: 物品配置
+description: 定义物品字段、动态数据、锁定规则与第三方组件
+---
+
+物品定义在 `items/` 下的 `.yml` 文件中，每个顶级键都是物品 ID。
+
+## 基础格式
+
+```yaml
+diamond_sword:
+  display: weapon_display
+  icon: DIAMOND_SWORD
+  drop-label: default
+
+  name:
+    item_name: "&b钻石剑"
+    item_level: "&7Lv.1"
+
+  lore:
+    item_type: "&9武器"
+    item_desc:
+      - "&f一把锋利的钻石剑"
+      - "&f可以在铁匠铺购买"
+
+  data:
+    damage: 7
+    durability!!: 100
+    custom:
+      level: 1
+
+  data-mapper:
+    damage_display: "{damage}"
+    level_text: "roman({custom.level})"
+
+  meta:
+    durability:
+      max: 100
+      remains: STICK
+    shiny: true
+
+  event:
+    data:
+      skill_group: sword
+    on_right_click!!: |
+      val.item.damage(1)
+```
+
+这里的 `name` 和 `lore` 只定义展示变量，不会直接写入物品的 Display Name 或 Lore。`display: weapon_display` 会选择 `displays/` 中的同名展示方案；例如在 `displays/weapon.yml` 中写入：
+
+```yaml
+weapon_display:
+  name: "<item_name> <item_level>"
+  lore:
+    - "<item_type>"
+    - ""
+    - "<item_desc...>"
+    - ""
+    - "&7攻击力: &f<damage_display>"
+    - "&7等级: &f<level_text>"
+```
+
+`name.item_name`、`name.item_level` 供 Display 的 `name` 模板引用；`lore.item_type`、`lore.item_desc` 供 Display 的 `lore` 模板引用。`data-mapper` 结果会同时加入名称和 Lore 变量。
+
+`<var>` 读取单值，`<var...>` 在 Lore 中展开整个列表。定义但未在所选 Display 中引用的变量不会出现在最终 ItemMeta。完整模板规则见[展示方案](/docs/overture/6_display)。
+
+## 字段
+
+| 字段            | 类型                 | 说明                                      |
+|---------------|--------------------|-----------------------------------------|
+| `display`     | String             | 引用展示方案 ID                               |
+| `icon`        | String             | Bukkit `Material` 名称；省略或无法识别时使用 `STONE` |
+| `drop-label`  | String/Boolean/Map | 掉落标签样式或开关                               |
+| `name`        | Map                | 名称变量                                    |
+| `lore`        | Map                | Lore 变量，值可为字符串或列表                       |
+| `data`        | Map                | 写入 `overture.data` 的动态数据                |
+| `data-mapper` | Map                | 把动态数据映射为展示变量                            |
+| `meta`        | Map                | 属性、附魔、耐久等物品 Meta                        |
+| `event`       | Map                | Aria 动作与事件模型引用                          |
+| `event.data`  | Map                | 传给第三方 Behavior 的静态变量                    |
+| `behaviors`   | Map/List           | 第三方 `namespace:key` Behavior            |
+| `components`  | Map                | 第三方可校验组件定义                              |
+
+## `!!` 锁定
+
+锁定只影响**版本更新**。普通交互重建仍会重新计算 Mapper 和展示模板。
+
+| 写法                  | 更新时的效果                                       |
+|---------------------|----------------------------------------------|
+| `icon!!`            | 强制覆盖材质                                       |
+| `name!!` / `lore!!` | 强制覆盖名称或 Lore 变量                              |
+| `data.key!!`        | 强制覆盖指定数据                                     |
+| `data!!`            | 锁定该节点的全部直接子数据                                |
+| `meta.key!!`        | 强制重新应用指定 Meta                                |
+| `meta!!`            | 锁定该节点的全部 Meta                                |
+| `event.on_xxx!!`    | Behavior 未终止处理链时，在对应 Aria 动作开始前取消原 Bukkit 事件 |
+
+## 数据类型
+
+| 写法          | NBT 类型   |
+|-------------|----------|
+| `10`        | Int      |
+| `10.0`      | Double   |
+| `"10s"`     | Short    |
+| `"10L"`     | Long     |
+| `"10f"`     | Float    |
+| `"10b"`     | Byte     |
+| `true`      | Byte 0/1 |
+| `[1, 2, 3]` | List     |
+| 嵌套 mapping  | Compound |
+
+## 第三方 Behavior 与组件
+
+Behavior 和组件键必须使用完整命名空间：
+
+```yaml
+behaviors:
+  example:charge:
+    max: 100
+
+components:
+  symphony:attributes:
+    physical_damage:
+      operation: add
+      value: 36
+```
+
+Behavior 也可以只写键列表，例如 `behaviors: [example:charge]`；mapping 写法会把子节点作为该 Behavior 的 `options`。
+
+Overture 只保存结构并调用对应附属插件校验。组件未注册、重复键、根节点不是 mapping、codec 校验失败或数据超限时，候选物品快照不会提交，旧快照继续可用。
+
+组件定义写入 `overture.data.<namespace>.definition.<key>`；重建会保留同命名空间下的 `instance` 数据。注册方式见[扩展注册](/docs/overture/14_extensions)。

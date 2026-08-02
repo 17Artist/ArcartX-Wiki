@@ -1,0 +1,92 @@
+---
+title: 主配置
+description: config.yml、language.yml、rarity.yml 与 drop-labels.yml 配置参考
+---
+
+`config.yml` 位于 `plugins/Overture/`：
+
+```yaml
+update:
+  check-on-join: true
+  check-on-pickup: true
+  check-on-switch: true
+  # tick，20 tick = 1 秒
+  async-tick-period: 100
+
+durability:
+  display: "&8[ &f%symbol% &8]"
+  display-symbol:
+    full: "◆"
+    empty: "◇"
+  scale: 20
+
+rarity:
+  enabled: true
+
+drop-label:
+  enabled: true
+  update-interval: 2
+  default-style: "default"
+```
+
+## 更新检查
+
+| 时机   | 配置项                 | 行为               |
+|------|---------------------|------------------|
+| 玩家加入 | `check-on-join`     | 延迟后检查背包          |
+| 拾取物品 | `check-on-pickup`   | 检查拾取的物品          |
+| 切换手持 | `check-on-switch`   | 检查新的手持物品         |
+| 切换世界 | `check-on-join`     | 跟随加入检查开关         |
+| 定时检查 | `async-tick-period` | 在主线程周期检查所有在线玩家背包 |
+
+`async-tick-period` 最低按 1 tick 处理。玩家较多时不要设置得过低，以免频繁遍历背包占用主线程。
+
+## 语言文件
+
+`language.yml` 管理玩家消息、命令描述、菜单文字和 Overture 自身的运行日志。文本支持 `&` 颜色代码，占位符使用 `%name%` 格式。
+
+`/ot reload` 会重新读取语言文件。聊天消息、菜单文字和运行日志立即生效；命令描述在插件启用时注册，修改后需要重启服务端才能更新。
+
+
+## 品质颜色
+
+`rarity.yml` 的顶级键对应 `meta.rarity`，`color` 使用 Bukkit `ChatColor` 名称：
+
+```yaml
+RARE:
+  color: AQUA
+LEGENDARY:
+  color: GOLD
+```
+
+`config.yml` 中的 `rarity.enabled` 控制品质发光。关闭后执行 `/ot reload` 会清除现有 Overture 掉落物的发光和 Team；重新开启会扫描现有掉落物并按 `rarity.yml` 恢复。无法识别的颜色会按白色处理。
+
+## 掉落标签
+
+`drop-labels.yml` 定义地面掉落物的名称标签：
+
+```yaml
+default:
+  height: 0.8
+  format: "%name%%amount%"
+  amount-format: " &fx%amount%"
+  text-display:
+    billboard: CENTER
+    shadow: true
+    background:
+      mode: TRANSPARENT
+      argb: "0,0,0,0"
+  armor-stand:
+    small: true
+    marker: true
+```
+
+物品可用 `drop-label: false` 关闭标签，或用 `drop-label: style_id` 选择样式；也可以写成：
+
+```yaml
+drop-label:
+  enabled: true
+  style: legendary
+```
+
+`background.mode` 支持 `VANILLA`、`TRANSPARENT` 与 `CUSTOM`；只有 `CUSTOM` 会读取 `argb`。标签跟随任务在主线程运行，`update-interval` 最低按 1 tick 处理；执行 `/ot reload` 会重建现有标签并立即使用新的样式、开关和周期。

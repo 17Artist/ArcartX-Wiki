@@ -1,0 +1,81 @@
+---
+title: 数据映射
+description: 将物品动态数据转换为名称与 Lore 变量
+---
+
+`data-mapper` 会在 Display 构建时读取 `overture.data`，把实例数据转换为单行字符串变量。映射结果会同时加入名称变量和 Lore 变量，但不会自动显示；必须在对应 Display 中显式引用目标变量。
+
+## 从数据到展示的完整示例
+
+物品定义：
+
+```yaml
+my_item:
+  display: my_display
+  icon: DIAMOND_SWORD
+  name:
+    item_name: "&b训练长剑"
+  data:
+    damage: 7
+    durability: 100
+    durability_current: 68
+    custom:
+      level: 3
+  data-mapper:
+    damage_display: "{damage}"
+    durability_bar: "bar({durability_current}, {durability}, 12)"
+    level_stars: "repeat('★', {custom.level})"
+    level_text: "roman({custom.level})"
+```
+
+Display 定义：
+
+```yaml
+my_display:
+  name: "<item_name> &7Lv.<level_text>"
+  lore:
+    - "&7伤害: &f<damage_display>"
+    - "&7等级: &e<level_stars>"
+    - "&7耐久: <durability_bar>"
+```
+
+`damage_display`、`durability_bar`、`level_stars` 和 `level_text` 是 `data-mapper` 左侧定义的目标变量。它们与 `name.item_name` 一样，只有被 `<变量名>` 引用时才进入最终名称或 Lore。Mapper 只产生单个字符串，不使用 `<变量名...>` 扩展多行；多行动态内容应使用 RenderEntry（见[扩展注册](/docs/overture/14_extensions)）。
+
+## 求值语法
+
+| 写法                     | 行为                                   |
+|------------------------|--------------------------------------|
+| `{key}`                | 直接读取数据并转为字符串；嵌套路径使用 `{custom.level}` |
+| `function(arg1, arg2)` | 调用内置函数或完整 namespaced 第三方函数           |
+| 普通文本中包含 `{key}`        | 先替换数据；没有表达式运算符时作为普通文本返回              |
+| 含运算符的表达式               | 绑定临时局部变量后交给 Aria 求值；失败时退回普通文本替换结果    |
+
+函数参数支持：
+
+- `{path}`：传入数据的原始 Number/String 等值；缺失时传入数字 `0`。
+- `'text'` 或 `"text"`：传入去除外层引号的字符串。
+- 数字字面量：以 `Double` 传入。
+- 其他裸文本：以字符串传入。
+
+当前函数参数按逗号直接切分，不支持嵌套函数、转义逗号或包含逗号的整体字符串参数。需要复杂解析时，把逻辑放进一个第三方 MapperHandler（需自行注册，见[扩展注册](/docs/overture/14_extensions)），配置只传简单参数。
+
+## 内置函数
+
+这些函数专用于高频展示映射，不是 Aria 的注册函数，不要混淆。
+
+| 函数                          | 说明                          |
+|-----------------------------|-----------------------------|
+| `bar(current, max, scale?)` | 生成进度条，默认 20 格，范围限制为 0–100 格 |
+| `repeat(text, count)`       | 重复文本，最多 100 次               |
+| `format(pattern, args...)`  | 使用 `String.format` 格式化      |
+| `color(value, min, max)`    | 按比例返回红、黄、浅绿或深绿颜色            |
+| `percent(current, max)`     | 生成一位小数百分比文本                 |
+| `roman(number)`             | 将 1–3999 转为罗马数字，超出范围返回原数字   |
+| `fixed(value, decimals?)`   | 固定小数位，默认 1 位，小数位限制为 0–10    |
+| `condition(cond, yes, no)`  | 根据布尔值、非零数字或非空字符串选择结果        |
+
+## 第三方 Mapper 函数
+
+第三方函数必须以 `namespace:key(...)` 调用，裸函数名只会查找 Overture 内置函数。注册方法、完整 Kotlin 示例、参数类型和线程边界见[扩展注册](/docs/overture/14_extensions)。
+
+第三方 `MapperHandler` 只有 `List<Any>` 参数，没有玩家、物品或 Display 上下文，并在当前展示构建线程执行。实现必须是快速、线程安全且不抛异常的纯函数。需要 `player`、`itemStack`、实例数据视图或多行返回值时，应改用 RenderEntry。

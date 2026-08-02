@@ -1,0 +1,667 @@
+---
+title: 扩展注册
+description: 注册 RenderEntry、Trigger、Behavior、Provider、Meta、Mapper 与组件 codec
+---
+
+所有扩展都由 Bukkit `Plugin` 所有，使用 `NamespacedKey` 标识，并返回 `RegistrationHandle`。
+
+以下短示例中的 `example:*` 假定附属插件在 `plugin.yml` 中声明 `name: Example`。`NamespacedKey(this, "...")` 会使用小写插件名作为 namespace，必须与物品 YAML、实例数据路径和 Display 占位符保持一致。
+
+## 先选对扩展点
+
+这些扩展解决的问题并不相同。不要为了“能写数据”就实现 Meta，也不要为了“一行动态文本”就创建组件：
+
+| 需求                              | 应选择                                 | 回调能拿到什么                                        | 会不会修改实例数据                         |
+|---------------------------------|-------------------------------------|------------------------------------------------|-----------------------------------|
+| 根据玩家、当前物品生成名称或多行 Lore           | RenderEntry                         | `player`、只读物品 clone、`displayId`、`ItemDataView` | 否                                 |
+| 把第三方 Bukkit 事件接入 `event` 动作     | Trigger + `dispatchExternalTrigger` | 调用方提供玩家、物品、事件与变量                               | 动作执行后可能修改，调用方负责写回                 |
+| 用 Java/Kotlin 处理物品触发器           | Behavior                            | 触发器、玩家、只读物品 clone、可变数据、事件、配置 options           | 可以，通过 `MutableItemData`           |
+| 校验并持久化第三方配置/实例状态                | ItemComponentCodec                  | 不可变 `ItemDataNode` 配置树                         | codec 只编译 definition；实例用数据 API 修改 |
+| 从 YAML 之外的来源提供完整物品定义            | Provider                            | 无运行上下文；返回完整 `Map<String, OvertureItem>`        | 替换候选定义快照                          |
+| 写原版 ItemMeta、PDC 或根 NBT，并负责移除旧值 | Meta                                | 构建玩家、ItemTag、ItemMeta、构建信号                     | 可以，但属于低层生命周期                      |
+| 把若干数据参数快速映射成一个字符串               | Mapper                              | `List<Any>` 参数                                 | 否                                 |
+
+Provider、Meta 与 Mapper 会暴露 `core.*`、Bukkit `ConfigurationSection` 或底层 ItemTag 类型，是同版本耦合的低层扩展。普通持久数据优先使用组件，交互逻辑优先使用 Behavior，动态文本优先使用 RenderEntry。
+
+## 注册时机与重载
+
+Overture 在自身 `onEnable` 阶段提交首轮物品快照。声明 `depend: [Overture]` 的附属插件会先执行 `onLoad()`，因此需要参与首轮快照的扩展必须在 `onLoad()` 注册。
+
+| 扩展                 | 建议注册阶段        | 运行期新增后何时可用                  |
+|--------------------|---------------|-----------------------------|
+| Provider           | `onLoad()`    | 调用 `reloadWithReport()` 成功后 |
+| Meta factory       | `onLoad()`    | 重载成功、物品定义重新创建 Meta 后        |
+| Trigger            | `onLoad()`    | 重载成功、`event` 动作重新解析后        |
+| ItemComponentCodec | `onLoad()`    | 重载成功、组件重新编译后                |
+| RenderEntry        | `onLoad()` 推荐 | 下一次实际渲染；已经缓存的模板需刷新或重载       |
+| Behavior           | `onLoad()` 推荐 | 下一次触发时动态解析，无需为注册本身重载        |
+| Mapper             | `onLoad()` 推荐 | 下一次 Display 重建时动态解析         |
+
+`reloadWithReport()` 只能在主线程调用。注册或注销需要快照的扩展后，必须检查 `report.success`；失败时旧物品、Display 与分组快照继续生效。
+
+## 所有权、优先级与句柄
+
+- 附属插件必须声明 `depend: [Overture]`，不能在 Overture 之前调用 API。
+- 注册键必须由 owner 自己创建，例如 `NamespacedKey(this, "charge")`。
+- 同一个 owner 不能重复注册同一个键；应先关闭旧句柄，再注册替代实现。
+- 同键候选由较高 `priority` 生效；相同优先级无法裁决时抛出 `RegistrationConflictException`。活动候选注销后会回退到下一候选。
+- `RegistrationHandle` 提供 `key`、`owner`、`type`、`isRegistered`。`unregister()` 只在首次成功注销时返回 `true`，`close()` 与其等价。
+- 插件禁用时 Overture 会按 owner 自动移除残留注册，但自动清理不会主动重载已经提交的物品快照。
+
+建议仍然保存并主动关闭句柄：
+
+```kotlin
+private val registrations = mutableListOf<RegistrationHandle>()
+
+override fun onDisable() {
+    registrations.forEach(RegistrationHandle::close)
+    registrations.clear()
+}
+```
+
+RenderEntry、Behavior 和 Mapper 注销后，后续动态查找会立即停止使用它们。Provider、Meta、Trigger 和组件属于快照型扩展；注销句柄后还要重载，相关定义才会从当前快照移除。
+
+Provider 还有第二层资源冲突规则：所有活动 Provider 按较小优先级先加载，但同一物品 ID 最终由较高优先级来源生效；相同优先级提供同一 ID 会令整个候选重载失败并回滚。
+
+## 诊断入口
+
+- `/ot inspect registries`：查看 Provider、组件、RenderEntry、Trigger、Behavior、Mapper 与 Meta 的 owner、priority 和 active 状态。
+- `/ot inspect reload`：查看最近一次重载的问题、冲突、来源和回滚结果。
+- 注册冲突会在注册调用点抛异常；Provider/组件候选错误进入 `ReloadReport`；运行期回调错误会按各扩展自己的隔离规则记录日志。
+
+## 自定义名称与 Lore
+
+```kotlin
+private val registrations = mutableListOf<RegistrationHandle>()
+
+override fun onLoad() {
+    registrations += OvertureAPI.registerRenderEntry(
+        this,
+        NamespacedKey(this, "item_desc"),
+        priority = 10
+    ) { context ->
+        listOf(
+            "&7物品: ${context.data.itemId}",
+            "&7玩家: ${context.player?.name ?: "无"}"
+        )
+    }
+}
+```
+
+```yaml
+name: "<example:item_desc>"
+lore:
+  - "<example:item_desc...>"
+```
+
+`RenderEntryRenderer` 接收 `RenderEntryContext`，其中包含 `key`、`player`、`itemStack`、`displayId` 与只读 `data`。名称使用第一行，Lore 展开全部行。同一标签每次渲染只调用一次。回调仅在主线程执行；`itemStack` 与 `data` 都来自 clone，修改不会写回真实物品。
+
+回调异常会被隔离；软预算为 5ms，超时会写入警告和 `/ot inspect` 耗时。返回值最多保留 128 行，每行最多 2048 字符。
+
+## 外部 Trigger 与 Behavior
+
+第三方插件可以注册触发键，并在自己的 Bukkit 监听器中显式转发：
+
+```kotlin
+val criticalHit = NamespacedKey(this, "critical_hit")
+registrations += OvertureAPI.registerTrigger(this, criticalHit)
+
+val result = OvertureAPI.dispatchExternalTrigger(
+    TriggerKey(criticalHit),
+    player,
+    player.inventory.itemInMainHand,
+    originalEvent,
+    mapOf("criticalMultiplier" to 2.0)
+)
+
+if (result.changed) {
+    player.inventory.setItemInMainHand(result.itemStack)
+}
+```
+
+对应物品配置：
+
+```yaml
+event:
+  example:critical_hit: |
+    val.item.damage(1)
+```
+
+dispatch 必须在主线程调用。返回的 `ExternalTriggerResult` 包含 `executed`、`changed`、`itemStack`、`signals` 与可选 `diagnostic`；只有 `changed == true` 时才需要把结果物品写回正确位置。未知触发器、非 Overture 物品或错误线程会直接返回未执行的诊断结果；已知 Trigger 只有在没有执行任何 Behavior 且没有对应 Aria 动作时，才会报告“未配置”。
+
+### Behavior：绑定处理器后仍要过滤触发器
+
+Behavior 是 Aria 之外的类型安全处理器。这里最容易混淆的是：`behaviors` 只把一个处理器及其 `options` 绑定到物品，**不会**声明这个处理器只监听哪一种 Trigger。物品进入任意内建或外部触发链时，Overture 都会依次调用该物品绑定的 Behavior，因此回调的第一步通常应检查 `context.trigger`；无关触发器必须返回 `ItemBehaviorResult.PASS`。
+
+下面的处理器只响应 `overture:on_right_click`。攻击、丢弃、构建、释放或第三方 Trigger 经过同一物品时，不会误增充能：
+
+```kotlin
+val rightClick = requireNotNull(
+    TriggerKey.fromString("overture:on_right_click")
+)
+
+registrations += OvertureAPI.registerBehavior(
+    this,
+    NamespacedKey(this, "charge")
+) { context ->
+    if (context.trigger != rightClick) {
+        ItemBehaviorResult.PASS
+    } else {
+        val charge = (context.data.get("charge") as? ItemDataNode.Integer)?.value ?: 0L
+        val limit = (context.options["max"] as? Number)?.toLong() ?: 100L
+
+        if (charge >= limit) {
+            ItemBehaviorResult.PASS
+        } else {
+            context.data.put("charge", ItemDataNode.Integer(charge + 1))
+            ItemBehaviorResult.CHANGED
+        }
+    }
+}
+```
+
+```yaml
+behaviors:
+  example:charge:
+    max: 100
+```
+
+这段 YAML 只完成两件事：把 `example:charge` 绑定到物品，并把 `max` 作为 `context.options["max"]` 传入。它不等同于“在右键时执行”；真正的右键过滤发生在示例代码的 `context.trigger != rightClick` 分支。
+
+#### Context 字段
+
+| 字段             | 含义与使用边界                                                              |
+|----------------|----------------------------------------------------------------------|
+| `trigger`      | 本次实际进入的 Trigger；内建和第三方 Trigger 都用 `TriggerKey` 比较。这是过滤触发器的依据。        |
+| `player`       | 触发玩家；构建、后台调用等场景可能为 `null`。                                           |
+| `itemId`       | 当前 Overture 物品定义 ID。                                                 |
+| `itemStack`    | 当前物品的只读用途 clone；修改它不会写回。持久化实例数据必须通过 `data`。                          |
+| `data`         | 相对 `overture.data` 的受约束编辑器，支持 `get`、`put`、`remove`。                  |
+| `event`        | 当前 Bukkit Event；构建、释放或无事件调用时可能为 `null`。                              |
+| `variables`    | 物品 `event.data` 与 `dispatchExternalTrigger(..., variables)` 参数的合并结果。 |
+| `options`      | 当前 YAML binding 下的附加字段；上例中为 `max: 100`。                              |
+| `asynchronous` | 当前回调是否不在 Bukkit 主线程。它只是状态标记，不会自动切换线程。                                |
+
+若一个 Behavior 需要处理多个 Trigger，应写成显式 `when (context.trigger)`，并保留 `else -> ItemBehaviorResult.PASS`。不要用“`event != null`”代替 Trigger 判断：多个内建和外部触发器都可能携带 Bukkit Event。
+
+#### 返回值与动作链
+
+| 返回内容                                               | 效果                                                                                             |
+|----------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `ItemBehaviorResult.PASS`                          | 本处理器不产生修改、不取消事件，也不阻断后续处理。适合无关 Trigger 或状态已经满足时返回。                                              |
+| `ItemBehaviorResult.CHANGED`                       | `changed = true` 的简写，加入 `ITEM_CHANGED` 信号，使监听器或外部 dispatch 重建物品。                               |
+| `changed = true`                                   | 与 `CHANGED` 相同地请求重建物品；修改 `data` 后若希望名称、Lore、Meta 或 NBT 反映新值，应返回它。                              |
+| `signals = setOf(ItemBehaviorSignal.ITEM_CHANGED)` | 返回 `DURABILITY_CHANGED`、`ITEM_CHANGED` 或 `DURABILITY_DESTROYED` 等稳定信号；任一信号都会让当前处理链进入后续重建/销毁逻辑。 |
+| `cancelEvent = true`                               | 仅当 `context.event` 实现 Bukkit `Cancellable` 时取消该事件。                                             |
+| `stopPropagation = true`                           | 立即停止剩余 Behavior，并阻止同一 Trigger 对应的后续 Aria 动作。取消事件与停止动作链是两件独立的事。                                 |
+
+Behavior 按物品的绑定顺序执行，并先于该 Trigger 的 Aria 动作。单个回调抛出的异常会被隔离，后续 Behavior 仍可继续；软耗时预算为 5ms，超出后会记录警告和诊断耗时。`asynchronous == true` 时不要访问只允许主线程调用的 Bukkit 世界、实体或背包 API。
+
+内建监听器在收到信号后负责重建并写回正确的手、掉落实体或消费事件物品。第三方通过 `dispatchExternalTrigger` 触发时，Overture 无法知道传入物品来自哪个槽位；调用方必须在 `result.changed == true` 时把 `result.itemStack` 写回自己拥有的位置。仅返回 `PASS` 的 Behavior 仍算已执行过处理器，但不会令 `changed` 变为 `true`。
+
+## Provider：提供完整物品定义
+
+Provider 适合把数据库、远程配置的本地缓存或其他配置系统转换为 Overture 物品定义。它不是“发放物品”的回调，也不是按需查询接口；每次重载都必须返回该来源当前完整的定义快照。
+
+### ItemProvider 契约
+
+| 成员         | Overture 的调用方式                            | 实现要求                                    |
+|------------|-------------------------------------------|-----------------------------------------|
+| `id`       | 写入 `ResourceOrigin.providerId` 和诊断日志      | 使用稳定、可读的来源 ID                           |
+| `priority` | 作为 `registerProvider` 未显式传 priority 时的默认值 | 高优先级在重复物品 ID 冲突中生效                      |
+| `reload()` | 每次候选重载中先调用一次                              | 刷新或切换到已经准备好的完整缓存；抛异常会令候选回滚              |
+| `load()`   | 紧接 `reload()` 调用一次                        | 返回完整 `Map<物品 ID, OvertureItem>`，不能只返回增量 |
+
+`reloadWithReport()` 强制要求主线程，因此 `reload()` 与 `load()` 也在主线程事务中执行。不要在这两个函数里同步访问数据库、HTTP 或执行长时间磁盘扫描。推荐先异步生成不可变缓存，再回到主线程调用 Overture 重载。
+
+下面的 Provider 类型可以直接编译；传入的 `definitions` 必须读取已经准备好的内存快照：
+
+```kotlin
+import org.bukkit.configuration.file.YamlConfiguration
+import priv.seventeen.artist.overture.api.ItemProvider
+import priv.seventeen.artist.overture.core.item.OvertureItem
+
+data class CachedItemDefinition(
+    val id: String,
+    val values: Map<String, Any>,
+    val source: String
+)
+
+class CachedItemProvider(
+    private val definitions: () -> List<CachedItemDefinition>
+) : ItemProvider {
+    override val id: String = "database-cache"
+    override val priority: Int = 100
+
+    private var snapshot: Map<String, OvertureItem> = emptyMap()
+
+    override fun reload() {
+        snapshot = definitions().associate { definition ->
+            val yaml = YamlConfiguration()
+            val section = yaml.createSection("item", definition.values)
+            definition.id to OvertureItem(
+                definition.id,
+                section,
+                definition.source
+            )
+        }
+    }
+
+    override fun load(): Map<String, OvertureItem> = snapshot.toMap()
+}
+```
+
+注册时保存句柄。这里使用 `priority = 100`，因此相同物品 ID 会覆盖内置 YAML Provider 的 `priority = 0`：
+
+```kotlin
+private var cachedDefinitions: List<CachedItemDefinition> = emptyList()
+
+private val databaseProvider = CachedItemProvider { cachedDefinitions }
+
+override fun onLoad() {
+    registrations += OvertureAPI.registerProvider(
+        this,
+        NamespacedKey(this, "database"),
+        databaseProvider,
+        priority = 100
+    )
+}
+```
+
+Provider 返回值还必须满足以下条件：
+
+- Map 的键必须与 `OvertureItem.id` 完全一致，否则候选重载失败。
+- `OvertureItem.source` 应填写数据库记录、文件或其他可定位来源，重载报告会使用它定位问题。
+- Provider 返回的物品仍会经过组件编译、Aria 动作编译、Display 校验和重复 ID 裁决。
+- 任一 Provider 抛异常、任一动作编译失败或任一 ERROR 级校验问题，整次候选快照都会回滚；不会提交一半新物品。
+- 不同 Provider 返回同一物品 ID 时，高优先级来源获胜并产生 WARNING；相同优先级无法裁决，会产生冲突并回滚。
+- 注销 Provider 只移除注册候选；还要成功重载，当前物品快照才会删除该来源的物品。
+
+Provider 直接构造 `core.item.OvertureItem`，属于同版本接口。升级 Overture 后必须重新编译 Provider 附属插件，并重新跑重复 ID、失败回滚和来源诊断测试。
+
+## Meta：参与原版物品元数据生命周期
+
+自定义 Meta 适合设置 Bukkit `ItemMeta`、PDC、属性、附魔或根 NBT，并在配置删除或锁定重建时清理自己写入的状态。如果只需要保存业务数据，请使用组件与 `MutableItemData`；如果只需要显示文本，请使用 RenderEntry。
+
+### MetaFactory 参数
+
+`registerMeta` 的 factory 会收到三个参数：
+
+| 参数        | 标量配置                             | 对象配置                             | 删除旧 Meta 时 |
+|-----------|----------------------------------|----------------------------------|------------|
+| `section` | `null`                           | 当前 Meta 的 `ConfigurationSection` | `null`     |
+| `value`   | 原始标量或列表                          | 当前 section 对象                    | `null`     |
+| `locked`  | 键带 `!!` 或父节点为 `meta!!` 时为 `true` | 同左                               | `false`    |
+
+工厂必须在配置为空时仍能返回一个可执行清理的 Meta。Overture 会在旧物品的 Meta 已从新定义删除时，使用历史 key 调用 `factory.create(null, null, false)`，随后执行 `drop` 和 `dropMeta`。
+
+下面示例把字符串写入附属插件自己的 PDC，并在 Meta 删除时移除：
+
+```kotlin
+import org.bukkit.NamespacedKey
+import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.inventory.meta.ItemMeta
+import org.bukkit.persistence.PersistentDataType
+import priv.seventeen.artist.overture.core.meta.Meta
+
+class MarkerMeta(
+    private val metaId: String,
+    private val storageKey: NamespacedKey,
+    private val marker: String?,
+    override var locked: Boolean
+) : Meta() {
+    override val key: String = metaId
+
+    override fun buildMeta(itemMeta: ItemMeta) {
+        val value = marker?.takeIf(String::isNotBlank) ?: return
+        itemMeta.persistentDataContainer.set(
+            storageKey,
+            PersistentDataType.STRING,
+            value
+        )
+    }
+
+    override fun dropMeta(itemMeta: ItemMeta) {
+        itemMeta.persistentDataContainer.remove(storageKey)
+    }
+}
+```
+
+注册 factory：
+
+```kotlin
+private lateinit var markerMetaKey: NamespacedKey
+private lateinit var markerStorageKey: NamespacedKey
+
+override fun onLoad() {
+    markerMetaKey = NamespacedKey(this, "marker")
+    markerStorageKey = NamespacedKey(this, "marker_value")
+
+    registrations += OvertureAPI.registerMeta(
+        this,
+        markerMetaKey,
+        priority = 0
+    ) { section: ConfigurationSection?, raw: Any?, locked: Boolean ->
+        val configured = section?.getString("value") ?: raw?.toString()
+        MarkerMeta(
+            markerMetaKey.toString(),
+            markerStorageKey,
+            configured,
+            locked
+        )
+    }
+}
+```
+
+物品 YAML 可以使用标量写法：
+
+```yaml
+meta:
+  example:marker: "soulbound"
+```
+
+需要在版本更新时强制清理并重写时，改用带 `!!` 的对象写法；二者不要同时配置：
+
+```yaml
+meta:
+  example:marker!!:
+    value: "soulbound"
+```
+
+### Meta 实例与执行顺序
+
+Factory 在候选物品定义创建时执行，生成的 Meta 挂在 `OvertureItem` 上并由该定义的所有物品构建共享。不要把当前玩家、ItemStack 或单次构建状态保存在 Meta 字段中；实例状态必须写进传入的 ItemTag、ItemMeta、PDC 或稳定数据 API。
+
+一次构建中的顺序为：
+
+1. 对新定义已经删除的历史 Meta 调用 `drop(player, compound, sourceTag)`。
+2. 当前 Meta 按较小 `Meta.priority` 先执行；锁定更新会先调用 `prepareRebuild`，再调用 `build`。
+3. Overture 记录本次 Meta key 历史。
+4. 释放阶段先对已删除 Meta 调用 `dropMeta`。
+5. 当前 Meta 依次调用 `buildMeta(itemMeta, compound)` 与 `buildRelease(itemStack, itemMeta)`；锁定更新会先调用当前 Meta 的 `dropMeta`。
+6. Display 在 Meta 之后写入最终名称与 Lore。
+
+因此，自定义 Meta 如果修改名称或 Lore，结果可能被后续 Display 覆盖；动态展示应改用 RenderEntry。`priority` 只决定 Meta 之间的先后顺序，值越小越先执行。
+
+Meta 还必须遵守这些边界：
+
+- `player` 可能为 `null`，构建也可能发生在异步线程；不得无条件调用世界、实体或背包 API。
+- `compound` 是 Overture 根数据，`sourceTag` 是完整物品根 NBT。写根 NBT 时必须记录自己拥有的键，并在 `prepareRebuild`/`drop` 中精确清理。
+- Factory、build 或 release 阶段异常会记录警告并跳过该 Meta，不会自动令整个物品快照回滚；实现必须自行做输入校验。
+- 注销 Meta factory 前，应先从定义中移除该 Meta 并成功重载，再在 factory 仍注册时主动重建或迁移所有存量物品。Overture 不会在重载时扫描玩家背包；factory 一旦注销，后续旧物品就无法再根据历史 key 创建清理实例。
+- Meta 暴露 Asteroid `ItemTag` 和 Overture `core.meta.Meta`，必须针对目标 Overture/Asteroid 版本编译和实机测试。
+
+## Mapper：注册纯字符串映射函数
+
+Mapper 用于高频、无上下文的纯字符串转换。它在 `data-mapper` 中接收若干参数并返回一个 `String`，结果以左侧目标变量名同时加入名称变量和 Lore 变量。
+
+```kotlin
+import org.bukkit.ChatColor
+import org.bukkit.NamespacedKey
+
+override fun onLoad() {
+    val gradeKey = NamespacedKey(this, "grade")
+
+    registrations += OvertureAPI.registerMapperFunction(
+        this,
+        gradeKey,
+        priority = 0
+    ) { args ->
+        val score = (args.getOrNull(0) as? Number)?.toDouble() ?: 0.0
+        val pass = (args.getOrNull(1) as? Number)?.toDouble() ?: 60.0
+        val excellent = (args.getOrNull(2) as? Number)?.toDouble() ?: 80.0
+
+        when {
+            score >= excellent -> "${ChatColor.GREEN}S"
+            score >= pass -> "${ChatColor.YELLOW}A"
+            else -> "${ChatColor.RED}B"
+        }
+    }
+}
+```
+
+物品定义负责产生变量，Display 必须显式引用它；仅定义 `data-mapper` 不会自动出现文字：
+
+```yaml
+scored_item:
+  display: scored_display
+  icon: PAPER
+  name:
+    item_name: "&f评分卡"
+  data:
+    score: 92
+  data-mapper:
+    grade_text: "example:grade({score}, 60, 80)"
+```
+
+```yaml
+scored_display:
+  name: "<item_name> &7[<grade_text>]"
+  lore:
+    - "&7当前评级: <grade_text>"
+```
+
+参数解析规则固定如下：
+
+| 写法 | 传给 MapperHandler 的类型 |
+|---|---|
+| `{score}` | 扁平数据中的原始值；不存在时为数字 `0` |
+| `12`、`12.5` | `Double` |
+| `'text'`、`"text"` | `String`，去掉最外层引号 |
+| `plain` | 原样 `String` |
+
+Mapper 函数名必须写完整的 `namespace:key(...)`；裸名称只会查找 Overture 内置函数。当前参数解析按逗号直接切分，不支持嵌套函数、转义逗号或在带逗号字符串中保持整体。
+
+Mapper 与 RenderEntry 的边界很明确：
+
+- Mapper 没有 `player`、`itemStack`、`displayId` 或可变数据上下文；需要这些对象时使用 RenderEntry。
+- Mapper 在触发展示构建的当前线程执行，可能是异步线程；handler 应当无副作用、线程安全且快速，不要调用 Bukkit 世界/实体 API。
+- Mapper 只返回单个字符串；需要多行 Lore 时使用 RenderEntry 的 `List<String>`。
+- `MapperHandler` 异常目前不会像 Behavior/RenderEntry 一样被独立隔离，可能中断本次 Display 构建。必须防御参数类型和范围，不能向外抛异常。
+- 注销 Mapper 后下一次动态查找立即失效；已写在物品上的旧名称/Lore 要等物品再次重建才会变化。
+
+## 可校验组件
+
+组件 codec 把第三方 YAML 编译为稳定、不可变的 `ItemDataNode`，适合保存可校验的定义参数和后续实例状态。它不会向附属插件暴露 Asteroid NBT 或 Bukkit `ConfigurationSection`。
+
+物品配置：
+
+```yaml
+components:
+  example:charge:
+    max: 100
+```
+
+每个使用该组件的候选物品都会调用一次 `decode`。Context 字段含义如下：
+
+| 字段             | 含义                                     |
+|----------------|----------------------------------------|
+| `componentKey` | 当前完整 key，例如 `example:charge`           |
+| `itemId`       | 正在编译的 Overture 物品 ID                   |
+| `source`       | YAML 子树转换后的不可变 `ItemDataNode.Compound` |
+| `sourcePath`   | 可用于诊断的原始配置路径                           |
+
+下面的 codec 校验必填 `max`，规范化输出，并在数值较大时返回非阻塞 WARNING：
+
+```kotlin
+val chargeKey = NamespacedKey(this, "charge")
+
+registrations += OvertureAPI.registerItemComponent(
+    this,
+    chargeKey,
+    object : ItemComponentCodec {
+        override val schemaVersion: Int = 1
+
+        override fun decode(context: ComponentDecodeContext): ComponentDecodeResult {
+            val max = (context.source["max"] as? ItemDataNode.Integer)?.value
+                ?: return ComponentDecodeResult.Failure(
+                    listOf(ComponentIssue("max", "必须填写整数 max"))
+                )
+
+            if (max !in 1L..1_000_000L) {
+                return ComponentDecodeResult.Failure(
+                    listOf(ComponentIssue("max", "必须在 1..1000000 之间"))
+                )
+            }
+
+            val warnings = if (max > 10_000L) {
+                listOf(ComponentIssue("max", "数值较大，请确认业务上限"))
+            } else {
+                emptyList()
+            }
+
+            return ComponentDecodeResult.Success(
+                ItemDataNode.Compound(
+                    mapOf("max" to ItemDataNode.Integer(max))
+                ),
+                warnings
+            )
+        }
+    }
+)
+```
+
+成功结果会存入：
+
+```text
+overture.data.example.schema
+overture.data.example.definition.charge
+overture.data.example.instance
+```
+
+`definition.charge` 是 codec 返回的不可变定义；`instance` 留给 Behavior 或 `mutateItem` 保存每个物品自己的运行状态。`ItemDataView.component(chargeKey)` 直接返回 `definition.charge`，`namespace("example")` 则返回整个 namespace 快照。
+
+组件编译具有事务语义：
+
+- 同一 namespace 下的所有活动 codec 必须使用相同的正整数 `schemaVersion`。
+- `Success.warnings` 会进入重载报告，但不阻止提交。
+- `Failure`、codec 抛异常、schema 冲突或数据越界都会生成 ERROR，并令整个候选快照回滚。
+- `ComponentIssue.path` 相对 `sourcePath`；应尽量指向具体字段，而不是只返回笼统错误。
+- codec 在重载事务中执行，应当是确定性纯函数，不能修改外部状态或执行数据库/网络请求。
+
+组件数据最多允许 32 层、16,384 个节点、32,767 字符的字符串和 65,536 项列表；列表写入 NBT 前必须同构，小数必须是有限值。注册或注销 codec 后必须重载，已提交的定义才会变化。
+
+## 读取与修改组件数据
+
+```kotlin
+val view = OvertureAPI.readItemData(itemStack)
+val definition = view.component(chargeKey)
+
+val result = OvertureAPI.mutateItem(itemStack, player) { data ->
+    data.put(
+        "example.instance.level",
+        ItemDataNode.Integer(5)
+    )
+}
+
+if (result is ItemMutationResult.Success) {
+    player.inventory.setItemInMainHand(result.itemStack)
+}
+```
+
+路径相对 `overture.data`。`mutateItem` 在 clone 上修改并按当前定义重建；成功结果必须由调用方写回，失败时原物品保持不变。
+
+## 完整最小闭环
+
+下面的附属插件同时注册组件、展示条目和 Behavior；所有实例数据都通过稳定 API 读写：
+
+```kotlin
+package example
+
+import org.bukkit.NamespacedKey
+import org.bukkit.plugin.java.JavaPlugin
+import priv.seventeen.artist.overture.api.OvertureAPI
+import priv.seventeen.artist.overture.api.action.TriggerKey
+import priv.seventeen.artist.overture.api.behavior.ItemBehaviorResult
+import priv.seventeen.artist.overture.api.component.ComponentDecodeContext
+import priv.seventeen.artist.overture.api.component.ComponentDecodeResult
+import priv.seventeen.artist.overture.api.component.ItemComponentCodec
+import priv.seventeen.artist.overture.api.data.ItemDataNode
+import priv.seventeen.artist.overture.api.registry.RegistrationHandle
+
+class ChargeExtension : JavaPlugin() {
+    private val registrations = mutableListOf<RegistrationHandle>()
+
+    override fun onLoad() {
+        val componentKey = NamespacedKey(this, "charge")
+        val renderKey = NamespacedKey(this, "charge_text")
+        val behaviorKey = NamespacedKey(this, "charge_tick")
+        val rightClick = requireNotNull(TriggerKey.fromString("overture:on_right_click"))
+
+        registrations += OvertureAPI.registerItemComponent(
+            this,
+            componentKey,
+            object : ItemComponentCodec {
+                override val schemaVersion = 1
+
+                override fun decode(context: ComponentDecodeContext): ComponentDecodeResult =
+                    ComponentDecodeResult.Success(context.source)
+            }
+        )
+
+        registrations += OvertureAPI.registerRenderEntry(this, renderKey) { context ->
+            val namespace = context.data.namespace("chargeextension")
+            val instance = namespace?.values?.get("instance") as? ItemDataNode.Compound
+            val charge = (instance?.values?.get("charge") as? ItemDataNode.Integer)?.value ?: 0L
+            listOf("&b充能: &f" + charge)
+        }
+
+        registrations += OvertureAPI.registerBehavior(this, behaviorKey) { context ->
+            if (context.trigger != rightClick) {
+                ItemBehaviorResult.PASS
+            } else {
+                val charge = (context.data.get("chargeextension.instance.charge") as? ItemDataNode.Integer)
+                    ?.value ?: 0L
+                val limit = (context.options["max"] as? Number)?.toLong() ?: 100L
+                context.data.put(
+                    "chargeextension.instance.charge",
+                    ItemDataNode.Integer((charge + 1).coerceAtMost(limit))
+                )
+                ItemBehaviorResult.CHANGED
+            }
+        }
+    }
+
+    override fun onDisable() {
+        registrations.forEach(RegistrationHandle::close)
+        registrations.clear()
+    }
+}
+```
+
+对应 `plugin.yml`：
+
+```yaml
+name: ChargeExtension
+main: example.ChargeExtension
+version: 1.0.0
+api-version: '1.18'
+depend: [Overture]
+```
+
+物品定义：
+
+```yaml
+charged_stone:
+  display: charged_display
+  icon: AMETHYST_SHARD
+  name:
+    item_name: "&d充能结晶"
+  components:
+    chargeextension:charge:
+      max: 100
+  behaviors:
+    chargeextension:charge_tick:
+      max: 100
+```
+
+展示定义：
+
+```yaml
+charged_display:
+  name: "<item_name>"
+  lore:
+    - "<chargeextension:charge_text...>"
+```
+
+内置交互会把物品送入相应触发器处理链；上例由 Behavior 显式筛选 `overture:on_right_click`，不需要额外配置空 Aria 脚本。成功修改会由 Overture 在同一处理链中重建并写回交互物品。若由附属插件主动调用 `mutateItem`，则仍由调用方负责写回返回的 `ItemStack`。

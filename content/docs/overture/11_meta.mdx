@@ -1,0 +1,127 @@
+---
+title: Meta 系统
+description: Overture 内置物品 Meta 配置参考
+---
+
+Meta 写在物品的 `meta` 节点中，并在候选物品快照创建时解析。内置 Meta 使用裸键名；第三方 Meta 必须使用完整 `namespace:key`。
+
+## 锁定、重建与清理
+
+单个键加 `!!`，或把根节点写成 `meta!!`，会把对应 Meta 标记为锁定。`!!` 的含义只针对“发现物品版本已过期（即配置文件变更）”的更新检查：
+
+- 普通新物品构建和交互后的主动重建会应用当前定义中的全部 Meta。
+- 版本更新检查只强制重写锁定 Meta；未锁定的现有原版属性会保留。
+- 锁定 Meta 会先执行自己的清理阶段，再应用新配置，避免属性、附魔或 PDC 重复叠加。
+- 新定义删除某个 Meta 后，Overture 会根据物品保存的 Meta 历史调用该类型的 NBT 与 ItemMeta 清理函数。
+
+第三方 Meta factory 必须在附属插件 `onLoad()` 注册，并且在配置已经删除时仍能根据空参数创建清理实例。完整生命周期见[扩展注册：Meta](/docs/overture/14_extensions)。
+
+## 内置 Meta
+
+| 键                   | 作用                         |
+|---------------------|----------------------------|
+| `attribute`         | 原版属性修饰符                    |
+| `enchantment`       | 原版附魔                       |
+| `unique`            | 记录 UUID、创建玩家和时间            |
+| `durability`        | 自定义耐久、残骸与耐久条               |
+| `unbreakable`       | 设置不可破坏                     |
+| `custom_model_data` | 自定义模型数据                    |
+| `item_flag`         | 隐藏属性、附魔等 ItemFlag          |
+| `color`             | 皮革装备 RGB/HEX 颜色            |
+| `skull`             | 玩家名、纹理 URL 或 Base64 头颅皮肤   |
+| `potion`            | 药水效果                       |
+| `native`            | 向物品 NBT 根节点写入原生数据          |
+| `shiny`             | 无需可见附魔的发光效果                |
+| `rarity`            | 使用 `rarity.yml` 的品质与掉落发光颜色 |
+| `drop`              | ArcartX 客户端掉落模型路径          |
+
+## 属性
+
+```yaml
+meta:
+  attribute:
+    mainhand:
+      generic_attack_damage: "+7"
+      generic_attack_speed: "+10%"
+    offhand:
+      generic_armor: "+2~5"
+```
+
+槽位支持 `mainhand`、`offhand`、`head`、`chest`、`legs`、`feet`、`any`；也接受 `main_hand`、`off_hand`、`helmet`、`chestplate`、`leggings`、`boots` 与 `all` 别名。
+无法识别的槽位会被跳过，并在控制台记录警告。
+
+| 格式     | 运算        |
+|--------|-----------|
+| `+7`   | 固定数值加成    |
+| `+10%` | 比例加成      |
+| `+2~5` | 在区间内随机固定值 |
+
+## 附魔与标志
+
+```yaml
+meta:
+  enchantment:
+    sharpness: 3
+    unbreaking: 2
+  item_flag:
+    - HIDE_ATTRIBUTES
+    - HIDE_ENCHANTS
+```
+
+附魔键使用小写 Minecraft 命名空间名称。
+
+## 自定义耐久
+
+```yaml
+meta:
+  durability:
+    max: 100
+    remains: STICK
+    synchronous: true
+    display: "&8[ &f%symbol% &8]"
+    display-symbol:
+      full: "◆"
+      empty: "◇"
+```
+
+耐久耗尽后会阻止物品交互；配置 `remains` 时变为残骸，否则移除物品。Display 可使用 `durability`、`durability_current` 和 `durability_max`。
+
+`synchronous: true` 会按 `durability_current / durability` 的比例同步原版物品耐久条；设为 `false` 只停止修改 Bukkit `Damageable.damage`，自定义耐久数据、Lore 变量、损坏与残骸逻辑仍然生效。
+
+## 其他示例
+
+```yaml
+meta:
+  unique: true
+  unbreakable: true
+  custom_model_data: 10001
+  color: "#FF8000"
+  shiny: true
+  rarity: LEGENDARY
+  drop: "weapons/legendary_blade"
+```
+
+头颅、药水与原生 NBT 的常用格式：
+
+```yaml
+meta:
+  skull: "player_name" # 也可填写 http(s) 纹理 URL 或 eyJ... Base64
+  potion:
+    - "SPEED,100,1" # 类型,持续 tick,amplifier；0 表示 I 级
+  native:
+    CustomTag: "hello"
+    nested:
+      key: 42
+```
+
+`native` 直接写物品根 NBT，同名键会覆盖已有值；Meta 被移除时也会按记录删除这些键。不要写入 `overture`、`display`、`AttributeModifiers`、附魔或其他插件拥有的根键，除非已经确认双方的所有权与清理规则。
+
+`shiny` 在 1.20.4 及以下通过隐藏的 `unbreaking I` 兼容实现，并先于显式附魔应用；1.20.5 及以上使用原生 glint 组件。
+
+`drop` 只在检测到 ArcartX 服务端 API 时写入根 NBT；玩家还必须安装协议匹配的 ArcartX 客户端，并加载包含该模型路径的资源，才能看到掉落模型。
+
+## 何时实现自定义 Meta
+
+只有在需要进入 ItemTag/ItemMeta/PDC 生命周期，并能同时定义写入与清理规则时才实现自定义 Meta。业务字段、组件定义和每件物品的实例状态应使用 ItemComponentCodec 与 `MutableItemData`；玩家相关名称/Lore 应使用 RenderEntry。
+
+Meta 实例由物品定义共享，不能保存单次构建中的玩家或 ItemStack。Display 又会在 Meta 之后写入最终名称与 Lore，因此自定义 Meta 不适合承担展示变量。注册 factory、可编译 PDC 示例、六阶段执行顺序和注销迁移要求见[扩展注册](/docs/overture/14_extensions)。

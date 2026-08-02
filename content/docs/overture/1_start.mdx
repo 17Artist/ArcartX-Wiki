@@ -1,0 +1,54 @@
+---
+title: 说明
+description: Overture 自定义动态物品库简介与核心概念
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 说明
+
+- Overture 是一款面向 Spigot/Paper 的**自定义物品库插件**。其初始灵感来自[Zaphkiel](https://github.com/TabooLib/zaphkiel)。
+- Overture的设计理念是模块化集成 + 程序化物品，你可以通过 YAML 定义物品、展示模板、动态数据与事件动作，并让已经发放的物品在配置变化后自动同步。
+
+- 开源地址：[17Artist/Overture](https://github.com/17Artist/Overture)
+- 开源协议：[Apache-2.0](https://github.com/17Artist/Overture/blob/main/LICENSE)
+
+---
+
+## 核心能力
+
+| 能力       | 说明                                     |
+|----------|----------------------------------------|
+| **物品定义** | 用 YAML 配置材质、名称、Lore、数据、Meta 和动作        |
+| **版本更新** | 配置变化后自动更新玩家已有物品，并按 `!!` 锁定规则决定覆盖范围     |
+| **展示模板** | 名称与 Lore 独立复用，支持变量、列表展开和条件展示           |
+| **动态行为** | 使用 Aria 脚本、事件模型或第三方 Behavior 处理物品交互    |
+| **开发接口** | 提供生成、序列化、组件数据、扩展注册和 Bukkit 事件 API      |
+
+<Callout type="info">
+Overture 负责物品的定义、数据和构建流程。第三方业务规则可由对应附属插件通过组件 API 提供。
+</Callout>
+
+---
+
+## 重要概念
+
+| 概念             | 作用                                                     |
+|----------------|--------------------------------------------------------|
+| **物品定义**       | `items/` 中以物品 ID 为顶级键的 YAML 配置                         |
+| **Display**    | `displays/` 中可复用的名称和 Lore 模板                           |
+| **ItemStream** | Overture 处理物品数据、信号和构建流程的运行时对象，仅在当前 Aria 调用或生命周期事件回调内有效 |
+| **版本签名**       | 根据配置生成的物品版本；配置变化后触发更新检查                                |
+| **`!!` 锁定**    | 指定某个字段在版本更新时必须用新配置覆盖                                   |
+
+## 配置文件
+
+| 路径                         | 作用                            |
+|----------------------------|-------------------------------|
+| `config.yml`               | 更新检查、耐久条、命令权限、品质和掉落标签开关       |
+| `language.yml`             | 玩家消息、命令描述、菜单文字和 Overture 运行日志 |
+| `items/**/*.{yml,yaml}`    | 物品与事件模型定义                     |
+| `items/**/__group__.yml`   | 分组名称、图标、描述与顺序                 |
+| `displays/**/*.{yml,yaml}` | 名称和 Lore 展示模板                 |
+| `rarity.yml`               | 品质 ID 与发光颜色                   |
+| `drop-labels.yml`          | 地面掉落物标签样式                     |

@@ -1,0 +1,57 @@
+---
+title: 展示方案
+description: 配置可复用的名称、Lore 与条件展示模板
+---
+
+展示方案位于 `displays/` 目录，用于把物品变量渲染为名称和 Lore。
+
+## 普通展示
+
+```yaml
+weapon_display:
+  name: "<item_name> <item_level>"
+  lore:
+    - "<item_type>"
+    - ""
+    - "<item_desc...>"
+    - ""
+    - "&7攻击力: &f<damage_display>"
+```
+
+| 语法         | 行为                |
+|------------|-------------------|
+| `<var>`    | 读取单个值；列表只取第一项     |
+| `<var...>` | 在 Lore 中按返回顺序展开多行 |
+
+展开变量为空列表时，模板所在行会被移除，不会留下空白占位。
+
+## 变量来源
+
+1. 物品的 `name` 和 `lore` 节点
+2. `data-mapper` 结果
+3. 耐久系统注入的 `durability`、`durability_current`、`durability_max`
+4. `ItemReleaseEvent.Display` 监听器注入的变量
+5. 第三方注册的 `<namespace:key>` RenderEntry
+
+## 条件展示
+
+```yaml
+weapon_display_smart:
+  conditions:
+    - condition: "val.item.durability() <= 10"
+      display: weapon_display_broken
+  default: weapon_display
+```
+
+条件按顺序判断，第一个返回 `true` 的展示方案生效；都不满足时使用 `default`。
+
+## 第三方展示条目
+
+```yaml
+name: "<example:item_desc>"
+lore:
+  - "<example:item_desc...>"
+```
+
+名称取回调结果的第一行，Lore 展开全部行。同一个标签在一次渲染中只执行一次回调；第三方 RenderEntry 只在主线程执行。注册方式见[扩展注册](/docs/overture/14_extensions)。
+

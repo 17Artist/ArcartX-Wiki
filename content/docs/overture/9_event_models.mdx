@@ -1,0 +1,30 @@
+---
+title: 事件模型
+description: 复用多个物品的动作配置
+---
+
+事件模型允许多个物品复用相同动作。模型键以 `$` 结尾，引用时去掉 `$`。
+
+```yaml
+base_weapon$:
+  event:
+    on_drop!!: |
+      val.item.data('model_action', 1)
+    on_pick: |
+      val.item.data('model_action', 1)
+
+diamond_sword:
+  display: weapon_display
+  icon: DIAMOND_SWORD
+  event:
+    from: [base_weapon]
+    on_right_click: |
+      val.item.damage(1)
+```
+
+## 合并规则
+
+1. `event.from` 必须使用 YAML 列表；单个字符串或逗号分隔字符串不会被解析为模型列表。
+2. 多个模型出现同一动作时，`from` 列表中靠后的模型覆盖前面的模型。
+3. 物品自身的动作优先级最高。
+4. 模型不会注册为可领取物品，也不会显示在 `/ot list` 菜单中。

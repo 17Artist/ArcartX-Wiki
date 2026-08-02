@@ -1,0 +1,100 @@
+---
+title: 安装与快速开始
+description: 安装 Overture、认识目录结构并创建第一个物品
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## 环境要求
+
+- Java 17
+- Bukkit API 1.18+
+
+
+## 安装
+
+<Steps>
+<Step>
+### 放入插件
+
+从 Overture 发布页取得 JAR，放入服务端的 `plugins/` 目录。
+</Step>
+
+<Step>
+### 完整重启
+
+启动或重启服务端，确认控制台没有 Overture、Aria 或 Asteroid 加载错误。
+</Step>
+
+<Step>
+### 检查资源
+
+确认 `plugins/Overture/` 已生成配置、物品示例和展示模板。已有同路径文件不会被覆盖。
+</Step>
+</Steps>
+
+## 默认目录
+
+```text
+plugins/Overture/
+├── config.yml
+├── language.yml
+├── rarity.yml
+├── drop-labels.yml
+├── items/
+│   ├── example_items.yml
+│   ├── weapons/
+│   │   ├── __group__.yml
+│   │   └── combat_examples.yml
+│   └── utility/
+│       ├── __group__.yml
+│       └── utility_examples.yml
+└── displays/
+    ├── example_display.yml
+    └── example_advanced.yml
+```
+
+- `items/` 和 `displays/` 会递归扫描 `.yml` 与 `.yaml` 文件。
+- `items/` 中以 `__` 开头的文件名和顶层键名会被跳过；`displays/` 不使用这条保留规则。
+- 以 `$` 结尾的物品键会注册为事件模型，不会成为可领取物品。
+
+## 创建第一个物品
+
+在 `items/example.yml` 中写入：
+
+```yaml
+my_sword:
+  display: simple_display
+  icon: DIAMOND_SWORD
+  name:
+    item_name: "&b我的第一把剑"
+  lore:
+    item_type: "&9武器"
+    item_desc:
+      - "&f这是一把自定义剑"
+  meta:
+    shiny: true
+```
+
+在 `displays/simple.yml` 中写入：
+
+```yaml
+simple_display:
+  name: "<item_name>"
+  lore:
+    - "<item_type>"
+    - ""
+    - "<item_desc...>"
+```
+
+执行：
+
+```text
+/ot reload
+/ot get my_sword
+```
+
+`/ot reload` 与其他 Overture 命令都固定仅限 OP；`/ot get` 还必须由游戏内 OP 玩家执行。
+
+重载失败时旧物品快照会继续生效，可用 `/ot inspect reload` 查看错误。

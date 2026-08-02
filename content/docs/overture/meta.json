@@ -1,20 +1,37 @@
 {
     "title": "Overture — 序曲",
-    "icon": "logo/overture-logo.svg",
+    "icon": "logo/overture-logo.png",
     "tags": [
-        { "label": "开源",     "color": "#22C55E" },
+        { "label": "开源", "color": "#22C55E" },
         { "label": "免费", "color": "#2DD4BF" },
-        { "label": "RPG",  "color": "#FDE047" },
-        { "label": "API",  "color": "#8B5CF6" }
+        { "label": "RPG", "color": "#FDE047" },
+        { "label": "API", "color": "#8B5CF6" }
     ],
     "root": true,
     "color": "#58A6FF",
-    "entry": "overture",
-    "tagline": "自定义动态物品库",
+    "entry": "overture/1_start",
+    "tagline": "模块集成/程序化物品库",
     "order": 6,
     "defaultOpen": true,
     "pages": [
-        "---ArcartX-核心教学---",
-        "index"
+        "---开始使用---",
+        "1_start",
+        "2_installation",
+        "---核心配置---",
+        "3_configuration",
+        "4_item_config",
+        "5_groups",
+        "6_display",
+        "7_actions",
+        "8_data_mapper",
+        "9_event_models",
+        "10_commands",
+        "---配置参考---",
+        "11_meta",
+        "12_aria",
+        "---开发接口---",
+        "13_api",
+        "14_extensions",
+        "15_events"
     ]
 }
