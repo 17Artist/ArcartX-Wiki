@@ -1,10 +1,15 @@
 import './global.css';
+import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Metadata } from 'next';
 import { getProjects, getProjectThemeMap } from '@/lib/projects';
 import { ProjectThemeBoot } from '@/components/ProjectThemeBoot';
 import { AppRootProvider } from '@/components/AppRootProvider';
 import { SiteFooter } from '@/components/SiteFooter';
+
+const inter = Inter({
+  subsets: ['latin'],
+});
 
 export const metadata: Metadata = {
   title: 'ArcartX —— 文档中心',
@@ -22,7 +27,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }));
 
   return (
-    <html lang="zh-CN" className="dark" suppressHydrationWarning>
+    <html lang="zh-CN" className={`${inter.className} dark`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen pb-9">
         <AppRootProvider scopeProjects={scopeProjects}>
           <ProjectThemeBoot map={projectThemes} />
