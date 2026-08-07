@@ -1,0 +1,189 @@
+---
+title: 宝石、类别槽位与打孔器
+description: 为宝石、基础槽位和打孔道具配置单类别、多类别与通用匹配
+---
+
+镶嵌系统由宝石定义、Overture 物品上的基础槽位、打孔器定义和拆卸道具配置组成。所有匹配都以宝石的单一 `category` 为准；`tags` 仍可供其它规则使用，但不决定能否镶嵌。
+
+## 定义宝石
+
+文件放在 `items/gems/`：
+
+```yaml
+schema: 1
+id: ember_core
+overture-item: ember_core
+name: 灼炎核心
+category: fire
+tags:
+  - offense
+  - fire
+max-level: 3
+levels:
+  1:
+    modifiers:
+      fire_damage:
+        operation: add
+        value: 6
+  2:
+    modifiers:
+      fire_damage:
+        operation: add
+        value: 14
+      fire_amplification:
+        operation: add
+        value: 5%
+  3:
+    modifiers:
+      fire_damage:
+        operation: add
+        value: 25
+      fire_amplification:
+        operation: add
+        value: 10%
+```
+
+`overture-item` 必须与 Overture 物品 ID 完全一致。工坊当前写入 1 级宝石实例；更高等级可由受信附属系统生成，但必须遵守实例 schema。
+
+## 配置基础槽位
+
+```yaml
+components:
+  symphony:sockets:
+    max-extra-slots: 2
+    slots:
+      - accepts:
+          - fire
+        unlock-at-enhancement: 0
+      - accepts:
+          - fire
+          - lightning
+        unlock-at-enhancement: 3
+      - accepts:
+          - '*'
+        unlock-at-enhancement: 8
+```
+
+三种槽位分别表示：
+
+- 只接受 `fire` 宝石；
+- 同时接受 `fire` 或 `lightning` 宝石；
+- 接受任意类别的通用槽位。
+
+`'*'` 表示通配，不应与其它类别混写。强化等级只控制槽位是否可用，不改变槽位类别。
+
+## 定义打孔器
+
+文件放在 `items/socket-tools/`：
+
+单类别打孔器：
+
+```yaml
+schema: 1
+id: defense_drill
+overture-item: defense_socket_drill
+name: 防御打孔器
+accepts:
+  - defense
+```
+
+多类别打孔器：
+
+```yaml
+schema: 1
+id: elemental_drill
+overture-item: elemental_socket_drill
+name: 元素打孔器
+accepts:
+  - fire
+  - ice
+  - lightning
+```
+
+通用打孔器写法：
+
+```yaml
+schema: 1
+id: universal_drill
+overture-item: universal_socket_drill
+name: 通用打孔器
+accepts:
+  - '*'
+```
+
+打孔器不会修改已有基础槽位，而是在 `symphony.instance.extra_sockets` 末尾追加一个立即解锁的实例槽位。附加数量不得超过物品组件的 `max-extra-slots`。
+
+## 配置拆卸道具
+
+`items/socket-removal.yml` 定义宝石拆卸页消耗的道具。原版材料与 Overture 物品二选一：
+
+```yaml
+schema: 1
+tool:
+  material: AMETHYST_SHARD
+  amount: 1
+```
+
+```yaml
+schema: 1
+tool:
+  overture-item: gem_extractor
+  amount: 2
+```
+
+拆卸道具不决定孔位类别。它只作为一次拆卸的成本；被拆下的宝石会返回返还物槽。
+
+## Overture 道具配置
+
+宝石、打孔器以及使用 `overture-item` 配置的拆卸道具只需是可识别的唯一 Overture 物品：
+
+```yaml
+ember_core:
+  display: symphony_material
+  icon: MAGMA_CREAM
+  name:
+    item_name: '&c灼炎核心'
+  meta:
+    unique: true
+
+elemental_socket_drill:
+  display: symphony_material
+  icon: TRIPWIRE_HOOK
+  name:
+    item_name: '&6元素打孔器'
+  meta:
+    unique: true
+
+gem_extractor:
+  display: symphony_material
+  icon: AMETHYST_SHARD
+  name:
+    item_name: '&d宝石拆卸器'
+  meta:
+    unique: true
+```
+
+它们不需要额外的 `symphony:*` 组件；Symphony 通过定义中的 `overture-item` 识别镶嵌页或拆卸页材料槽中的物品。
+
+## 在界面中使用
+
+`/sym menu socket` 用于镶嵌、替换宝石和打孔，`/sym menu unsocket` 用于拆卸。两页都需要先放入目标物品，再选择具体孔位。
+
+替换或拆下的宝石进入只允许取出的返还槽。返还槽无法容纳宝石时，操作会被拒绝，目标物品和材料保持不变。完整槽位操作与失败处理见[GUI 与物品编辑界面](/docs/symphony/25_gui#工坊布局)。
+
+## 显示类别名称
+
+槽位保存的是稳定类别 ID，玩家看到的名称来自 `language.yml`：
+
+```yaml
+socket-categories:
+  universal: 通用
+  offense: 攻击
+  defense: 防御
+  fire: 火焰
+  ice: 冰霜
+  lightning: 雷电
+  other: 自定义类别
+```
+
+新增自定义类别时应同步增加语言项，避免多个未知类别都显示为“自定义类别”。

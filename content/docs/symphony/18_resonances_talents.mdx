@@ -1,0 +1,112 @@
+---
+title: 内置共鸣与天赋被动
+description: 按装备标签、套装件数或属性条件启用共鸣和天赋
+---
+
+共鸣与天赋会根据玩家当前装备和属性自动生效，配置分别位于 `advanced/resonances/` 与 `advanced/talents/`。条件满足时会添加属性修改并启用对应回调；条件失效后自动移除。
+
+共鸣适合读取词条标签和套装件数，天赋适合组合多个属性门槛。两者都使用实体已经形成的属性与物品来源，不需要玩家手动学习或装备额外技能。
+
+## 共鸣
+
+共鸣的 `condition` 当前支持三种类型。
+
+### 词条标签数量
+
+```yaml
+schema: 1
+id: arcane_master
+name: 奥术大师
+condition:
+  type: affix_tag_count
+  tag: arcane
+  count: 3
+modifiers:
+  arcane_damage:
+    operation: multiply_total
+    value: 25%
+```
+
+系统会遍历实体的所有有效物品来源，统计带有指定 `tag` 的词条数量。一个物品中有两个符合标签的词条时，数量记为 2。
+
+### 套装件数
+
+```yaml
+condition:
+  type: set_count
+  set: frost_guardian
+  count: 4
+```
+
+这里读取已经去重的套装件数，因此外部装备槽、物品实例去重和套装部位（`piece`）去重规则都会生效。
+
+### 属性比较
+
+```yaml
+condition:
+  type: attribute
+  attribute: max_health
+  operator: '>='
+  value: 1000
+```
+
+比较运算符支持 `>`、`>=`、`<`、`<=`、`=`、`==`、`!=`、`<>`。
+
+## 天赋门槛
+
+天赋使用 `all`、`any`、`none` 组合属性比较：
+
+```yaml
+schema: 1
+id: immovable
+name: 岿然不动
+gate:
+  all:
+    - attribute: max_health
+      operator: '>='
+      value: 1000
+    - attribute: physical_defense
+      operator: '>='
+      value: 200
+  none:
+    - attribute: movement_speed
+      operator: '<'
+      value: 0.05
+modifiers:
+  knockback_resistance:
+    operation: add
+    value: 0.8
+```
+
+- `all` 中每一项都必须成立；
+- `any` 中至少一项成立；
+- `none` 中不能有任何一项成立；
+- 同时写多个组时，所有组都要通过。
+
+至少要提供一个组。为避免空列表的逻辑语义让维护者困惑，每个已写组建议至少包含一条比较。
+
+## 自动维护来源
+
+属性发生变化后，共鸣和天赋会在下一次主线程任务中重新检查：
+
+- 共鸣来源为 `resonance:<id>`；
+- 天赋来源为 `talent:<id>`；
+- 一次性更新全部生效项；
+- 新结果无效时继续使用原来的生效项。
+
+条件可以读取属性，而被动本身也可能修改属性。Symphony 会在下一次主线程任务中再次检查，结果不再变化后停止。配置时仍应避免让同一被动反复启用和停用。
+
+## 回调激活
+
+两类定义都可以配置回调。只有对应共鸣或天赋正在生效时，回调才会运行，并提供：
+
+```text
+passiveId   完整被动 ID
+passiveType resonance（共鸣）或 talent（天赋）
+```
+
+功能开关 `features.resonances` 或 `features.talents` 关闭时，对应定义不产生来源，回调也不激活。物品上的词条与套装原始数据不会因此删除。
+
+## 界面与诊断
+
+属性界面的套装区会同时显示套装、共鸣和天赋的生效状态。管理员可用 `attribute explain` 查看 `resonance` 或 `talent` 添加了哪些属性。

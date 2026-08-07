@@ -1,0 +1,135 @@
+---
+title: 外部集成
+description: 将 Symphony 与 Overture、ArcartX、PlaceholderAPI 和 MythicMobs 配合使用
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+本页说明 Symphony 与其它插件之间的配置入口。各项依赖关系如下：
+
+| 系统             | 安装关系                     | 用途                     |
+|----------------|--------------------------|------------------------|
+| Overture       | 必装                       | 创建物品、保存 NBT、显示动态 Lore  |
+| ArcartX        | 可选，由 ArcartX 接入 Symphony | 让额外装备槽提供属性和套装          |
+| PlaceholderAPI | 可选软依赖                    | 在计分板、聊天和其它插件中读取数据      |
+| MythicMobs     | 可选软依赖                    | 为怪物配置属性和调用 Symphony 技能 |
+
+Overture 的组件和动态标签统一在[Overture 物品配置](/docs/symphony/08_overture_items)中说明，本页不再重复列出。
+
+## ArcartX 内置的 Symphony 兼容
+
+ArcartX 可以让额外装备槽中的物品在 Symphony 中生效。服务器同时安装两者后，槽位配置使用：
+
+```yaml
+relic:
+  attribute: Symphony
+```
+
+## PlaceholderAPI
+
+安装 PlaceholderAPI 后，Symphony 会注册名为 `symphony` 的占位符扩展。占位符可以读取**在线玩家**的属性、战力、套装、装备统计、状态和战斗数据；离线玩家请求返回空值。
+
+### 战力与等级
+
+| 占位符                             | 返回值                                           |
+|---------------------------------|-----------------------------------------------|
+| `%symphony_combat_power%`       | 按 `combat-power.yml` 的 `output.format` 格式化的战力 |
+| `%symphony_combat_power_value%` | 经过取值限制与舍入后的战力纯数值                              |
+| `%symphony_combat_power_raw%`   | 取值限制与舍入前的公式结果                                 |
+| `%symphony_level%`              | 等级                                            |
+| `%symphony_experience%`         | 外部等级系统返回的经验，可为空                               |
+| `%symphony_level_provider%`     | `LevelProvider` ID                            |
+| `%symphony_character_id%`       | 当前角色 ID                                       |
+| `%symphony_character_name%`     | 当前角色显示名                                       |
+
+战力公式、变量和缓存规则见[战力计算](/docs/symphony/20_combat_power)。
+
+### 属性
+
+| 占位符                                   | 返回值                        |
+|---------------------------------------|----------------------------|
+| `%symphony_attribute_<id>%`           | 最终属性内部数值；百分比 25% 返回 `0.25` |
+| `%symphony_attribute_formatted_<id>%` | 按属性定义格式化；百分比 25% 返回 `25%`  |
+
+### 套装
+
+| 占位符                                 | 返回值                         |
+|-------------------------------------|-----------------------------|
+| `%symphony_set_count%`              | 当前至少穿戴一件的套装数量               |
+| `%symphony_set_piece_count%`        | 全部套装有效件数之和                  |
+| `%symphony_set_tier_count%`         | 全部套装已激活档位数之和                |
+| `%symphony_sets%`                   | 当前已穿戴的套装名称                  |
+| `%symphony_set_ids%`                | 当前已穿戴套装的完整 ID               |
+| `%symphony_active_set_count%`       | 已达到至少一个档位的套装数量              |
+| `%symphony_active_set_piece_count%` | 已激活套装的有效件数之和                |
+| `%symphony_active_set_tier_count%`  | 全部套装已激活档位数之和                |
+| `%symphony_active_sets%`            | 已激活套装显示名称，以逗号和空格分隔          |
+| `%symphony_active_set_ids%`         | 已激活套装完整 ID，以逗号分隔，供技术逻辑使用    |
+| `%symphony_set_<id>_count%`         | 当前套装件数                      |
+| `%symphony_set_<id>_tier_count%`    | 指定套装已激活档位数量                 |
+| `%symphony_set_<id>_tier%`          | 指定套装最高已激活档位的要求件数            |
+| `%symphony_set_<id>_active%`        | 是否达到至少一个档位，`true` 或 `false` |
+| `%symphony_set_<id>_present%`       | 是否至少有一件，`true` 或 `false`    |
+| `%symphony_set_<id>_name%`          | 套装显示名称                      |
+
+### 物品来源与被动
+
+| 占位符                               | 返回值                   |
+|-----------------------------------|-----------------------|
+| `%symphony_item_source_count%`    | 装备与外部物品来源数量           |
+| `%symphony_skill_count%`          | 物品来源中的技能实例数           |
+| `%symphony_affix_count%`          | 物品来源中的词条实例数           |
+| `%symphony_gem_count%`            | 已镶嵌宝石数                |
+| `%symphony_enhancement_total%`    | 所有物品强化等级之和            |
+| `%symphony_enhancement_max%`      | 当前单件最高强化等级            |
+| `%symphony_active_passive_count%` | 已激活共鸣与天赋数量            |
+| `%symphony_active_passives%`      | 已激活被动的显示名称            |
+| `%symphony_active_passive_ids%`   | 已激活被动的完整 ID           |
+| `%symphony_resonance_<id>%`       | 是否激活，`true` 或 `false` |
+| `%symphony_talent_<id>%`          | 是否激活，`true` 或 `false` |
+
+### 状态、元素附着与战斗
+
+| 占位符                                      | 返回值                       |
+|------------------------------------------|---------------------------|
+| `%symphony_status_count%`                | 当前状态种类数                   |
+| `%symphony_status_<id>_stacks%`          | 状态层数                      |
+| `%symphony_status_<id>_remaining_ms%`    | 下一层到期前的剩余毫秒数              |
+| `%symphony_aura_count%`                  | 当前存在元素附着的通道数量             |
+| `%symphony_aura_<channel>%`              | 指定元素通道的附着值                |
+| `%symphony_aura_<channel>_remaining_ms%` | 指定元素附着的剩余毫秒数              |
+| `%symphony_in_combat%`                   | 是否处于战斗状态，`true` 或 `false` |
+| `%symphony_combat_remaining_ms%`         | 战斗状态剩余毫秒数                 |
+
+省略命名空间时按 `symphony:` 解析。例如：
+
+```text
+%symphony_attribute_physical_damage%
+%symphony_attribute_formatted_critical_chance%
+%symphony_set_frost_guardian_count%
+%symphony_set_frost_guardian_tier_count%
+%symphony_status_poison_stacks%
+%symphony_aura_frost%
+```
+
+`<id>` 省略命名空间时按 `symphony:` 解析。外部注册定义应写完整命名空间；带冒号的 ID 会穿过 PAPI 参数字符串，正式使用前可用 `/papi parse me <占位符>` 验证调用方是否保留冒号。名称列表面向玩家显示，ID 列表面向脚本和条件判断；普通计分板优先使用显示名称版本。
+
+异步请求不会重新计算实体属性。属性和战力尚未在主线程计算时返回空值；已有结果时直接读取。无效 ID、离线玩家或读取失败不会向 PlaceholderAPI 调用方抛出异常。
+
+## MythicMobs 5
+
+MythicMobs 怪物可以使用结构化配置声明 Symphony 属性、百分比、优先级和每级成长：
+
+```yaml
+ArcaneGuardian:
+  Type: ZOMBIE
+  Symphony:
+    Attributes:
+      physical_damage:
+        Operation: add
+        Value: 25
+        PerLevel: 2
+      arcane_resistance:
+        Operation: add
+        Value: 40%
+```

@@ -1,0 +1,146 @@
+---
+title: 战力计算
+description: 使用自定义公式计算并显示角色战力
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+战力把玩家当前的属性、套装、等级和装备情况换算成一个便于显示和比较的数值。计算公式写在 `combat-power.yml` 中。
+
+装备、外部物品来源、属性提供器（`AttributeProvider`）或等级发生变化后，战力会自动更新。战力只用于显示和比较，不会反过来改变属性或伤害。
+
+```mermaid
+flowchart LR
+    A["属性、等级和物品统计"] --> B["战力公式（formula）"]
+    B --> C["取值上下限（bounds）"]
+    C --> D["小数位与舍入方式"]
+    D --> E["显示格式（format）"]
+    E --> F["界面、API 与 PlaceholderAPI"]
+```
+
+## 完整配置
+
+```yaml
+schema: 1
+enabled: true
+
+formula: |-
+  max(
+    0,
+    attribute("max_health") * 2
+      + attribute("physical_damage") * 10
+      + attribute("physical_defense") * 3
+      + attribute("fire_damage") * 8
+      + attribute("fire_resistance") * 300
+      + max(0, attribute("critical_chance")) * 400
+      + max(0, attribute("critical_damage") - 1) * 200
+      + level * 15
+      + set_tier_count * 100
+      + skill_count * 30
+      + affix_count * 20
+      + gem_count * 25
+      + enhancement_total * 12
+  )
+
+bounds:
+  min: 0
+  max: 1000000000000
+
+output:
+  scale: 0
+  rounding: half_up
+  format: '#,##0'
+```
+
+- `enabled` 为 `false` 时保留配置但固定返回 `0`。
+- `bounds` 在公式求值后应用，可阻止负战力或异常的大数进入展示层。
+- `scale` 是最终小数位数，范围为 0 至 12。
+- `rounding` 支持 Java `RoundingMode` 的常用名称，如 `half_up`、`half_even`、`down`、`floor` 和 `ceiling`；不接受 `unnecessary`。
+- `format` 使用 Java `DecimalFormat` 格式，例如 `#,##0`、`0.00` 或 `#,##0 战力`。
+
+## 可用变量
+
+| 变量                  | 含义                   |
+|---------------------|----------------------|
+| `level`             | 当前外部等级；没有可用等级数据时为 0  |
+| `experience`        | 当前外部经验；没有值时为 0       |
+| `source_count`      | 实体全部属性来源数量，包括非物品来源   |
+| `item_source_count` | 当前物品来源数量，包括装备与外部虚拟槽位 |
+| `set_count`         | 当前至少穿戴一件的套装数量        |
+| `set_piece_count`   | 所有套装的有效件数总和          |
+| `set_tier_count`    | 所有套装已激活档位数总和         |
+| `skill_count`       | 所有物品来源中的技能实例数        |
+| `affix_count`       | 所有物品来源中的词条实例数        |
+| `gem_count`         | 所有物品来源中的已镶嵌宝石数       |
+| `enhancement_total` | 所有物品来源的强化等级之和        |
+| `enhancement_max`   | 当前单件物品的最高强化等级        |
+
+`source_count` 和 `item_source_count` 用途不同。区域增益、状态和其它插件直接写入的属性来源会增加前者；只有经过 Symphony 解析的物品来源会增加后者。
+
+## 按 ID 读取
+
+公式通过带引号的查找函数读取属性与指定套装：
+
+```text
+attribute("physical_damage")
+attribute("my_addon:spell_power")
+set_pieces("elemental_vanguard")
+set_tiers("elemental_vanguard")
+```
+
+- `attribute(id)` 返回最终属性值；百分比属性使用内部小数，例如 25% 为 `0.25`。
+- `set_pieces(id)` 返回指定套装当前有效件数。
+- `set_tiers(id)` 返回指定套装当前已激活档位数量，不是最高档位要求的件数。
+- ID 未写命名空间时使用 `symphony:`；外部注册属性应写完整命名空间。
+
+Symphony 会检查公式中的每个属性和套装 ID。引用不存在的定义时，`/sym validate` 和 `/sym reload` 会报告错误，原来的战力公式继续使用。
+
+## 运算符与函数
+
+公式支持：
+
+- 算术：`+`、`-`、`*`、`/`、`%`、`^`；
+- 比较：`>`、`>=`、`<`、`<=`、`==`、`!=`；
+- 逻辑：`&&`、`||`、`!`，真值结果为 1，假值为 0；
+- 数学函数：`min`、`max`、`clamp`、`abs`、`sqrt`、`pow`、`floor`、`ceil`、`round`、`ln`、`log10`、`exp`；
+- 条件函数：`if(condition, whenTrue, whenFalse)`。
+
+`&&`、`||` 与 `if` 会短路，因此可以保护只在特定条件下合法的计算：
+
+```yaml
+formula: |-
+  if(
+    attribute("physical_defense") > 0,
+    1000 / attribute("physical_defense"),
+    0
+  )
+```
+
+除零、负数开平方、非正数对数或产生无限值都会被拒绝。公式有长度、嵌套层数、运算节点数和参数数量上限，不能调用 Java、Bukkit、命令或脚本函数。
+
+<Callout type="info">
+战力只是服主定义的比较尺度，不参与伤害、命中、护甲或其它属性运算。若希望某项能力真正影响战斗，应在属性与伤害配置中定义其规则，而不是从战力数值反推效果。
+</Callout>
+
+## 套装与外部物品来源
+
+四件防具、主手、启用的副手和通过 `replaceSourceFromItem` 加入的外部物品都会参与统计。其中的套装件数、技能、词条、宝石和强化等级可以直接用于战力公式。
+
+例如元素先锋只在八件齐全时增加额外权重：
+
+```yaml
+formula: |-
+  attribute("elemental_mastery") * 4
+    + set_tiers("elemental_vanguard") * 180
+    + if(set_pieces("elemental_vanguard") >= 8, 800, 0)
+```
+
+套装的 `duplicate-instance: once` 去重发生在战力计算之前。同一个物品实例被多个来源重复加入时，公式看到的是去重后的有效件数。
+
+## 在哪里读取战力
+
+- 角色属性界面显示 `output.format` 处理后的结果；
+- PlaceholderAPI 的三个常用入口分别返回格式化结果、最终数值和公式原值；
+- 公共 API 可以取得公式输入和计算详情。
+
+完整占位符见[外部集成](/docs/symphony/22_integrations#战力与等级)，Kotlin 读取示例见[角色数据 API](/docs/symphony/32_character_api#战力)。缓存和异步读取规则见[性能设置](/docs/symphony/27_performance_lifecycle#战力读取)。

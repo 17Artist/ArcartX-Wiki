@@ -1,0 +1,125 @@
+---
+title: 属性 API
+description: 读取属性、解释计算结果并注册动态属性
+---
+
+`attributes` 用于读取实体当前已经计算完成的属性，也可以注册实时提供属性修改的 `AttributeProvider`。装备、文字词条和外部系统数据的写入方法见[属性来源 API](/docs/symphony/30_source_api)。
+
+## 属性键
+
+公共 API 使用完整命名空间。配置中的 `attack_damage` 对应：
+
+```kotlin
+val attackDamage = AttributeKey.symphony("attack_damage")
+val customAttribute = AttributeKey("myplugin:spell_power")
+```
+
+属性键只能包含小写字母、数字、点、下划线、短横线和路径分隔符。附属插件应使用自己的命名空间，避免与其他插件重名。
+
+## 读取属性
+
+```kotlin
+val value = api.attributes.value(player, AttributeKey.symphony("attack_damage"))
+val snapshot = api.attributes.snapshot(player)
+val allValues = snapshot.values
+```
+
+`value` 适合读取一个属性，`snapshot` 适合在同一次操作中读取多个属性。快照是不可变数据，同一轮业务应尽量复用，避免反复查询。
+
+## 查看数值组成
+
+```kotlin
+val detail = api.attributes.explain(
+    player,
+    AttributeKey.symphony("arcane_resistance")
+)
+
+detail?.contributions?.forEach { contribution ->
+    plugin.logger.info(
+        "${contribution.source}: ${contribution.valueBefore} -> ${contribution.valueAfter}"
+    )
+}
+```
+
+`AttributeExplain` 包含基础值、每条修饰的前后数值、公式计算结果、边界裁剪结果与最终格式化文本。它适合管理界面和排错，不应在每次伤害计算中重新生成。
+
+## 使快照失效
+
+当外部数据改变，但没有通过 `sources` 写入时，应通知 Symphony：
+
+```kotlin
+api.attributes.invalidate(
+    player,
+    reason = "myplugin:class_changed",
+    affected = setOf(AttributeKey("myplugin:spell_power"))
+)
+```
+
+`invalidate` 只标记数据需要重算。确实需要立即取得新结果时，再调用：
+
+```kotlin
+val refreshed = api.attributes.recalculate(player)
+```
+
+## 注册动态属性提供者
+
+当属性来自实时状态，且不适合转换成固定来源时，可以注册 `AttributeProvider`：
+
+```kotlin
+class RegionBonusProvider : AttributeProvider {
+    override val id = NamespacedKey("myplugin", "region_bonus")
+
+    override fun modifiers(
+        entity: LivingEntity,
+        context: AttributeProviderContext
+    ): List<AttributeModifier> {
+        if (!isInsideBlessedRegion(entity.location)) return emptyList()
+
+        return listOf(
+            AttributeModifier(
+                id = "region.attack",
+                attribute = AttributeKey.symphony("attack_damage"),
+                operation = AttributeOperation.MULTIPLY_TOTAL,
+                value = 0.10
+            )
+        )
+    }
+}
+
+val registration = api.attributes.registerProvider(
+    plugin,
+    RegionBonusProvider(),
+    priority = 100
+)
+```
+
+Provider 不会自行知道区域、职业或角色数据已经改变。外部状态变化后，仍需调用 `invalidate` 或 `recalculate`。
+
+## 注册属性定义
+
+附属插件可以注册不写入 YAML 的属性定义：
+
+```kotlin
+val registration = api.definitions.registerAttribute(
+    plugin,
+    AttributeDefinition(
+        key = AttributeKey("myplugin:spell_power"),
+        name = "法术强度",
+        description = "提高附属插件的法术效果",
+        category = "magic",
+        base = 0.0,
+        bounds = AttributeBounds(min = 0.0),
+        format = AttributeFormat.NUMBER
+    )
+)
+```
+
+同一个属性可由多个插件注册。优先级更高的定义生效；相同优先级存在冲突时，注册会被拒绝。保存返回的 `RegistrationHandle`，并在插件停用时调用 `close()`。
+
+定义发生变化时，`definitions.revision` 会递增。需要列出当前定义、套装或被动效果时，可使用 `attributes()`、`sets()` 和 `passives()`。
+
+## 线程要求
+
+读取或修改 `LivingEntity`、物品栏和 `ItemStack` 的接口必须在合法的 Bukkit 实体线程调用。`AttributeProvider.modifiers` 也不能等待数据库或网络请求；应提前把外部结果缓存到附属插件自己的内存结构中。
+
+属性计算方式见[属性模型](/docs/symphony/03_attribute_model)，自动装备与外部来源的合并规则见[属性来源](/docs/symphony/04_attribute_sources)。

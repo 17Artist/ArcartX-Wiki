@@ -1,0 +1,84 @@
+---
+title: 属性交互与派生规则
+description: 配置属性转换、溢出、阈值、协同、冲突、增幅和衰减
+---
+
+属性交互用于表达“一个属性影响另一个属性”，但不需要为每个派生关系编写 calculate 脚本。每个文件定义一条 source → target 规则，系统自动把 source 加入 target 的依赖关系。
+
+## 基本结构
+
+```yaml
+schema: 1
+id: crit_overflow
+type: overflow
+source: critical_chance
+threshold: 1
+target: critical_damage
+ratio: 0.5
+```
+
+这条规则表示：暴击率超过 100% 的部分，按 50% 转换为暴击伤害倍率增量。暴击率为 1.30 时，target 增加 `(1.30 - 1.00) × 0.5 = 0.15`。
+
+`source` 和 `target` 必须引用已定义属性，且不能相同。省略命名空间时补为 `symphony:`。
+
+## 七种运算
+
+表中的 `result` 是 target 完成普通 modifier 聚合后的当前值，`source` 是已经计算完成的来源属性。
+
+| type         | 公式                                                  |
+|--------------|-----------------------------------------------------|
+| `conversion` | `result + source × ratio`                           |
+| `overflow`   | `result + max(0, source - threshold) × ratio`       |
+| `threshold`  | source 达到 threshold 时 `result + ratio`，否则不变         |
+| `synergy`    | `result × (1 + source × ratio)`                     |
+| `conflict`   | `result × max(0, 1 - source × ratio)`               |
+| `amplify`    | `result × (1 + max(0, source - threshold) × ratio)` |
+| `diminish`   | `result / (1 + max(0, source - threshold) × ratio)` |
+
+`conversion` 和 `synergy/conflict` 不使用 threshold；可以省略。`threshold` 类型中的 ratio 是达到条件后直接增加的固定量。
+
+## 多条规则如何组合
+
+所有以同一个属性为 target 的交互按完整交互 ID 排序，并依次修改 result。因为乘法和加法顺序可能改变结果，ID 不只是名称，也决定稳定运算顺序。
+
+```yaml
+# 先执行 symphony:01_flat_bonus
+id: 01_flat_bonus
+type: threshold
+source: max_health
+threshold: 1000
+target: physical_defense
+ratio: 50
+```
+
+```yaml
+# 再放大已经加过 50 的结果
+id: 02_health_synergy
+type: synergy
+source: max_health
+target: physical_defense
+ratio: 0.0001
+```
+
+不要依赖文件系统的遍历顺序。需要明确先后时，可在 ID 中使用固定前缀，并用注释说明排列原因。
+
+## 依赖与循环
+
+编译交互时，Symphony 自动把每条 source 加入 target 的 `depends_on`。例如 A 影响 B、B 影响 C 时，计算顺序为 A → B → C。
+
+下面的组合会形成循环，导致本次配置无法加载：
+
+```text
+critical_chance -> critical_damage
+critical_damage -> critical_chance
+```
+
+循环也可能由显式 `depends_on` 与交互共同产生。`/sym validate` 会在应用前报告依赖路径。
+
+## 功能开关与数值限制
+
+`features.interactions: false` 时，定义仍会解析，但计算器直接返回未应用交互的标准值。
+
+`ratio` 与 `threshold` 必须是有限数字。`ratio` 可以为负数，但这可能让 `diminish` 的分母变成 0，或产生无效结果。使用负数时，应先测试可能出现的最大值和最小值。
+
+交互在 attribute.calculate 回调之前执行。calculate 脚本看到的 `ctx.standardValue` 已经包含交互结果，因此不要在脚本中重复实现同一转换。

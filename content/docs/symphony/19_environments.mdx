@@ -1,0 +1,87 @@
+---
+title: 世界、群系与天气环境效果
+description: 根据世界、群系、露天、时间和天气提供属性
+---
+
+环境定义让玩家进入特定世界状态时自动获得属性修改。它适合沙漠高温、雨天雷系增幅、地下压制等持续条件，不需要为每次移动手写回调。
+
+## 定义环境
+
+```yaml
+schema: 1
+id: desert_heat
+name: 沙漠酷热
+when:
+  worlds:
+    - survival
+  biomes:
+    - DESERT
+    - BADLANDS
+  outdoor: true
+  weather: clear
+  time:
+    from: 6000
+    to: 12000
+modifiers:
+  fire_damage:
+    operation: multiply_total
+    value: 20%
+  ice_damage:
+    operation: multiply_total
+    value: -20%
+```
+
+`when` 中写出的条件全部必须满足。整个 `when` 省略或为空时，该环境会匹配所有被检查实体，通常不是想要的结果。
+
+## 条件语义
+
+| 字段                 | 行为                              |
+|--------------------|---------------------------------|
+| `worlds`           | 精确比较 Bukkit 世界名称，区分大小写          |
+| `biomes`           | 配置值转成大写后比较 Bukkit 群系名称          |
+| `outdoor`          | 根据该 X/Z 最高方块 Y 是否不高于实体 Y+1 判断露天 |
+| `weather: clear`   | 世界当前没有降雨                        |
+| `weather: rain`    | 世界正在降雨，但没有雷暴                    |
+| `weather: thunder` | 世界正在雷暴                          |
+| `time.from/to`     | 世界时间 `0..23999`，端点包含            |
+
+时间范围支持跨午夜。`from: 18000`、`to: 6000` 表示当前时间大于等于 18000 或小于等于 6000。
+
+`outdoor` 使用最高方块位置进行近似判断，不会检测天空光照、方块透明度或遮挡射线。洞口、树叶和建筑边缘的结果应在实际地图中验证。
+
+## 重新计算时机
+
+环境运行时会在这些情况标记玩家：
+
+- 玩家跨方块移动；
+- 传送或切换世界；
+- 世界天气变化；
+- 插件启动激活阶段；
+- 每个 `performance.timer-bucket-ticks` 周期扫描在线玩家。
+
+多个环境效果可以同时生效，每个环境使用独立的 `environment:<id>`。生效条件没有变化时，不会重复计算属性。
+
+普通的非玩家 `LivingEntity` 在插件启用时可以被检查一次，但后续周期扫描只覆盖在线玩家。当前环境系统并不是面向全世界怪物的环境行为引擎。
+
+## 回调
+
+环境定义可以包含回调。只有该环境当前正在生效时，回调才会执行，并提供 `environmentId`。
+
+```yaml
+callbacks:
+  warning:
+    trigger: entity.timer
+    interval: 200
+    actions:
+      - type: message
+        target: self
+        message: '这里的高温正在削弱冰霜伤害。'
+```
+
+环境没有单独的进入或离开触发器。需要显示进入提示时，可以为正在生效的回调配置较长的 `cooldown` 或 `interval`；这种方式不保证只在进入环境的瞬间执行一次。
+
+## 启用、更新与停用
+
+环境来源不持久化。玩家退出和插件关闭会移除；重新加入后按当前位置重算。
+
+`features.environments: false` 会关闭环境检查，不再添加属性修改，也不触发环境回调。修改环境配置并执行 `/sym reload` 后，在线玩家会在下一次检查时应用新规则；已经打开的界面会关闭，重新打开后显示最新数据。

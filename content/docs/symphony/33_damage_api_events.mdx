@@ -1,0 +1,191 @@
+---
+title: 主动伤害与伤害事件
+description: 通过 API 造成伤害，并高效读取逐通道、克制、暴击和触发属性明细
+---
+
+## 发起一次普通攻击
+
+附属插件需要让实体按当前装备和属性攻击目标时，只需提供攻击者与受击者：
+
+```kotlin
+val result = api.damage.attack(attacker, victim)
+```
+
+也可以传入伤害倍率：
+
+```kotlin
+val result = api.damage.attack(attacker, victim, damageMultiplier = 1.5)
+```
+
+该入口读取攻击者当前快照中所有伤害通道对应的伤害属性。例如攻击者同时具有物理、火焰和雷电伤害，三个通道都会进入本次攻击。倍率先作用于各通道的输入值，之后依次进行元素反应、命中判定、暴击、护甲或抗性、通用减伤、格挡与护盾结算。
+
+`attack` 与玩家在游戏中攻击目标使用同一条 Symphony 结算链，会发布相同的命中检查和伤害阶段事件，并触发普通攻击、造成伤害、受击、暴击、闪避、击杀等回调。它不会要求调用方重新读取武器属性或手工拼装 `DamageRequest`。
+
+倍率必须是大于零的有限数值。倍率为 `1.0` 时不改变通道输入；它不会修改攻击者的属性快照，也不会永久改变物品数值。该入口的 `DamageRequest.cause` 为 `api:attack`。
+
+需要指定固定数值、只造成某个通道的伤害，或者控制 `allowCritical`、`metadata` 与父事务时，使用下面的主动伤害入口。
+
+## 主动造成单通道伤害
+
+附属插件可使用简化入口：
+
+```kotlin
+val result = api.damage.damage(
+    attacker = caster,
+    victim = target,
+    channel = "arcane",
+    amount = 24.0,
+    cause = "my-addon:arcane-lance"
+)
+```
+
+四参数重载会使用 `cause = "api"`，并允许暴击。需要控制暴击和元数据时使用完整重载：
+
+```kotlin
+val result = api.damage.damage(
+    attacker = caster,
+    victim = target,
+    channel = "fire",
+    amount = 30.0,
+    cause = "my-addon:burning-mark",
+    allowCritical = false,
+    metadata = mapOf(
+        "skill" to "burning_mark",
+        "rank" to "3"
+    )
+)
+```
+
+## 一次集成多个伤害通道
+
+```kotlin
+val result = api.damage.damage(
+    DamageRequest(
+        attacker = caster,
+        victim = target,
+        channels = listOf(
+            DamageChannelAmount("physical", 10.0),
+            DamageChannelAmount("fire", 18.0),
+            DamageChannelAmount("holy", 6.0)
+        ),
+        cause = "my-addon:solar-cleave",
+        allowCritical = true
+    )
+)
+```
+
+同名通道会在准备阶段合并。`DamageResult.state` 为 `CONFIRMED`、`CANCELLED` 或 `REJECTED`；只有确认结果的 `finalDamage` 才代表 Bukkit 最终接收的伤害。更细的 `DamageResult.outcome` 为 `HIT`、`MISSED`、`CANCELLED` 或 `REJECTED`，因此可以用 `result.missed` 区分闪避和其它插件取消，`result.hit` 只在确认命中时为真。
+
+主动 API 会造成一次独立伤害。调用前会暂时清除目标的原版受伤冷却与上一击比较值，避免较小的连续伤害在产生 Bukkit 事件前就被忽略。伤害确认后由 Bukkit 建立新一轮正常受伤冷却；事件取消、请求拒绝或调用异常时，调用前的冷却状态会恢复。自然近战、投射物和环境伤害仍遵循各自的原版入口。
+
+当 `attacker` 不为空时，Bukkit 注入仍使用带攻击者的伤害入口；附属插件应从 `DamageRequest.attacker`、`cause` 和 `metadata` 读取攻击者与伤害信息，不要根据原版 `DamageCause` 猜测元素通道。
+
+## 命中检查事件
+
+攻击者不为空时，通道结算前发布 `SymphonyHitCheckEvent`：
+
+```kotlin
+@EventHandler
+fun onHitCheck(event: SymphonyHitCheckEvent) {
+    if (!event.hit) {
+        logger.info(
+            "未命中：accuracy=${event.accuracy}, dodge=${event.dodge}, " +
+                "chance=${event.dodgeChance}, roll=${event.roll}"
+        )
+    }
+}
+```
+
+默认公式为：
+
+```text
+dodgeChance = clamp(dodge - (accuracy - 1), 0, 0.9)
+hit = roll >= dodgeChance
+```
+
+`roll` 位于 `[0, 1)`。监听器可以改写 `event.hit`，用于必中特殊状态或其它命中规则。未命中时本次伤害直接返回 `DamageOutcome.MISSED`，不会发布 `SymphonyDamageEvent`、不会应用伤害，也不会进入确认后的元素附着、吸血、反伤和回调阶段。
+
+## 主伤害事件
+
+`SymphonyDamageEvent` 在通道公式、通用减伤、格挡和护盾完成后触发，在兼容用的 `SymphonyDamageApplyEvent` 之前触发。
+
+```kotlin
+@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+fun onSymphonyDamage(event: SymphonyDamageEvent) {
+    val fire = event.breakdown.channel("fire")
+    if (fire != null) {
+        logger.info("本轮火焰最终伤害 ${fire.finalAmount}")
+    }
+
+    if (event.critical) {
+        logger.info("本轮至少有一个通道暴击")
+    }
+
+    logger.info("克制伤害 ${event.advantagedDamage}")
+    logger.info("普通伤害 ${event.neutralDamage}")
+    logger.info("被克制伤害 ${event.disadvantagedDamage}")
+}
+```
+
+事件可取消，也可修改 `finalDamage`。`breakdown` 是事件生成时已经计算好的明细，不会因为监听器修改总值而重新计算属性。最终 `DamageResult.breakdown` 会在 Bukkit MONITOR 确认后按真实伤害重新分配。
+
+`SymphonyDamageEvent.hit` 始终为 true，因为只有通过命中检查的伤害才会触发这个事件。需要同时观察命中与未命中时，应组合监听 `SymphonyHitCheckEvent` 和 `SymphonyDamageEvent`，不要把“主伤害事件没有触发”误解成观察插件失效。
+
+## `DamageBreakdown`
+
+### 通道结果
+
+`channels` 中每个 `DamageChannelResult` 包含：
+
+- `requestedAmount`：prepare 事件之后、元素反应之前的请求值；
+- `afterRelationAmount`：元素反应处理后的值；
+- `afterCriticalAmount`：该通道暴击后的值；
+- `afterMitigationAmount`：护甲或抗性公式后的值；
+- `finalAmount`：通用减伤、格挡、护盾及最终 Bukkit 值按比例分配后的结果；
+- `relation`：`ADVANTAGED`、`NEUTRAL` 或 `DISADVANTAGED`；
+- `critical`：这个通道是否暴击；
+- `reactions`：参与该通道的反应 ID 集合；
+- `attributes`：与该通道直接关联的属性读取记录。
+
+`channel(id)` 和 `byChannel[id]` 都是预建映射查询，不会遍历实体来源或重新计算属性。
+
+### 属性读取与触发
+
+`breakdown.attributes` 保存本轮公式读取过的属性。每条 `DamageAttributeUse` 记录：
+
+- 属性属于攻击者还是受击者；
+- 实体 UUID 与属性 key；
+- 角色，例如攻击力、暴击率、抗性、防御、穿透、格挡或护盾；
+- 读取到的值和关联通道；
+- `activated`，表示它是否真正改变了本轮结果。
+
+`triggeredAttributes` 只收集 `activated = true` 的属性。例如暴击率抽中、暴击伤害倍率被使用、火焰抗性非零或护盾实际吸收时会出现；仅被读取但没有改变结果的属性仍可从 `attributes` 查看。
+
+因此“是否暴击”是 `critical` 的便捷视图，而更通用的判断应读取 `triggeredAttributes` 或具体的 `DamageAttributeUse`。
+
+## 克制三类总量
+
+- `advantagedDamage`：反应使通道数值上升的最终伤害。
+- `neutralDamage`：反应未改变通道的最终伤害。
+- `disadvantagedDamage`：反应使通道数值下降的最终伤害。
+
+三类伤害按 `finalAmount` 汇总，总和等于各通道的最终伤害。监听器可以直接读取这些结果，不需要再次计算。
+
+## 事件选择
+
+| 事件                              | 使用场景                   |
+|---------------------------------|------------------------|
+| `SymphonyDamagePrepareEvent`    | 修改输入通道或提前取消            |
+| `SymphonyHitCheckEvent`         | 读取或覆盖命中判定，包括未命中的攻击     |
+| `SymphonyDamageMitigationEvent` | 修改单个通道的护甲或抗性结果         |
+| `SymphonyDamageEvent`           | 读取完整明细，修改总值或取消         |
+| `SymphonyDamageApplyEvent`      | 兼容旧监听器；新代码优先使用主伤害事件    |
+| `SymphonyDamageConfirmedEvent`  | Bukkit 已确认后处理统计和不可逆副作用 |
+
+统计、掉落和任务进度应监听伤害确认事件（`SymphonyDamageConfirmedEvent`），避免记录后来被其它 Bukkit 插件取消的伤害。
+
+## 事件监听性能
+
+每次伤害只读取实际需要的属性；同一属性在本次伤害中多次使用时会复用结果。伤害通道、克制伤害、暴击状态和触发属性都已提前算好，监听器重复读取不会重新计算属性。
+
+不要在事件监听器中再次调用 `api.attributes.recalculate`。若确实要更改本轮伤害，直接设置 `event.finalDamage`；若要改变后续公式，应在伤害准备事件或减伤事件中处理。

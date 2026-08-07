@@ -1,0 +1,59 @@
+---
+title: Symphony
+description: 使用 YAML 配置 RPG 属性、装备能力和伤害规则
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Symphony 是面向 Spigot/Paper 服务器的 RPG 属性与装备插件。服主可以用 YAML 配置属性、伤害类型、套装、词条、宝石、强化、物品技能和战力。
+
+成品物品由 Overture 创建。Symphony 读取物品中的 `symphony:*` 组件和实例数据，计算玩家当前属性，再把结果用于伤害、套装、技能、界面与动态 Lore。
+
+## 各部分如何配合
+
+```mermaid
+flowchart LR
+    A["属性定义"] --> D["实体当前属性"]
+    B["Overture 装备"] --> C["属性来源"]
+    C --> D
+    E["状态、环境和外部系统"] --> C
+    D --> F["伤害与元素反应"]
+    D --> G["战力、条件和被动"]
+    D --> H["动态 Lore"]
+    I["游戏事件"] --> J["触发器与回调"]
+    J --> C
+    J --> F
+```
+
+| 名词              | 含义                                | 详细说明                                                     |
+|-----------------|-----------------------------------|----------------------------------------------------------|
+| 属性              | 可以参与计算的数值，例如物理攻击、暴击率或火焰抗性         | [属性模型](/docs/symphony/03_attribute_model)                |
+| Modifier        | 对属性进行加法或倍率运算的一项数据                 | [属性模型](/docs/symphony/03_attribute_model#三种-modifier-运算) |
+| 属性来源            | 一件装备、一个状态或外部插件写入的一组属性             | [装备与其它属性来源](/docs/symphony/04_attribute_sources)         |
+| 伤害通道            | 独立结算的一类伤害，例如物理、火焰或奥术              | [伤害结算](/docs/symphony/15_damage_pipeline)                |
+| 物品组件            | Overture 物品中以 `symphony:*` 命名的配置块 | [Overture 物品配置](/docs/symphony/08_overture_items)        |
+| `LevelProvider` | 由其它插件实现的等级读取接口                    | [接入现有等级系统](/docs/symphony/21_level_providers)            |
+
+## 建议阅读顺序
+
+第一次配置时，按下面的顺序即可完成一件能参与战斗的装备：
+
+1. [安装与快速开始](/docs/symphony/02_installation)
+2. [属性模型](/docs/symphony/03_attribute_model)
+3. [装备与其它属性来源](/docs/symphony/04_attribute_sources)
+4. [触发器、条件与 Action](/docs/symphony/06_triggers_conditions_actions)
+5. [回调与 Aria 脚本](/docs/symphony/07_callbacks_scripts)
+6. [Overture 物品配置](/docs/symphony/08_overture_items)
+7. [伤害结算](/docs/symphony/15_damage_pipeline)
+
+后续内容按需求选择：
+
+| 目标            | 阅读页面                                                                                                                                     |
+|---------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| 制作套装、词条、宝石或强化 | [套装](/docs/symphony/09_sets)、[词条](/docs/symphony/10_affixes)、[宝石与孔位](/docs/symphony/11_gems_sockets)、[强化](/docs/symphony/12_enhancement) |
+| 制作物品主动技能      | [物品技能](/docs/symphony/13_item_skills)                                                                                                    |
+| 配置元素、状态和被动    | [元素反应](/docs/symphony/16_elements_reactions)、[状态](/docs/symphony/17_statuses)、[共鸣与天赋](/docs/symphony/18_resonances_talents)              |
+| 配置战力          | [战力计算](/docs/symphony/20_combat_power)                                                                                                   |
+| 接入其它插件        | [外部系统](/docs/symphony/22_integrations)                                                                                                   |
+| 开发附属插件        | [公共 API](/docs/symphony/28_api)、[伤害事件](/docs/symphony/33_damage_api_events)                                                              |
+| 编写完整配置        | [配置目录与 AI skill](/docs/symphony/26_config_reference#配置编写-skill)                                                                      |

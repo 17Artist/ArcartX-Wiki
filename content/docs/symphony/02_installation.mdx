@@ -1,0 +1,88 @@
+---
+title: 安装与快速开始
+description: 安装插件并制作第一个带属性和 Lore 的物品
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 环境与依赖
+
+- Java 17
+- 硬依赖: Overture
+- 软依赖: PlaceholderAPI、MythicMobs
+
+将 Overture 与 Symphony 的 JAR 放入 `plugins/`，启动服务器后会生成 `plugins/Symphony/`。词条、宝石、强化和其它物品实例能力会随 Overture 物品一起保存在 NBT 中。
+
+首次安装时还会写出一套名为“棱镜武库”的完整配置。Symphony 玩法定义位于 `plugins/Symphony/` 的常规目录中；配套物品位于 `plugins/Overture/items/prismatic-arsenal/`，显示模板位于 `plugins/Overture/displays/prismatic-arsenal.yml`。这套配置可以直接作为修改起点，也可以在服务器关闭后删除不需要的文件。
+
+样例只在全新安装时写出。已有 Symphony 配置的服务器升级后不会被自动加入样例；如果目标位置已经存在同名但内容不同的文件，Symphony 会保留原文件并停止加载，控制台会指出发生冲突的路径。
+
+控制台看到服务注册和定义数量后，先执行：
+
+```text
+/sym validate
+```
+
+若要检查 Overture 是否已读取配套物品，可再执行 `/ot list`。
+
+## 创建第一个 Overture 物品
+
+下面的物品提供两项属性、两个不同类别的基础槽位、一项物品技能和一个套装部位：
+
+```yaml
+training_blade:
+  display: symphony_default
+  icon: IRON_SWORD
+  name:
+    item_name: '&b训练长剑'
+  meta:
+    unique: true
+  components:
+    symphony:attributes:
+      physical_damage:
+        operation: add
+        value: 25
+      critical_chance:
+        operation: add
+        value: 8%
+    symphony:sockets:
+      max-extra-slots: 1
+      slots:
+        - accepts:
+            - offense
+          unlock-at-enhancement: 0
+        - accepts:
+            - fire
+            - lightning
+          unlock-at-enhancement: 5
+    symphony:skills:
+      arc_bolt:
+        level: 1
+    symphony:set:
+      id: frost_guardian
+      piece: blade
+```
+
+对应 Overture display 可以调用全部动态标签：
+
+```yaml
+symphony_default:
+  name: '<item_name> <symphony:enhancement>'
+  lore:
+    - '<symphony:attributes...>'
+    - '<symphony:affixes...>'
+    - '<symphony:skills...>'
+    - '<symphony:sockets...>'
+    - '<symphony:set...>'
+```
+
+显示行的标点、颜色和顺序可在 `display.yml` 里统一修改，也可按 Overture display ID 覆盖。完整规则见[语言与物品显示格式](/docs/symphony/14_language_display)。
+
+## 应用并验证
+
+修改两边定义后执行：
+
+```text
+/sym validate
+/sym reload
+```

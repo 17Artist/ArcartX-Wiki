@@ -1,0 +1,94 @@
+---
+title: 可叠加状态
+description: 配置状态层数、持续时间、每层属性和周期效果
+---
+
+状态是只存在于运行时的可叠加效果。每一层有自己的到期时间，当前层数共同形成一个 `status:<id>` 属性来源；状态还可以按周期触发 `status.tick`。
+
+## 定义状态
+
+```yaml
+schema: 1
+id: poison
+name: 中毒
+max-stacks: 5
+duration-ms: 10000
+decay: individual
+tick-ms: 1000
+per-stack:
+  modifiers:
+    movement_speed:
+      operation: multiply_total
+      value: -5%
+callbacks:
+  tick:
+    trigger: status.tick
+    actions:
+      - type: damage
+        channel: poison
+        amount-per-stack: 2
+        target: self
+```
+
+当前 `decay` 只支持 `individual`。`duration-ms` 的范围是 1 毫秒到 24 小时，`tick-ms` 不能低于 50 毫秒。
+
+## 层数如何影响属性
+
+`per-stack.modifiers` 中的数值会乘以当前层数，再作为一条属性修改写入来源。
+
+上例：
+
+- 1 层为 `movement_speed` 提供 `MULTIPLY_TOTAL -0.05`；
+- 3 层提供一条 `-0.15`；
+- 5 层提供一条 `-0.25`。
+
+使用 `ADD` 时，数值会直接随层数增加；使用 `MULTIPLY_TOTAL` 时，系统先把配置值乘以层数，再执行一次总倍率计算，并不是把 `0.95` 连乘五次。
+
+## 添加与刷新
+
+使用回调中的 `status` 动作添加状态：
+
+```yaml
+- type: status
+  status: poison
+  stacks: 2
+  duration-ms: 15000
+  target: target
+```
+
+`duration-ms` 省略时使用状态定义中的持续时间。每一层都有独立的到期时间：
+
+- 未达到 `max-stacks` 时追加新层；
+- 已达上限时刷新最早到期的一层；
+- 添加多层会重复执行上面规则；
+- 最终到期时间排序保存。
+
+状态层数变化时会更新它提供的属性。状态定义缺失、实体无效或全部层数到期时，这些属性会被移除。
+
+## 周期回调
+
+每个实体的每种状态都有自己的下一次触发时间。达到时间后，回调会收到：
+
+```text
+trigger: status.tick
+self: 状态持有者
+target: 状态持有者自身
+statusId: 完整状态 ID
+stacks: 当前尚未过期层数
+```
+
+`amount-per-stack` 会读取 `stacks`。上例达到 3 层时，每次产生 6 点 `poison` 通道伤害；该伤害仍按完整的 Symphony 伤害规则结算，可以被抗性、通用减伤、护盾和其它插件取消。
+
+实际触发时间会受到 `performance.timer-bucket-ticks` 扫描周期影响。配置 `tick-ms: 1000` 不保证在服务器卡顿时严格每 1000 毫秒执行一次，也不会为了补偿延迟而连续补触发多次。
+
+## 状态的持续与移除
+
+状态只存在于运行时内存。玩家退出、实体失效、插件关闭或服务器重启都会清除状态及其 `status:<id>` 属性来源。
+
+当前公共 API 没有独立的 `StatusService`。内置写入口是回调中的 `status` 动作。附属插件如果需要直接控制状态，应先通过公开扩展接口接入，不要引用内部的 `StatusRuntime` 实现类。
+
+`features.statuses: false` 时，`status` 动作会执行失败。已经存在的 Overture 数据不受影响，但不会产生运行时状态。
+
+## 查看状态
+
+状态界面和 `api.metadata.statuses(entity)` 会提供状态 ID、层数和剩余时间。目前没有公开的 `StatusApplyEvent` 或 `StatusExpireEvent`；需要响应状态周期效果时，应在状态定义中配置回调。

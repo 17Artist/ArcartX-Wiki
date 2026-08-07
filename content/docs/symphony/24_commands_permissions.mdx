@@ -1,0 +1,128 @@
+---
+title: 命令与权限
+description: Symphony 命令、参数、用途与权限节点
+---
+
+Symphony 的命令分为配置管理、属性查询、物品工坊、伤害测试和运行诊断。输入 `/sym` 查看根命令提示，输入 `/sym menu` 查看所有界面入口；玩家可见的命令说明与回复均可在 `language.yml` 中修改。
+
+## 配置管理
+
+| 命令              | 权限                          | 作用                                |
+|-----------------|-----------------------------|-----------------------------------|
+| `/sym validate` | `symphony.command.validate` | 检查配置，但不应用修改                       |
+| `/sym reload`   | `symphony.command.reload`   | 重载定义、脚本、语言、显示格式、GUI 与 Overture 物品 |
+
+## 属性
+
+```text
+/sym attr get <玩家> <属性>
+/sym attr explain <玩家> <属性>
+/sym attr set <玩家> <属性> <值> [运算] [来源]
+/sym attr remove <玩家> <属性> [来源]
+```
+
+对应权限分别为：
+
+- `symphony.command.attr.get`
+- `symphony.command.attr.explain`
+- `symphony.command.attr.set`
+- `symphony.command.attr.remove`
+
+运算补全为 `add`、`multiply_base` 和 `multiply_total`。写入来源 namespace 为 `command`，删除时必须使用相同来源值。
+
+## 外部等级
+
+```text
+/sym player level <玩家>
+/sym player refresh <玩家>
+```
+
+权限为 `symphony.command.player.level` 与 `symphony.command.player.refresh`。两者只读取外部 `LevelProvider`；refresh 会重新读取等级，并在数据变化时触发事件。这里没有增加经验、设置等级或修改角色的命令。
+
+## 物品与工坊
+
+```text
+/sym item inspect [玩家]
+/sym menu affix
+/sym menu socket
+/sym menu unsocket
+/sym menu enhance
+```
+
+`/sym item inspect` 使用 `symphony.command.item.inspect`，只输出汇总。修改物品必须走工坊 GUI；普通原版物品、不含能力的 Overture 物品和损坏数据只返回“物品不符合要求”。
+
+每个工坊都是独立入口，需要同名命令权限和页面权限。例如 `/sym menu affix` 需要 `symphony.command.menu.affix` 与 `symphony.gui.affix`。开放完整物品编辑功能时，需要：
+
+- `symphony.command.menu.affix`
+- `symphony.command.menu.socket`
+- `symphony.command.menu.unsocket`
+- `symphony.command.menu.enhance`
+- `symphony.gui.affix`
+- `symphony.gui.socket`
+- `symphony.gui.unsocket`
+- `symphony.gui.enhance`
+
+工坊确认权限：
+
+- `symphony.gui.transaction.affix`
+- `symphony.gui.transaction.socket`
+- `symphony.gui.transaction.unsocket`
+- `symphony.gui.transaction.enhancement`
+
+每次修改都会重新检查权限、目标槽、材料、保护道具、输出槽容量和物品规则。
+
+## 回调
+
+```text
+/sym callback list
+/sym callback failures
+/sym callback enable <回调ID>
+/sym callback disable <回调ID>
+```
+
+权限分别为 `symphony.command.callback.list`、`failures`、`enable` 和 `disable`。回调 ID 与最近异常属于管理诊断，不建议授予普通玩家。
+
+## 伤害与调试
+
+```text
+/sym damage test <玩家> <非负数值> [通道]
+/sym debug entity [玩家]
+/sym debug transaction [玩家]
+/sym debug cache
+```
+
+权限为：
+
+- `symphony.command.damage.test`
+- `symphony.command.debug.entity`
+- `symphony.command.debug.transaction`
+- `symphony.command.debug.cache`
+
+damage test 会真实扣血并发布事件，只应在测试环境或明确授权时使用。
+
+## GUI
+
+```text
+/sym menu
+/sym menu attributes [玩家]
+/sym menu detail <属性>
+/sym menu affix
+/sym menu socket
+/sym menu unsocket
+/sym menu enhance
+/sym menu admin [玩家]
+```
+
+不带参数的 `/sym menu` 会列出上述子命令及其界面用途。有效别名为：
+
+```text
+attributes detail affix socket unsocket enhance admin
+```
+
+每个界面需要 `symphony.command.menu.<别名>` 和 `symphony.gui.<别名>`。只有 attributes 与 admin 接受可选玩家参数；查看其他玩家还需要 `symphony.gui.others`。管理诊断内容额外要求 `symphony.gui.admin`。
+
+`/sym menu` 只能由玩家执行。控制台执行时应得到正常的发送者类型提示，不应出现命令补全异常。
+
+## 建议授权
+
+普通玩家只获得需要开放的 menu 和工坊权限。属性写入、测试伤害、回调开关与 debug 属于管理能力。正式服不能只因为 GUI 没有按钮就忽略对应权限。

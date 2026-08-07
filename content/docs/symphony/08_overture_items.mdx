@@ -1,0 +1,126 @@
+---
+title: Overture 物品配置
+description: 配置属性、技能、类别槽位、套装和动态 Lore
+---
+
+Symphony 的物品能力直接写在 Overture 物品配置中。`symphony:*` 组件决定物品具有什么功能，动态标签决定这些内容出现在名称和 Lore 的什么位置。词条、宝石和强化结果由 Overture 保存在物品 NBT 中。
+
+## 完整组件示例
+
+```yaml
+prismatic_blade:
+  display: symphony_endgame
+  icon: NETHERITE_SWORD
+  name:
+    item_name: '&d棱彩长刃'
+  meta:
+    unique: true
+    shiny: true
+  components:
+    symphony:attributes:
+      physical_damage:
+        operation: add
+        value: 32
+        description: 棱彩长刃基础伤害
+      critical_chance:
+        operation: add
+        value: 12%
+      fire_damage:
+        operation: multiply_total
+        value: 30%
+    symphony:skills:
+      prismatic_burst:
+        level: 3
+    symphony:offhand:
+      enabled: false
+    symphony:sockets:
+      max-extra-slots: 3
+      slots:
+        - accepts:
+            - offense
+            - fire
+            - ice
+            - lightning
+          unlock-at-enhancement: 0
+        - accepts:
+            - fire
+            - ice
+          unlock-at-enhancement: 3
+        - accepts:
+            - '*'
+          unlock-at-enhancement: 10
+    symphony:set:
+      id: elemental_vanguard
+      piece: main_hand
+      amount: 1
+```
+
+### `symphony:attributes`
+
+每个 key 必须引用已加载属性。字段如下：
+
+- `operation`：`add`、`multiply_base` 或 `multiply_total`，默认 `add`。
+- `value`：有限数字或百分比。
+- `priority`：可选整数，默认 0。
+- `description`：可选来源说明，用于属性解释。
+
+### `symphony:skills`
+
+每个 key 引用 `skills/*.yml` 中的技能。唯一配置参数 `level`；等级必须位于 1 到技能定义的 `max-level`。技能随这一个物品来源生效，同技能可由多个来源分别计算冷却。
+
+### `symphony:sockets`
+
+`slots` 明确描述每一个基础槽位：
+
+- `accepts` 可写一个类别、多个类别，或只写 `'*'` 表示通用槽位。
+- `unlock-at-enhancement` 为 0 时初始可用，否则达到指定强化等级后可用。
+- `max-extra-slots` 限制打孔器可追加的槽位数，不包含基础槽位。
+
+类别是小写 ID。玩家可见名称从 `language.yml` 的 `socket-categories` 读取，未知类别只显示为“自定义类别”，不会把内部 ID 直接展示给玩家。
+
+### `symphony:set`
+
+`id` 引用套装定义，`piece` 必须出现在套装的 `display.pieces` 中。`amount` 默认 1，范围 1 到 64。相同物品实例在多个来源中默认只计一次，防止重复注入同一件物品刷套装计数。
+
+### `symphony:offhand`
+
+这个组件只约束物品进入自动副手槽时的行为，不影响主手、护甲或 `replaceSourceFromItem` 注入的外部来源。
+
+```yaml
+components:
+  symphony:offhand:
+    enabled: true
+    attribute-scale: 50%
+```
+
+`enabled` 决定物品能否放在副手生效；`attribute-scale` 是 `item-controlled` 模式使用的属性比例，范围为 0% 至 100%。四种全局副手模式及套装、技能的处理方式见[副手设置](/docs/symphony/04_attribute_sources#副手设置)。
+
+## 物品实例数据
+
+Overture 负责保存和重建物品。Symphony 使用 NBT 路径 `symphony.instance` 保存实例 UUID、revision、词条、宝石、额外孔位和强化结果。
+
+刚按配置生成的物品可以没有实例 UUID。第一次成功添加词条、镶嵌、打孔或强化时才会创建实例数据；仅查看物品不会写入。外部装备槽如何加入 ItemStack，见[外部 ItemStack](/docs/symphony/04_attribute_sources#外部-itemstack)。
+
+## 动态显示标签
+
+Overture display 中可用：
+
+```yaml
+symphony_endgame:
+  name: '<item_name> <symphony:enhancement>'
+  lore:
+    - '<item_desc...>'
+    - ''
+    - '<symphony:attributes...>'
+    - '<symphony:affixes...>'
+    - '<symphony:skills...>'
+    - '<symphony:offhand...>'
+    - '<symphony:sockets...>'
+    - '<symphony:set...>'
+```
+
+标签只决定插入位置。每一行的颜色、前缀和排版由 `display.yml` 决定，完整写法见[语言与物品显示格式](/docs/symphony/14_language_display)。
+
+## 配置检查
+
+Overture 加载物品时会检查 Symphony 组件。未知属性、未知技能、未知套装部位、非法类别或超出范围的等级都会阻止该物品加载，并在控制台给出具体位置。

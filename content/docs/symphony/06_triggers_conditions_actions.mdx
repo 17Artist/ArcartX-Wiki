@@ -1,0 +1,126 @@
+---
+title: 触发器、条件与 Action
+description: 用结构化 YAML 组合战斗、物品、等级、状态与视觉行为
+---
+
+一个结构化回调由三部分组成：`trigger` 决定何时开始，`conditions` 决定是否继续，`actions` 决定执行什么。先从本页选择所需内容，再到[回调与 Aria 脚本](/docs/symphony/07_callbacks_scripts)组合完整配置。能用条件与 Action 表达的玩法不需要编写脚本。
+
+## 内置触发器
+
+### 属性与战斗
+
+- `attribute.calculate`
+- `combat.attack_prepare`、`combat.attack_confirmed`
+- `combat.melee`、`combat.ranged`、`combat.critical`
+- `combat.damage_dealt`、`combat.damage_taken`、`combat.damage_confirmed`
+- `combat.block_confirmed`、`combat.dodge`
+- `combat.kill`、`combat.death`、`combat.low_health`
+- `combat.enter`、`combat.leave`
+
+### 实体、物品与玩家
+
+- `entity.move`、`entity.jump`、`entity.sneak`、`entity.sprint`、`entity.timer`
+- `item.interact`、`item.left_click`、`item.right_click`
+- `item.equip`、`item.unequip`、`item.held_change`、`item.consume`、`item.damage`
+- `player.join`、`player.quit`、`player.respawn`、`player.level_up`
+- `skill.cast`、`skill.hit`、`status.tick`
+
+`player.level_up` 只会在外部等级数据刷新且等级上升时触发。
+
+## 条件
+
+| type          | 主要字段                                    | 说明           |
+|---------------|-----------------------------------------|--------------|
+| `chance`      | `value`                                 | 0 到 1 的概率    |
+| `cooldown`    | `key`、`duration-ms`                     | 条件成功后开始冷却    |
+| `health`      | `target`、`operator`、`value`、`percent`   | 比较当前生命或比例    |
+| `level`       | `target`、`operator`、`value`             | 读取外部等级       |
+| `world`       | `names`                                 | 比较 self 所在世界 |
+| `biome`       | `names`、`target`                        | 比较目标群系       |
+| `permission`  | `permission`、`target`                   | 检查玩家权限       |
+| `attribute`   | `attribute`、`operator`、`value`、`target` | 读取最终属性值      |
+| `target_type` | `entity-types`                          | 比较目标实体类型     |
+| `posture`     | `value`                                 | 读取兼容层提供的姿态   |
+| `equipment`   | `slot`、`item` 或 `tag`                   | 读取本次触发涉及的装备  |
+| `and`、`or`    | `conditions`                            | 组合多个条件       |
+| `not`         | `condition`                             | 反转一个条件       |
+
+支持的比较符为 `>`、`>=`、`<`、`<=`、`==` 和 `!=`。
+
+完整缩进写法：
+
+```yaml
+conditions:
+  - type: and
+    conditions:
+      - type: attribute
+        attribute: arcane_resistance
+        operator: '>='
+        value: 25%
+        target: self
+      - type: level
+        operator: '>='
+        value: 30
+        target: self
+  - type: cooldown
+    key: arcane_notice
+    duration-ms: 2000
+```
+
+冷却条件会先检查，但只有同一个回调的所有条件都成立后才开始计时，避免条件失败却进入冷却。
+
+## Action
+
+| type                 | 主要字段                                         | 说明                   |
+|----------------------|----------------------------------------------|----------------------|
+| `damage`             | `channel`、`amount`、`target`、`allow-critical` | 额外造成一次伤害             |
+| `heal`               | `amount`、`target`                            | 受 `healing_power` 影响 |
+| `attribute_buff`     | 属性、运算、值、持续时间                                 | 创建到期来源               |
+| `permanent_modifier` | 属性、运算、值、key                                  | 创建无到期时间的内存来源         |
+| `skill`              | `skill`、`target`                             | 施放当前物品来源中的技能         |
+| `potion`             | 效果、时长、等级、目标                                  | 添加 Bukkit 药水效果       |
+| `particle`           | 粒子、数量、偏移、目标                                  | 播放粒子                 |
+| `sound`              | 声音、音量、音调、目标                                  | 播放声音                 |
+| `message`            | `message`、`target`                           | 发送用户配置的文本            |
+| `command`            | `command`、`as`                               | 由控制台或 self 执行命令      |
+| `shield`             | `amount`、`mode`、`target`                     | 增加或设置护盾              |
+| `status`             | 状态、层数、时长、目标                                  | 应用状态                 |
+
+`damage` 的 `amount-per-stack` 和 `heal` 的同名字段可以读取当前状态层数。目标支持 `self`、`caster`、`target`、`attacker` 和 `victim`；本次触发没有对应实体时，该动作不会凭空补出目标。
+
+## 复杂战斗示例
+
+```yaml
+callbacks:
+  arcane_counter:
+    trigger: combat.damage_taken
+    priority: 50
+    conditions:
+      - type: attribute
+        attribute: arcane_resistance
+        operator: '>='
+        value: 25%
+        target: self
+      - type: cooldown
+        key: arcane_counter
+        duration-ms: 3000
+    actions:
+      - type: shield
+        amount: 20
+        mode: add
+        target: self
+      - type: damage
+        channel: arcane
+        amount: 12
+        target: attacker
+        allow-critical: false
+      - type: sound
+        sound: block.amethyst_block.resonate
+        volume: 0.8
+        pitch: 1.2
+        target: self
+```
+
+Action 造成的伤害会记录触发它的上一笔伤害，并受 `max-transaction-depth` 限制。不要配置会无限互相触发的反伤。
+
+`permanent_modifier` 的“永久”只表示没有过期时间，来源仍只存在于当前进程。若重启后仍要存在，负责该玩法的附属插件应重新建立来源。

@@ -1,0 +1,146 @@
+---
+title: 属性模型与计算顺序
+description: 配置属性、运算方式、取值范围和显示格式
+---
+
+属性是 Symphony 各项玩法共用的数值基础。装备、套装、状态、环境和外部插件可以添加 Modifier，Symphony 会按固定顺序计算出实体的当前属性。外部等级若要影响属性，可由附属插件注册 AttributeProvider。
+
+## 定义一个属性
+
+属性文件放在 `plugins/Symphony/attributes/`。一个文件可以定义多个属性，但同一个完整 ID 只能出现一次。
+
+```yaml
+schema: 1
+attributes:
+  arcane_resistance:
+    name: 奥术抗性
+    description: 减少 arcane 通道造成的伤害
+    category: custom_damage
+    base: 0
+    bounds:
+      min: 0
+      max: 1
+    format: percent
+    rounding: 2
+    priority: 101
+```
+
+省略命名空间时，`arcane_resistance` 会规范为 `symphony:arcane_resistance`。自定义命名空间可以避免附属插件之间重名，例如 `myplugin:rage`。
+
+| 字段               | 含义                                                             |
+|------------------|----------------------------------------------------------------|
+| `name`           | 玩家界面和诊断结果中显示的名称，必填                                             |
+| `description`    | 对属性用途的解释，不参与运算                                                 |
+| `category`       | 属性浏览器中的分组；未知分类会使用语言文件中的兜底名称                                    |
+| `base`           | 没有任何来源时的计算起点                                                   |
+| `bounds.min/max` | 回调执行后应用的最终范围限制                                                 |
+| `format`         | `number`、`integer` 或 `percent`，只影响输入百分号和显示                     |
+| `rounding`       | 最终值保留的小数位，范围 `0..12`，使用四舍五入                                    |
+| `priority`       | 属性浏览器与属性 Lore 的显示顺序，数字小的靠前；不是 modifier 的执行优先级                  |
+| `depends_on`     | 此属性计算前必须已经得到结果的属性列表                                            |
+| `callbacks`      | 只属于此属性的回调，详见[回调与 Aria 脚本](/docs/symphony/07_callbacks_scripts) |
+
+## 三种 modifier 运算
+
+假设属性基础值是 `100`，来源提供下面三个 modifier：
+
+```yaml
+first:
+  operation: add
+  value: 20
+second:
+  operation: multiply_base
+  value: 10%
+third:
+  operation: multiply_total
+  value: 50%
+```
+
+计算阶段固定不变：
+
+```mermaid
+flowchart LR
+    A["基础值 100"] --> B["ADD +20"]
+    B --> C["当前值 120"]
+    C --> D["MULTIPLY_BASE<br/>增加 100 × 10%"]
+    D --> E["当前值 130"]
+    E --> F["MULTIPLY_TOTAL<br/>乘以 1 + 50%"]
+    F --> G["标准值 195"]
+    G --> H["calculate 回调"]
+    H --> I["bounds 与 rounding"]
+```
+
+同一阶段内按照 modifier `priority`、来源命名空间、来源值和 modifier ID 排序。因此配置相同、来源插入顺序不同，也会得到稳定结果。
+
+`MULTIPLY_BASE` 始终以定义中的基础值为准；两个 `10%` 会分别增加 `base × 0.10`。`MULTIPLY_TOTAL` 则连续影响当时的总值。
+
+## 百分号与显示
+
+`25%` 在所有支持百分比的数值位置中表示 `0.25`。`format: percent` 只负责把内部的 `0.25` 显示成 `25%`，不会把裸数字 `25` 自动缩小一百倍。
+
+```yaml
+base: 0.25       # 内部值 0.25，显示 25%
+```
+
+```yaml
+base: 25%        # 与上面相同
+```
+
+```yaml
+base: 25         # 内部值 25，显示 2500%，通常不是想要的结果
+```
+
+## 依赖属性与派生值
+
+需要读取其它属性时，应在 `depends_on` 中显式声明。加载器会据此建立有向图，先计算依赖，再计算当前属性；出现未知依赖或循环依赖时，本次配置无法加载。
+
+```yaml
+combat_power:
+  name: 战斗力
+  category: resource
+  base: 0
+  format: integer
+  depends_on:
+    - physical_damage
+    - physical_defense
+    - max_health
+  callbacks:
+    calculate:
+      trigger: attribute.calculate
+      script: |-
+        return self.getAttribute("physical_damage") * 2 +
+          self.getAttribute("physical_defense") +
+          self.getAttribute("max_health") * 0.1
+```
+
+`attribute.calculate` 得到的是标准 modifier 运算后的值。回调返回值随后才会经过 `bounds` 和 `rounding`。多个计算回调按 priority、定义 ID、回调 ID 执行，最后一个非空有限数字成为计算值。
+
+## 哪些属性会被核心系统直接使用
+
+定义一个属性并不等于服务器会自动产生对应玩法。当前核心运行时直接读取的主要属性如下：
+
+| 系统       | 直接读取的属性                                                             |
+|----------|---------------------------------------------------------------------|
+| 普通攻击     | `physical_damage`                                                   |
+| 物理减伤     | `physical_defense`、`penetration`、`flat_penetration`                 |
+| 暴击、命中与闪避 | `critical_chance`、`critical_damage`、`accuracy`、`dodge`              |
+| 通用防御     | `damage_reduction`、`block_chance`、`block_power`、`shield_capacity`   |
+| 伤害后效果    | `lifesteal`、`thorns`                                                |
+| 恢复       | `health_regen`、`healing_power`                                      |
+| 原版属性桥接   | `max_health`、`movement_speed`、`attack_speed`、`knockback_resistance` |
+| 伤害通道     | 通道定义引用的 damage、resistance、amplification 属性                          |
+
+`magic_damage`、`magic_defense`、`elemental_mastery`、`jump_height`、`fly_speed`、`exp_bonus`、`drop_bonus`、`combat_power` 等默认属性可以供回调、API或附属插件读取。要让它们影响实际玩法，还需要在对应回调或外部系统中配置具体效果。
+
+## 查看一次真实计算
+
+使用 `/sym attr explain <玩家> <属性>`，或打开 `explain` 界面，可以看到：
+
+- 定义基础值；
+- 每个来源的运算类型和运算前后值；
+- modifier 聚合后的标准值；
+- calculate 回调后的值；
+- 应用 `bounds` 后的值；
+- 舍入与格式化结果。
+
+排查“属性没有生效”时，应先确认装备或效果是否已被读取，再确认对应玩法是否使用了这个属性，不要只观察物品 Lore。

@@ -1,0 +1,111 @@
+---
+title: 接入现有等级系统
+description: 让其它插件向 Symphony 提供等级和经验数据
+---
+
+Symphony 不提供玩家等级，而是通过 `LevelProvider` 读取服务器现有等级插件的数据。读取到的等级和经验可以用于属性条件、战力、界面与 PlaceholderAPI。
+
+可运行的简单实现见 [GitHub：`example/level-provider`](https://github.com/ArcartX/Symphony/tree/main/example/level-provider)。该插件演示注册、刷新和注销 `LevelProvider`，自身只维护一套基础等级数据。
+
+## 返回内容
+
+`LevelProvider.snapshot` 返回 `ProvidedLevel`：
+
+```kotlin
+data class ProvidedLevel(
+    val level: Int,
+    val experience: Long? = null,
+    val experienceForNextLevel: Long? = null,
+    val characterId: String? = null,
+    val characterName: String? = null,
+    val metadata: Map<String, String> = emptyMap()
+)
+```
+
+| 字段                       | 用途              |
+|--------------------------|-----------------|
+| `level`                  | 当前等级，不能小于 0     |
+| `experience`             | 当前经验，可省略        |
+| `experienceForNextLevel` | 升到下一级所需经验，可省略   |
+| `characterId`            | 角色或存档的稳定 ID，可省略 |
+| `characterName`          | 界面中可显示的角色名称，可省略 |
+| `metadata`               | 附属插件需要的其它只读数据   |
+
+Symphony 不会根据等级推算经验，也不会自动修改这些数据。
+
+## 注册 LevelProvider
+
+下面的实现从现有服务读取玩家等级：
+
+```kotlin
+class ServerLevelProvider(
+    private val plugin: JavaPlugin,
+    private val levels: LevelService
+) : LevelProvider {
+    override val id = NamespacedKey(plugin, "server-level")
+    override val displayName = "服务器等级"
+
+    override fun snapshot(entity: LivingEntity): ProvidedLevel? {
+        val player = entity as? Player ?: return null
+        val data = levels.find(player.uniqueId) ?: return null
+        return ProvidedLevel(
+            level = data.level,
+            experience = data.experience,
+            experienceForNextLevel = data.nextLevelExperience
+        )
+    }
+}
+```
+
+在附属插件启用时注册：
+
+```kotlin
+val api = Bukkit.getServicesManager().load(SymphonyApi::class.java)
+    ?: error("属性服务尚未就绪")
+
+val handle = api.levels.registerProvider(
+    owner = this,
+    provider = ServerLevelProvider(this, levelService),
+    priority = 100
+)
+```
+
+`id` 的命名空间必须与注册它的插件一致。同一个 ID 和优先级不能重复注册。插件停用时应关闭返回的 `RegistrationHandle`。
+
+`snapshot` 可能在属性计算、条件判断或打开界面时调用，只应读取已经加载到内存的数据，不要在其中等待数据库或网络请求。
+
+## 同时接入多个等级系统
+
+Symphony 会按优先级从高到低调用 `LevelProvider`。返回 `null` 表示当前实现不负责该实体；第一个返回 `ProvidedLevel` 的实现生效。
+
+例如，全局等级插件可以使用优先级 0，活动插件只在活动世界返回数据并使用更高优先级。这样离开活动世界后，会自动改回全局等级。
+
+## 等级变化后刷新
+
+升级、切换角色或重新载入资料后，应在 Bukkit 主线程调用：
+
+```kotlin
+api.levels.refresh(player, "level-change")
+```
+
+数据变化时，Symphony 会触发 `LevelChangeEvent`，重新计算依赖等级的属性；新等级高于旧等级时，还会触发 `player.level_up`。事件中的 `previous` 或 `current` 可能为 `null`，表示变化前或变化后没有可用等级数据。
+
+## 在配置中检查等级
+
+```yaml
+conditions:
+  - type: level
+    target: self
+    operator: '>='
+    value: 30
+```
+
+没有 `LevelProvider` 返回数据时，等级条件不成立。
+
+## 命令与 PlaceholderAPI
+
+- `/sym player level <玩家>` 查看当前等级数据；
+- `/sym player refresh <玩家>` 重新读取一次；
+- `%symphony_level%`、`%symphony_experience%`、`%symphony_level_provider%`、`%symphony_character_id%` 和 `%symphony_character_name%` 读取对应字段。
+
+这些入口只负责读取。升级、经验变化和存档仍由原来的等级插件处理。

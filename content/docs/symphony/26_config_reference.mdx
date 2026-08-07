@@ -1,0 +1,183 @@
+---
+title: 配置、目录与重载
+description: 主配置、玩法目录、YAML 规则和重载命令
+---
+
+## `config.yml`
+
+```yaml
+schema: 2
+
+combat:
+  enabled: true
+  minimum-damage: 0.0
+  confirmation-delay-ticks: 1
+  max-transaction-depth: 8
+  environmental-causes:
+    FIRE: fire
+    FIRE_TICK: fire
+
+scripts:
+  java-interop: unrestricted
+  slow-callback-warning-ms: 5
+  failure-window-seconds: 60
+  disable-after-failures: 5
+
+performance:
+  equipment-coalesce-ticks: 1
+  timer-bucket-ticks: 20
+  cache-idle-seconds: 300
+
+equipment:
+  offhand:
+    mode: full
+    attribute-scale: 50%
+  coalesce-ticks: 1
+
+compatibility:
+  epic-fight:
+    enabled: false
+    post-world-grace-ms: 4000
+    stuck-inaction-ms: 6000
+    fallback-poll-ticks: 1
+
+features:
+  affixes: true
+  skills: true
+  gems: true
+  sockets: true
+  enhancement: true
+  interactions: true
+  elements: true
+  resonances: true
+  talents: true
+  statuses: true
+  environments: true
+```
+
+### 战斗
+
+- `minimum-damage` 只在结算仍大于 0 时应用；完全免疫仍保持 0。
+- `confirmation-delay-ticks` 控制伤害确认后的副作用延迟。
+- `max-transaction-depth` 限制反伤、回调伤害动作和技能连续产生子伤害的深度。
+- `environmental-causes` 将 Bukkit 的伤害原因（`DamageCause`）映射到伤害通道；未映射的环境伤害默认不进入 Symphony 结算。
+
+### 脚本与性能
+
+- 配置文件必须视为可信代码。
+- 慢回调阈值只记录警告；失败窗口和次数控制回调熔断。
+- 装备变更合并功能会汇总同一游戏刻内的多次栏位变动。
+- 定时任务分桶限制 `entity.timer` 的扫描频率。
+- 空闲缓存超时不会替代退出清理。
+
+### 装备与功能开关
+
+副手使用 `equipment.offhand` 控制，默认 `full`，即允许副手并读取全部数值属性。四种模式如下：
+
+| `mode`            | 是否要求物品声明                      | 数值属性比例                    | 套装、词条回调与物品技能      |
+|-------------------|-------------------------------|---------------------------|-------------------|
+| `disabled`        | 不读取                           | 0%                        | 整个副手来源关闭          |
+| `full`            | 不要求；物品显式 `enabled: false` 时拒绝 | 100%                      | 副手来源完整生效          |
+| `scaled`          | 不要求；物品显式 `enabled: false` 时拒绝 | 使用全局 `attribute-scale`    | 离散能力完整生效，仅缩放属性修改值 |
+| `item-controlled` | 必须显式 `enabled: true`          | 使用物品自己的 `attribute-scale` | 允许后离散能力完整生效       |
+
+`attribute-scale` 可写 `0.5` 或 `50%`，范围为 0% 至 100%。它只缩放副手来源里的属性修改值；套装件数、技能存在性、词条与宝石功能不会被拆成“半个”。物品级写法见 [Overture 物品配置](/docs/symphony/08_overture_items)。通过 API 加入的额外物品来源不受自动副手模式影响。
+
+关闭某项功能会停止对应运行时或拒绝写操作，但不会主动删除 Overture 物品中的 NBT。重新启用并重扫来源后，原有实例可再次生效。
+
+战力使用独立的 `combat-power.yml` 定义公式、取值限制、舍入和显示格式，可随玩法定义一起热重载。完整语法见[战力计算](/docs/symphony/20_combat_power)。等级与经验则通过 [LevelProvider](/docs/symphony/21_level_providers) 读取。
+
+## 数据目录
+
+| 路径                            | 内容                      |
+|-------------------------------|-------------------------|
+| `combat-power.yml`            | 战力开关、计算公式、取值限制与显示格式     |
+| `attributes/*.yml`            | 属性、范围、格式、依赖与回调          |
+| `damage/*.yml`                | 伤害通道和物理防御公式             |
+| `affixes/*.yml`               | 词条等级、参数、玩家效果说明、被动与回调    |
+| `affix-pools/*.yml`           | 词条池适用范围、权重与成本           |
+| `items/gems/*.yml`            | 宝石类别和各等级的属性修改           |
+| `items/socket-tools/*.yml`    | 打孔器 Overture ID 与槽位类别   |
+| `items/socket-removal.yml`    | 宝石拆卸道具及单次消耗数量           |
+| `items/sets/*.yml`            | 套装显示、部位、计数与档位           |
+| `items/enhancement.yml`       | 强化概率、倍率、成本与保护物品         |
+| `skills/*.yml`                | 物品技能说明、玩家触发入口、目标、冷却和执行体 |
+| `advanced/interactions/*.yml` | 属性联动                    |
+| `advanced/reactions/*.yml`    | 元素反应                    |
+| `advanced/resonances/*.yml`   | 共鸣                      |
+| `advanced/talents/*.yml`      | 天赋                      |
+| `advanced/statuses/*.yml`     | 状态                      |
+| `advanced/environments/*.yml` | 环境规则                    |
+| `language.yml`                | 玩家界面、命令、日志和组件诊断文字       |
+| `display.yml`                 | Overture 动态标签行格式        |
+| `gui/*.yml`                   | 界面布局与标题所用的语言项           |
+
+## 配置编写 skill
+
+仓库提供开源的 [Symphony 配置编写 skill](https://github.com/17Artist/Symphony/tree/main/ai/skill/write-symphony-config)。它面向能够读取本地工程的 AI 代理，包含 Symphony 与 Overture 的目录约定、各类定义的索引、跨文件引用规则、回调边界和生产加载器校验脚本。
+
+代理生成的配置包应使用下面的目录：
+
+```text
+config-pack/
+├─ Symphony/
+│  ├─ attributes/
+│  ├─ damage/
+│  └─ ...
+└─ Overture/
+   ├─ displays/
+   └─ items/
+```
+
+在 Symphony 仓库根目录运行校验：
+
+```powershell
+ai/skill/write-symphony-config/scripts/validate-config-pack.ps1 -PackRoot <配置包目录>
+```
+
+校验脚本会使用当前源码中的严格 YAML 解析、玩法定义加载器和 Overture 组件编解码器，不会把只通过普通 YAML 语法检查的配置误认为可用。真实服务器中的事件触发、物品交互和 Lore 刷新仍需在 Paper 测试服验证。
+
+## 界面布局字段
+
+所有界面都固定为 6 行。`page-slots` 只用于可翻页内容，不得与输入、输出、预览或操作槽重叠。
+
+`gui/affix.yml`、`socket.yml`、`unsocket.yml` 和 `enhance.yml` 支持以下工作槽字段：
+
+| 字段                          | 用途                    |
+|-----------------------------|-----------------------|
+| `target-slot`               | 待修改的单件属性物品            |
+| `material-slot`             | 词条成本、宝石、打孔器、拆卸道具或强化材料 |
+| `downgrade-protection-slot` | 强化保级道具                |
+| `destroy-protection-slot`   | 强化防销毁道具               |
+| `output-slot`               | 镶嵌替换或拆卸产生的宝石          |
+| `preview-slot`              | 当前规则、位置与成本预览          |
+| `confirm-slot`              | 默认操作按钮位置              |
+
+每个界面只使用与自身功能对应的工作槽。当前页面的所有工作槽必须互不重叠，也不能进入 `page-slots`。七个布局文件与页面一一对应，见 [GUI 与物品编辑界面](/docs/symphony/25_gui)。
+
+## 配置结构版本
+
+- 主 `config.yml` 使用 `schema: 2`。
+- 战力、属性、伤害、词条、宝石、套装、强化、技能和高级玩法文件使用 `schema: 1`。
+- `display.yml` 和界面布局使用 `schema: 1`。
+- `language.yml` 不使用数字结构版本，而是严格检查所有必需键名。
+
+## 严格 YAML
+
+加载器限制源码大小、嵌套深度、节点数、列表长度和字符串长度，并拒绝：
+
+- 重复键名；
+- 不支持的值类型；
+- 未声明字段；
+- 不是字符串的映射键；
+- 越界数字和非有限数值；
+- 引用不存在的属性、技能、套装部位或通道。
+
+
+## 校验与重载
+
+`/sym validate` 会检查玩法定义、战力公式、脚本路径、语言、显示格式、界面布局和 Overture 物品配置，但不会应用修改。
+
+`/sym reload` 会进行相同检查，并在全部内容有效时一起应用。任何一项存在错误，服务器都会继续使用重载前的配置。
+
+运行参数发生变化时，`/sym reload` 会拒绝应用并要求重启。因此修改 `config.yml` 后应完整重启；玩法定义、语言、显示格式和界面布局可以热重载。

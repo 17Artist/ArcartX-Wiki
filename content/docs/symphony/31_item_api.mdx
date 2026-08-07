@@ -1,0 +1,99 @@
+---
+title: 物品 API
+description: 检查和重建物品，读取词条并施放物品技能
+---
+
+这一页说明物品实例、物品技能和词条接口。把物品登记为实体属性来源时，使用[属性来源 API](/docs/symphony/30_source_api)。
+
+## 物品检查与重建
+
+```kotlin
+val inspection = api.items.inspect(itemStack)
+
+if (!inspection.supportsWorkshops) {
+    player.sendMessage("这个物品不能在工坊中使用")
+    return
+}
+```
+
+`ItemInspection` 是一次解析后的不可变结果：
+
+| 字段                                       | 内容                              |
+|------------------------------------------|---------------------------------|
+| `overtureItemId`、`instanceId`            | Overture 定义 ID 与 Symphony 实例 ID |
+| `attributes`、`setIds`                    | 物品自带属性与套装归属                     |
+| `affixes`、`gems`、`skills`                | 词条、宝石和物品技能                      |
+| `sockets`                                | 槽位数量、类别、解锁条件和已镶嵌宝石              |
+| `enhancementLevel`                       | 当前强化等级                          |
+| `offhandAllowed`、`offhandAttributeScale` | 物品自己的副手限制                       |
+| `diagnostics`                            | 配置或实例解析时发现的问题                   |
+
+常用判断：
+
+- `isOvertureItem`：能够识别 Overture 物品定义；
+- `isSymphonyItem`：物品携带至少一种 Symphony 数据；
+- `supportsWorkshops`：物品可以进入词条、镶嵌或强化工坊。
+
+读取预览不会创建实例 ID。首次成功修改物品时，工坊才会建立实例身份和修订号。
+
+物品配置或显示内容变化后，可以重建物品：
+
+```kotlin
+when (val result = api.items.rebuild(itemStack, player)) {
+    is ItemMutationOutcome.Success -> player.inventory.setItemInMainHand(result.itemStack)
+    is ItemMutationOutcome.Failure -> plugin.logger.warning(result.reason)
+}
+```
+
+`rebuild` 返回新的 `ItemStack`。调用方必须把成功结果放回原来的背包、容器或外部存储位置。
+
+## 物品技能
+
+列出角色当前装备提供的技能：
+
+```kotlin
+for (skill in api.skills.inspect(player)) {
+    player.sendMessage("${skill.name}：冷却 ${skill.remainingCooldownMillis} ms")
+}
+```
+
+使用技能 ID 施放：
+
+```kotlin
+val success = api.skills.cast(
+    caster = player,
+    skill = NamespacedKey("symphony", "arcane_burst"),
+    target = target
+)
+```
+
+同一技能由多件物品提供时，可以指定来源：
+
+```kotlin
+api.skills.cast(
+    caster = player,
+    source = AttributeSourceKey("equipment", "main_hand"),
+    skill = NamespacedKey("symphony", "arcane_burst"),
+    target = target
+)
+```
+
+返回 `false` 表示没有找到可用技能，或目标、距离、冷却、等级门槛等条件没有通过。技能的输入绑定与正常施放方式见[物品技能](/docs/symphony/13_item_skills)。
+
+## 词条
+
+```kotlin
+val affixes = api.affixes.activeAffixes(player)
+
+for (affix in affixes) {
+    plugin.logger.info("${affix.id} Lv.${affix.level} ${affix.parameters}")
+}
+```
+
+`knownAffixes()` 返回已经加载的词条 ID；`activeAffixes(entity)` 返回角色当前属性来源中实际生效的词条及其等级和参数。词条定义与触发方式见[词条](/docs/symphony/10_affixes)。
+
+## 线程要求
+
+物品检查、重建、技能与所有接收 `LivingEntity` 的查询应在合法的 Bukkit 实体线程调用。
+
+等级、战力、套装、状态和被动效果的读取方式见[角色数据 API](/docs/symphony/32_character_api)。

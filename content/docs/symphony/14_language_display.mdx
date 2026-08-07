@@ -1,0 +1,123 @@
+---
+title: 语言与物品显示格式
+description: 配置插件文字、GUI 布局与 Overture Lore 行格式
+---
+
+Symphony 将“说什么”和“放在哪里”分成三份配置：
+
+- `language.yml`：命令、GUI、工坊、日志、来源名称、类别名称和组件诊断。
+- `display.yml`：Overture 动态标签生成的每一行。
+- `gui/*.yml`：界面槽位、图标、分页位置和标题 language key。
+
+## `language.yml`
+
+所有插件自带输出都应从语言 key 读取，包括：
+
+- 玩家命令回复和权限提示；
+- GUI 标题、按钮、状态和说明；
+- 工坊成功、失败和物品恢复提示；
+- 插件启停与兼容日志；
+- Overture 组件解析错误；
+- 套装、宝石类别、来源类型和枚举名称。
+
+用户在回调中自己配置的 `message` action 或脚本 `self.sendMessage(...)` 属于玩法内容，由对应 YAML 作者负责，不会被语言文件替换。
+
+重载时会检查语言文件。缺少必要 key 或结构错误时，会继续使用重载前的内容。
+
+### 自定义类别名称
+
+```yaml
+socket-categories:
+  universal: 通用
+  offense: 攻击
+  defense: 防御
+  fire: 火焰
+  ice: 冰霜
+  lightning: 雷电
+  nature: 自然
+  other: 自定义类别
+```
+
+槽位配置保存稳定 ID，正常 GUI 和 Lore 读取这里的显示名。新增类别时同步增加语言项。
+
+## GUI 标题
+
+布局不直接写标题文本，而是写语言 key：
+
+```yaml
+schema: 1
+title-key: gui.titles.features
+rows: 6
+page-slots:
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+```
+
+这样语言切换不需要复制一份 GUI 布局。
+
+## `display.yml`
+
+默认格式示例：
+
+```yaml
+schema: 1
+
+default:
+  attribute:
+    add: '&7{name} &f{value}'
+    multiply-base: '&7{name} &f基础值增幅 {value}'
+    multiply-total: '&7{name} &f最终值增幅 {value}'
+  affix:
+    line: '&d{name}{level}{locked}'
+    level: ' &7等级 {level}'
+    locked: ' &8[锁定]'
+    description: '&8  {description}'
+  skill:
+    line: '&d{name} &7等级 {level}'
+    description: '&8  {description}'
+    activation: '&7  触发：&f{input} &8({source})'
+  offhand:
+    allowed: '&7副手：&a允许 &8(物品比例 {scale})'
+    denied: '&7副手：&c不可使用'
+  socket:
+    locked: '&8◆ 槽位 {slot} · {categories} · 强化 +{level} 解锁'
+    filled: '&b◆ 槽位 {slot} · {name} &8[{categories}]'
+    empty: '&7◇ 槽位 {slot} · 空 &8[{categories}]'
+  enhancement:
+    level: '&e强化 +{level}'
+    bonus: '&7基础加算属性增幅 &f+{bonus} &8(×{multiplier})'
+  set:
+    title: '&a套装：{name}'
+    piece: '&7部位：{piece}'
+    active: '&a✔ {name} &7({count}/{threshold})'
+    inactive: '&8○ {name} ({count}/{threshold})'
+    unknown: '&7◇ {name}（穿戴后显示进度）'
+    description: '&8  {description}'
+```
+
+乘法属性传入的 `{value}` 是带正负号的百分比增幅。例如配置 `value: 30%` 会显示 `+30%`，不会显示成容易误解的“乘 0.3”。
+
+强化等级存在时，`attribute.add` 接收到的 `{value}` 已经是乘过强化倍率的有效数值；`enhancement.bonus` 的 `{bonus}` 与 `{multiplier}` 则说明倍率本身。`offhand.allowed` 的 `{scale}` 是物品级声明比例，不代表当前服务器模式一定会使用它。词条的 `{description}` 来自词条定义 `display.description` 代入实例参数后的结果；技能的说明与触发方式来自技能定义。它们都属于格式模板，服主可以改颜色、前缀和布局，但不需要在显示文件重复写具体玩法内容。
+
+## 按 Overture display 覆盖
+
+Symphony 从 Overture 的 `RenderEntryContext.displayId` 选择覆盖：
+
+```yaml
+displays:
+  compact:
+    attribute:
+      add: '&f{name} {value}'
+    socket:
+      filled: '&b◆ {name}'
+      empty: '&7◇ 空槽位'
+```
+
+物品使用 `display: compact` 时，只覆盖这里出现的行；其余 key 回退到 `default`。因此不需要为每个物品外观复制整套格式。
+
+模板变量只进行文字替换，不执行脚本。`display.yml` 缺少必需格式时会报告错误，不会把内部 key 直接显示给玩家。

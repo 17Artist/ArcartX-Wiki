@@ -1,0 +1,126 @@
+---
+title: 装备强化
+description: 配置强化概率、材料、保护道具、属性倍率和失败结果
+---
+
+强化规则位于 `items/enhancement.yml`。每次尝试从当前等级前往 `current + 1`，先选择适用规则，再抽取成功、摧毁、降级或保持。
+
+## 配置规则
+
+```yaml
+schema: 1
+levels:
+  1:
+    success: 1
+    downgrade: 0
+    destroy: 0
+    multiplier: 1.05
+    cost:
+      material: LAPIS_LAZULI
+      amount: 1
+  5:
+    success: 0.75
+    downgrade: 0.10
+    destroy: 0
+    multiplier: 1.30
+    cost:
+      material: LAPIS_LAZULI
+      amount: 5
+  10:
+    success: 0.35
+    downgrade: 0.30
+    destroy: 0.05
+    multiplier: 1.80
+    cost:
+      overture-item: refined_crystal
+      amount: 2
+protection-items:
+  prevent-destroy: protection_scroll
+  prevent-downgrade: stabilizer
+```
+
+`success`、`downgrade`、`destroy` 各自位于 `0..1`，三者之和不能超过 1。剩余概率自动成为保持：
+
+```text
+stay = 1 - success - downgrade - destroy
+```
+
+## 稀疏等级规则
+
+目标等级没有精确条目时，使用“不高于目标等级的最高规则”。上例中：
+
+- 目标 +1 到 +4 使用 levels.1；
+- 目标 +5 到 +9 使用 levels.5；
+- 目标 +10 及以后使用 levels.10。
+
+最高一档规则会继续用于之后的强化等级，因此 `levels.10` 并不表示强化上限。需要限制最高等级时，应在开放强化入口前由外部玩法规则进行限制。
+
+## multiplier 如何作用
+
+强化倍率只作用于物品 `symphony:attributes` 中使用 `ADD` 的 Modifier。强化增量为 `基础数值 × (倍率 - 1)`。
+
+例如物品定义提供 `physical_damage ADD 100`，当前规则 multiplier 为 `1.30`，最终来自物品定义层的总 ADD 为 130。
+
+强化成功后，Overture 的 `<symphony:attributes...>` 不再继续显示未强化的 100，而会直接显示有效值 130；`<symphony:enhancement...>` 还会额外显示强化等级和“基础加算属性增幅 +30%（×1.3）”。因此玩家既能看到最终属性，也能知道其中有多少来自强化倍率。
+
+显示和运算使用同一个“目标等级不高于当前等级的最高规则”解析函数。不会发生属性实际按 1.30 计算、Lore 却拿另一个档位倍率的情况。可在 `display.yml` 中分别配置：
+
+```yaml
+default:
+  enhancement:
+    level: '&e强化 +{level}'
+    bonus: '&7基础加算属性增幅 &f+{bonus} &8(×{multiplier})'
+```
+
+`{bonus}` 是相对 1.0 的百分比增益，`{multiplier}` 是最终倍率。属性行本身仍由 `attribute.add` 等模板控制。
+
+以下内容不会再乘一次强化倍率：
+
+- `MULTIPLY_BASE` 和 `MULTIPLY_TOTAL` 的定义 modifier；
+- 随机词条 modifier；
+- 宝石 modifier；
+- 套装档位 modifier；
+- 外部插件额外添加的来源。
+
+这样可以避免词条和宝石既按自身数值成长，又被强化重复放大。
+
+## 四种结果
+
+抽样区间依次为 success → destroy → downgrade → stay：
+
+| 结果        | 物品变化        |
+|-----------|-------------|
+| SUCCESS   | 等级增加 1      |
+| DESTROY   | 目标槽中的物品变为空气 |
+| DOWNGRADE | 等级减 1，最低为 0 |
+| STAY      | 等级不变        |
+
+强化事件 `EnhanceEvent` 在抽样前触发，包含当前等级和目标等级。事件取消时不扣成本和保护材料。
+
+## 成本与保护材料
+
+成本可以是原版 Material 或 Overture item，二选一：
+
+```yaml
+cost:
+  material: LAPIS_LAZULI
+  amount: 10
+```
+
+```yaml
+cost:
+  overture-item: refined_crystal
+  amount: 2
+```
+
+每次尝试只读取材料槽中的一个明确堆叠。材料数量不足时拒绝操作，不扫描玩家背包，也不会把目标物品误当材料。
+
+强化页有两个独立保护槽。保级槽只识别 `prevent-downgrade`，把 DOWNGRADE 结果改为 STAY；防销毁槽只识别 `prevent-destroy`，把 DESTROY 结果改为 STAY。识别成功的道具在一次有效尝试中各消耗 1 个，不论本次随机是否实际落入对应区间。
+
+保护项既可以写原版 Material 名，也可以写 Overture ID。不要让普通装备与保护材料使用同一个可混淆 ID。
+
+## 在界面中强化
+
+强化页需要分别放入目标物品、强化材料、可选保级道具和可选防销毁道具。确认时会重新检查四个槽位；操作失败不会扣除材料或保护道具。
+
+`DESTROY` 是强化规则允许的正常结果，不属于处理失败。四个槽位的位置和通用操作流程见[GUI 与物品编辑界面](/docs/symphony/25_gui#工坊布局)。

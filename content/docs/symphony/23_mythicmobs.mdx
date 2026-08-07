@@ -1,0 +1,143 @@
+---
+title: MythicMobs 怪物属性与技能
+description: 在 MythicMobs 怪物配置中声明 Symphony 属性、等级成长和技能机制
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+安装 MythicMobs 后，可以直接在怪物定义中配置 Symphony 属性与等级成长，也可以在技能中调用 Symphony 的伤害、治疗、临时增益和物品技能机制。
+
+
+## 怪物属性
+
+在 MythicMobs 的 Mob 定义中加入 `Symphony.Attributes`：
+
+```yaml
+ArcaneGuardian:
+  Type: ZOMBIE
+  Display: '&5奥术守卫'
+  Health: 20
+  Damage: 2
+  Symphony:
+    Enabled: true
+    Attributes:
+      max_health:
+        Operation: add
+        Value: 80
+        PerLevel: 10
+        Priority: 100
+        Description: '奥术守卫生命成长'
+      physical_damage:
+        Operation: add
+        Value: 12
+        PerLevel: 2
+      physical_defense:
+        Operation: add
+        Value: 60
+        PerLevel: 5
+      accuracy:
+        Operation: add
+        Value: 10%
+        PerLevel: 2%
+      critical_chance:
+        Operation: add
+        Value: 15%
+      arcane_resistance:
+        Operation: add
+        Value: 40%
+      movement_speed:
+        Operation: multiply_total
+        Value: 10%
+```
+
+属性 ID 是 `Attributes` 下的键。省略命名空间时使用 `symphony:`；附属插件注册的属性应写完整 ID：
+
+```yaml
+      'my_addon:spell_power':
+        Operation: add
+        Value: 30
+```
+
+### 字段
+
+| 字段            | 默认值   | 含义                                       |
+|---------------|-------|------------------------------------------|
+| `Operation`   | `add` | `add`、`multiply_base` 或 `multiply_total` |
+| `Value`       | 必填    | 一级时添加的数值，可写普通数值或百分比                      |
+| `PerLevel`    | `0`   | 每提高一级增加的数值，可写普通数值或百分比                    |
+| `Priority`    | `0`   | 同一属性中各项属性修改的计算优先级                        |
+| `Description` | 无     | 属性详情中可使用的来源说明                            |
+
+`Value` 和 `PerLevel` 中的 `25%` 会解析为内部值 `0.25`。它适合抗性、暴击率和乘算增幅；普通点数属性通常直接写 `25`。
+
+怪物等级成长公式为：
+
+```text
+最终属性修改值 = Value + PerLevel × max(怪物等级 - 1, 0)
+```
+
+例如三级怪物配置 `Value: 80`、`PerLevel: 10`，这条属性修改的数值是 `100`。若 `max_health` 的 Symphony 定义基础值为 20，最终属性为 120。MythicMobs 自己的 `Health`、`Damage` 和 `Armor` 仍属于 MythicMobs 原生字段，不会自动转换为 Symphony 属性。
+
+<Callout type="warn">
+`Symphony.Attributes` 会严格检查字段名、属性 ID、运算、数字与百分比。配置无效时该怪物不会取得这些属性，控制台会显示怪物内部名称和拒绝原因；不会改写成原版护甲或静默使用错误数值。
+</Callout>
+
+## 属性更新与清理
+
+怪物成功生成后，监听器在 `MythicMobSpawnEvent` 的最终阶段读取 Mob 类型配置，并以怪物 UUID 写入独立来源：
+
+```text
+mythicmobs:<entity uuid>
+```
+
+整份来源一次替换，因此重复处理同一实体不会累计多份属性修改。属性生效后会参与属性依赖、回调、战力和原版属性同步；`physical_defense` 仍由 Symphony 的自定义护甲公式结算，不会变成原版护甲。
+
+`MythicMobDeathEvent` 与 `MythicMobDespawnEvent` 会删除该来源。Symphony 停用时会注销 MythicMobs 监听器，对应实体的临时数据也会清理。
+
+## 开关
+
+单个 Mob 可以保留配置但停用：
+
+```yaml
+ArcaneGuardian:
+  Type: ZOMBIE
+  Symphony:
+    Enabled: false
+    Attributes:
+      arcane_resistance:
+        Value: 40%
+```
+
+关闭后该怪物不取得任何 Symphony Mob 配置属性。
+
+
+## Symphony 技能机制
+
+MythicMobs 技能可调用四类 Symphony 技能机制：
+
+```text
+symphonydamage{amount=25;channel=arcane} @target
+symdamage{a=25;c=arcane} @target
+
+symphonyheal{amount=10} @self
+symheal{a=10} @self
+
+symphonybuff{attribute=physical_damage;amount=20;duration=100} @self
+symbuff{attr=physical_damage;a=20;d=100} @self
+
+symphonyskill{skill=symphony:arc_bolt} @target
+symskill{s=symphony:arc_bolt} @target
+```
+
+- `damage` 造成一次 Symphony 伤害，参与伤害通道、抗性、护甲、暴击与伤害事件。
+- `heal` 增加 Bukkit 生命值并限制在当前最大生命内，不读取 `healing_power`。
+- `buff` 使用 `ADD` 运算；`duration` 的单位是游戏刻，最少为 1 游戏刻；到期后删除独立临时来源。
+- `skill` 要求施法者当前物品来源拥有对应技能，并继续执行目标、距离、冷却和事件检查。
+
+## 成品示例与验证
+
+仓库的 [example/mythicmobs](https://github.com/ArcartX/Symphony/tree/main/example/mythicmobs) 提供结构化属性怪物。复制到 MythicMobs 的 `Mobs/` 目录后可生成三级测试怪：
+
+```text
+/mm mobs spawn SymphonyAttributeGuardian:3 1
+```
