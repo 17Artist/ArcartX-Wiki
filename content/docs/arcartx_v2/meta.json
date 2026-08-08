@@ -5,9 +5,7 @@
     "tags": [
         { "label": "部分开源", "color": "#A3E635" },
         { "label": "免费", "color": "#2DD4BF" },
-        { "label": "核心",     "color": "#46D2FF" },
-        { "label": "施工中", "color": "#F59E0B" },
-        { "label": "实验性", "color": "#C084FC" }
+        { "label": "核心",     "color": "#46D2FF" }
     ],
     "root": true,
     "color": "#6495ED",
