@@ -1,0 +1,118 @@
+---
+title: 维护与排错
+description: SystemMail 的备份、重载和常见问题
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 维护与排错
+
+## 日常维护
+
+- 定期备份 SQLite 文件，或对 MySQL 做一致性备份；
+- 修改命令白名单后，先用测试玩家发送并领取一封测试邮件；
+- 跨服环境要监控 MySQL 与 Redis 连接，但资产状态以 MySQL 为准；
+- 处理异常附件前，先核对经济、权限或命令系统的实际流水；
+- 升级后检查控制台是否提示自动补入了新的配置项。
+
+<Callout type="warn">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 SystemMail。需要重启的配置请完整关闭并重新启动服务器。
+</Callout>
+
+## 哪些修改可以重载
+
+```text
+/sma reload
+```
+
+该命令会重新读取可热更新的配置、`lang.yml`、`ui/inbox.yml` 和 `ui/hud.yml`。
+
+修改以下内容时必须完整重启：
+
+- `server-id`；
+- `database`；
+- `redis`；
+- `notifications.inbox-ui-id`；
+- `notifications.hud-ui-id`。
+
+完整规则见[配置](/docs/systemmail/4_configuration#重载与重启)。
+
+## 常见问题
+
+### 插件没有启用
+
+先检查 `plugins/SystemMail/license.yml` 中的 `licenseId` 与 `licenseKey`。授权未填写、格式错误或验证失败时，SystemMail 会保持业务关闭，不会继续连接数据库。
+
+随后检查控制台中的第一条数据库、Redis 或配置错误。后续报错通常只是初始化失败的连带结果。
+
+### MySQL 模式拒绝启动
+
+MySQL 多服模式强制要求：
+
+```yaml
+database:
+  type: mysql
+
+redis:
+  enabled: true
+```
+
+确认所有子服使用相同的 MySQL、Redis database 和 channel，并为每个子服设置唯一的 `server-id`。
+
+### SQLite 模式提示 Redis 配置错误
+
+SQLite 只用于单服，必须设置 `redis.enabled: false`。需要跨服时改用 MySQL + Redis。
+
+### 命令附件无法添加或发送
+
+默认的 `commands.allowed-prefixes: []` 会禁止所有命令附件。加入最小必要前缀后执行 `/sma reload`：
+
+```yaml
+commands:
+  allowed-prefixes:
+    - "lp user "
+    - "points give "
+```
+
+### 修改配置后没有生效
+
+执行 `/sma reload` 并查看返回消息。如果修改了服务器 ID、数据库、Redis 或两个 UI ID，重载会恢复旧值并要求完整重启。
+
+### 修改玩家界面后仍显示旧内容
+
+确认编辑的是：
+
+```text
+plugins/SystemMail/ui/inbox.yml
+plugins/SystemMail/ui/hud.yml
+```
+
+然后执行 `/sma reload`。插件升级和普通启动不会覆盖已经存在的 UI 文件。
+
+### 玩家看不到过期邮件
+
+这是正常行为。过期邮件不会重新出现在列表、搜索、详情、未读数或总页数中。
+
+领取宽限只保护到期前已经成功打开的当前详情，不会延长邮件本身的展示期；切换邮件、关闭界面或退出服务器后也会失效。
+
+### 玩家无法删除邮件
+
+只要邮件还有未领取、处理中或隔离的附件，删除就会返回 `PROTECTED_ATTACHMENTS`。先完成领取，或让管理员处理异常附件。
+
+### 领取返回 `INVENTORY_FULL`
+
+清出足够的背包空槽后再次领取。SystemMail 按整封邮件预检查物品空间。
+
+### 领取返回 `QUARANTINED`
+
+这表示某项货币或命令奖励的执行结果无法自动确认。为防止重复发放，插件会暂停该附件。
+
+拥有 `systemmail.admin.compensate` 的管理员应进入 `/sma gui` → “异常附件”，核对外部系统流水后标记为已发放或未发放。
+
+### Redis 断线会不会丢邮件
+
+不会因为 Redis 通知断线而丢失已经写入 MySQL 的邮件。Redis 只负责低延迟通知；SystemMail 会按 `redis.database-poll-seconds` 从 MySQL 补查在线玩家的新邮件事件。
+
+### 其他插件发送后结果不明确
+
+不要更换 `idempotencyKey` 直接重发。记录异常并使用同一个 key 重试；服务会返回原邮件，或确保只创建一次。

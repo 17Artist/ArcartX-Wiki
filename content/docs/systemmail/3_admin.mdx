@@ -1,0 +1,143 @@
+---
+title: 管理与发信
+description: 管理中心、邮件草稿、附件和权限
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 管理与发信
+
+SystemMail 的管理端使用 Bukkit 原生箱子界面
+
+```text
+/sma gui
+/sma reload
+```
+
+- `/sma gui`：打开管理中心；
+- `/sma reload`：重载配置、语言与玩家邮件界面。
+
+## 权限
+
+| 权限                            | 用途             |
+|-------------------------------|----------------|
+| `systemmail.admin.send`       | 创建、编辑并发送指定玩家邮件 |
+| `systemmail.admin.broadcast`  | 在发送权限基础上允许全服群发 |
+| `systemmail.admin.audit`      | 查看邮件系统审计记录     |
+| `systemmail.admin.compensate` | 核对并处理异常附件      |
+| `systemmail.admin.reload`     | 重载配置、语言与玩家 UI  |
+
+OP 拥有全部管理能力。`broadcast` 不能单独打开管理中心；全服群发仍需要 `send`。
+
+## 发送一封邮件
+
+<Steps>
+
+<Step>
+
+### 创建草稿
+
+打开 `/sma gui`，进入“邮件草稿”，创建一份新草稿。草稿保存在数据库中；跨服模式下，其他子服的管理员也能看到。
+
+</Step>
+
+<Step>
+
+### 填写内容
+
+设置发件人、头像路径、标题和正文，再选择指定玩家或全服收件人。正文支持多行。
+
+</Step>
+
+<Step>
+
+### 添加附件
+
+根据需要添加物品、货币或命令附件。没有附件的通知邮件也可以直接发送。
+
+</Step>
+
+<Step>
+
+### 设置时间
+
+投递延迟可填写 `30m`、`12h`、`7d`，填写 `0`、`now`、`立即` 或 `现在` 表示立即投递。
+
+领取期限使用相同格式；填写 `0`、`never`、`永久` 或 `永不` 表示永不过期。
+
+</Step>
+
+<Step>
+
+### 检查并发送
+
+进入确认页核对收件人、附件、投递时间和领取期限，再 Shift 点击确认发送。发送成功后草稿会保留，可继续修改或用于下一次活动。
+
+</Step>
+
+</Steps>
+
+同一草稿发生超时或失败时，应在确认页沿用已保存的发送记录重试。不要先取消记录再盲目重发，否则会把下一次操作当作一封新邮件。
+
+## 附件格式
+
+### 物品
+
+将物品放入编辑界面即可添加。发送前会检查单件序列化大小、整封邮件的物品总大小和最大物品数量。
+
+### 货币
+
+聊天输入格式：
+
+```text
+货币ID|数量|自定义名称|贴图路径
+```
+
+后两项可以省略。例如：
+
+```text
+Vault|500|金币|mail/currency/coin.png
+PlayerPoints|20|点券
+```
+
+货币 ID 必须与当前 ArcartX 中注册的 `EconomyProvider` 标识一致。
+
+### 命令
+
+聊天输入支持两种格式：
+
+```text
+标题|命令
+标题|贴图路径|命令
+```
+
+例如：
+
+```text
+活动称号|lp user <player> permission set event.title
+每日成就|mail/command/reward.png|advancement grant <player> only example:daily
+```
+
+可用占位符：
+
+- `<player>`：领取玩家名；
+- `<uuid>`：领取玩家 UUID；
+- `<mail_id>`：当前邮件 UUID。
+
+管理界面创建的命令附件由控制台执行。真实命令只保存在服务端，玩家 UI 只会看到标题。
+
+<Callout type="warn">
+命令附件默认关闭。必须先在 `commands.allowed-prefixes` 中加入最小必要前缀，再执行 `/sma reload`。。
+</Callout>
+
+## 审计与异常附件
+
+管理中心的“审计记录”用于查询发送、领取和管理操作。“异常附件”只收录货币或命令等外部奖励中结果无法自动确认的操作。
+
+处理异常附件前，应先核对对应经济、权限或命令系统的流水，再选择：
+
+- **已发放**：确认外部奖励已经到账；
+- **未发放**：确认外部奖励没有执行，可恢复后续处理。
+
+不要只凭玩家口述重新开放领取，这可能造成重复发放。

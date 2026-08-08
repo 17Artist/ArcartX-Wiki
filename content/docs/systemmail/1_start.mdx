@@ -1,0 +1,126 @@
+---
+title: 说明与安装
+description: SystemMail 的用途、安装条件与存储模式
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+SystemMail 是面向 ArcartX 服务器的**系统邮件插件**。管理员和其他插件可以向玩家发送文字、物品、货币或命令奖励；玩家在收件箱中查看并领取。
+
+<Callout type="warn">
+**SystemMail 为 ArcartX 高级会员专属插件。** 使用时需要有效授权，并依赖 ArcartX。
+</Callout>
+
+SystemMail 只处理“系统 → 玩家”邮件，不提供玩家互寄功能。
+
+## 核心能力
+
+| 能力    | 说明                                     |
+|-------|----------------------------------------|
+| 玩家收件箱 | 支持未读、附件筛选、搜索、详情、附件领取和删除                |
+| 管理中心  | 使用箱子界面创建草稿、发送邮件、查询审计和处理异常附件            |
+| 多种附件  | 支持物品、货币和服务端命令                          |
+| 单服与跨服 | 单服使用 SQLite；多服共享 MySQL，并用 Redis 通知在线子服 |
+| 插件接入  | 为其他插件提供异步 Java/Kotlin API              |
+
+## 安装条件
+
+- Java 17+；
+- Minecraft 1.18.2+；
+- ArcartX；
+- SystemMail 有效授权。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 放入插件
+
+将 SystemMail JAR 放入服务端 `plugins/`，然后完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+打开首次生成的 `plugins/SystemMail/license.yml`，填写高级会员的 `licenseId` 与 `licenseKey`，再完整重启。
+
+</Step>
+
+<Step>
+
+### 选择存储模式
+
+单服保留默认 SQLite 配置即可。群组服需要让所有子服连接同一套 MySQL 与 Redis，并为每个子服设置不同的 `server-id`。
+
+</Step>
+
+<Step>
+
+### 检查启动结果
+
+确认控制台没有授权、数据库或界面注册错误，并检查 `plugins/SystemMail/` 已生成：
+
+```text
+config.yml
+lang.yml
+license.yml
+ui/inbox.yml
+ui/hud.yml
+```
+
+</Step>
+
+</Steps>
+
+## 存储模式
+
+### 单服 SQLite
+
+```yaml
+server-id: server-1
+
+database:
+  type: sqlite
+  sqlite-file: system-mail.db
+
+redis:
+  enabled: false
+```
+
+数据库文件位于 `plugins/SystemMail/`。SQLite 模式不能同时启用 Redis。
+
+### 多服 MySQL + Redis
+
+```yaml
+server-id: lobby-1
+
+database:
+  type: mysql
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    database: system_mail
+    username: system_mail
+    password: change-me
+
+redis:
+  enabled: true
+  host: 127.0.0.1
+  port: 6379
+  channel: arcartx:systemmail
+```
+
+所有子服必须使用相同的 MySQL、Redis 数据库与 Redis channel。`server-id` 则必须各不相同，例如 `lobby-1`、`lobby-2`、`game-1`。
+
+<Callout type="info">
+MySQL 保存邮件、附件和领取状态，是跨服模式的数据来源。Redis 只负责快速通知；短暂断线时，SystemMail 会继续从 MySQL 补查新邮件。
+</Callout>
+
+安装完成后，可以继续阅读[玩家收件箱](/docs/systemmail/2_player_inbox)或[管理与发信](/docs/systemmail/3_admin)。

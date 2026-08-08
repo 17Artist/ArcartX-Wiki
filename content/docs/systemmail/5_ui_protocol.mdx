@@ -1,0 +1,269 @@
+---
+title: 玩家 UI 协议
+description: SystemMail 收件箱与新邮件 HUD 的 AXUI 通讯契约
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 玩家 UI 协议
+
+本页用于修改 `ui/inbox.yml`、`ui/hud.yml` 或重做玩家邮件界面。
+
+其他服务端插件要发送邮件时，请使用[公开 API](/docs/systemmail/6_api)。
+
+## 基本规则
+
+- UI 文件目录：`plugins/SystemMail/ui/`；
+- 收件箱默认 ID：`systemmail_inbox`；
+- HUD 默认 ID：`systemmail_hud`；
+- 页码从 `0` 开始，`0` 是最新一页；
+
+```aria
+Packet.send('getlist', 0, '全部', '')
+Packet.send('sel', mailId)
+```
+
+服务端接受的动作：
+
+| 动作          | 参数                     | 用途             |
+|-------------|------------------------|----------------|
+| `getlist`   | `page, filter, search` | 获取邮件列表         |
+| `sel`       | `mailId`               | 获取详情并标记已读      |
+| `getattach` | `mailId`               | 领取整封邮件附件       |
+| `delete`    | `mailId`               | 删除邮件           |
+
+主要服务端 handler：
+
+| handler                    | 内容         |
+|----------------------------|------------|
+| `systemmail_list`          | 邮件列表       |
+| `systemmail_detail`        | 邮件详情       |
+| `systemmail_attach_result` | 领取结果       |
+| `systemmail_delete_result` | 删除结果       |
+| `systemmail_new_mail`      | 新邮件 HUD 数据 |
+| `systemmail_error`         | 通用错误       |
+
+## 邮件列表
+
+```aria
+Packet.send('getlist', page, filter, search)
+```
+
+| 位置 | 类型       | 内容                  |
+|----|----------|---------------------|
+| 0  | `Int`    | 页码，从 `0` 开始         |
+| 1  | `String` | `全部`、`未读` 或 `含附件`   |
+| 2  | `String` | 标题/发件人搜索；`''` 表示不搜索 |
+
+每页数量由 `mail.inbox-page-size` 决定，默认 20。
+
+成功回包使用 `systemmail_list`，内容为 `List<Map>`：
+
+```json
+[
+  {
+    "id": "67c3bf3b-2885-4ea1-b977-94cd1dc53e9e",
+    "title": "维护补偿",
+    "from": "运营中心",
+    "head": "",
+    "texts": "感谢您的耐心等待...",
+    "attach": 3,
+    "time": "2026/07/28",
+    "expired": "1天",
+    "read": false
+  }
+]
+```
+
+| 字段        | 类型        | 内容                              |
+|-----------|-----------|---------------------------------|
+| `id`      | `String`  | 邮件 UUID                         |
+| `title`   | `String`  | 标题                              |
+| `from`    | `String`  | 发件人名称；字段名不是 `form`              |
+| `head`    | `String`  | 头像路径；未设置时为 `""`                 |
+| `texts`   | `String`  | 正文前 15 个 Unicode 字符，超出后追加 `...` |
+| `attach`  | `Int`     | 可领取的附件数量                        |
+| `time`    | `String`  | 投递日期，格式 `yyyy/MM/dd`            |
+| `expired` | `String`  | 剩余时间；永不过期时为 `""`                |
+| `read`    | `Boolean` | 是否已读                            |
+
+无结果时返回 `[]`。`含附件` 只匹配有附件的邮件。
+
+`systemmail_page_count` 是未筛选收件箱的总页数，不代表当前搜索结果的页数。当前回包少于每页数量时可以确定没有下一页；刚好等于每页数量时，应结合该变量或允许用户继续翻页。
+
+## 邮件详情
+
+```aria
+Packet.send('sel', mailId)
+```
+
+成功回包使用 `systemmail_detail`：
+
+```json
+{
+  "id": "67c3bf3b-2885-4ea1-b977-94cd1dc53e9e",
+  "texts": [
+    "完整邮件正文第一行",
+    "",
+    "第三行；中间空字符串代表空行"
+  ],
+  "hasAttachments": true,
+  "claimed": false,
+  "attach": [
+    {
+      "name": "钻石礼包",
+      "type": "item",
+      "content": "物品序列化字符串"
+    },
+    {
+      "name": "金币",
+      "type": "eco",
+      "content": "500 金币",
+      "icon": "mail/currency/coin.png"
+    },
+    {
+      "name": "活动称号",
+      "type": "command",
+      "content": "活动称号",
+      "icon": "mail/command/title.png"
+    }
+  ]
+}
+```
+
+- `texts` 是 `List<String>`，每项对应正文一行；保留中间与末尾空行，空正文返回空列表；
+- `hasAttachments` 表示邮件原本是否含附件；
+- `claimed` 表示邮件的附件是否已经领取；
+- `attach[].type` 为 `item`、`eco` 或 `command`；
+- 物品 `content` 是完整的物品序列化内容；
+- 货币和命令的 `icon` 未设置时为 `""`，UI 应准备默认贴图；
+- 命令附件只下发展示标题，不会泄露真实命令。
+
+UI 只应提供一个“领取全部”按钮。无附件邮件同时返回 `hasAttachments: false` 与 `claimed: true`，因此按钮逻辑要先判断 `hasAttachments`。
+
+成功读取详情会把邮件标为已读、刷新未读数。
+
+## 领取附件
+
+```aria
+Packet.send('getattach', mailId)
+```
+
+结果使用 `systemmail_attach_result`：
+
+```json
+{
+  "id": "67c3bf3b-2885-4ea1-b977-94cd1dc53e9e",
+  "success": true,
+  "code": "COMPLETED",
+  "claimed": true,
+  "msg": "附件领取成功"
+}
+```
+
+| code                | success | 含义                     |
+|---------------------|--------:|------------------------|
+| `COMPLETED`         |  `true` | 全部附件领取完成               |
+| `INVENTORY_FULL`    | `false` | 背包空槽不足，所有附件均未开始领取      |
+| `NOTHING_CLAIMABLE` | `false` | 没有可领取附件                |
+| `PARTIAL`           | `false` | 外部附件部分失败               |
+| `QUARANTINED`       | `false` | 外部奖励结果无法确认，转入人工处理      |
+| `PLAYER_OFFLINE`    | `false` | 处理时玩家已离线               |
+| `NOT_FOUND`         | `false` | 邮件不存在或不可见              |
+| `EXPIRED`           | `false` | 邮件已过期，且没有有效的当前 UI 宽限资格 |
+
+<Callout type="warn">
+客户端请勿自动重试 `getattach`。只有在服务端明确允许重试，并由玩家再次操作时才能重新发送。
+</Callout>
+
+
+## 删除邮件
+
+```aria
+Packet.send('delete', mailId)
+```
+
+结果使用 `systemmail_delete_result`：
+
+```json
+{
+  "id": "67c3bf3b-2885-4ea1-b977-94cd1dc53e9e",
+  "success": true,
+  "code": "SUCCESS",
+  "msg": "邮件已删除"
+}
+```
+
+
+## 通用错误
+
+`systemmail_error` 回包：
+
+```json
+{
+  "action": "getlist",
+  "code": "INVALID_PAGE",
+  "retry": false,
+  "msg": "页码超出服务端允许范围"
+}
+```
+
+- 向玩家显示 `msg`；
+- 使用 `code` 做逻辑分支；
+- `retry: true` 只表示可以让玩家手动重试，不表示客户端自动重放；
+- 文案来自服务端 `lang.yml` 的 `failure.*`。
+
+可能出现的通用 code：
+
+```text
+ACTION_NOT_ALLOWED
+EXPIRED
+INTERNAL_ERROR
+INVALID_ARGUMENT
+INVALID_FILTER
+INVALID_ID
+INVALID_PAGE
+INVALID_SEARCH
+NOT_FOUND
+PERMISSION_DENIED
+QUERY_IN_PROGRESS
+RATE_LIMITED
+RESPONSE_TOO_LARGE
+SERVER_BUSY
+SERVICE_UNAVAILABLE
+```
+
+领取和删除的业务失败优先通过各自结果 handler 返回；无法进入对应流程时才使用通用错误。
+
+## 服务端变量
+
+| 默认变量                      | 内容                  |
+|---------------------------|---------------------|
+| `systemmail_unread_count` | 当前未读邮件数             |
+| `systemmail_page_count`   | 未筛选收件箱总页数；0 封邮件时为 0 |
+
+未读数会在玩家进入服务器、收到新邮件、读取邮件或附件状态变化后刷新；总页数会在打开收件箱后刷新。
+
+## 新邮件 HUD
+
+新邮件使用handler `systemmail_new_mail`：
+
+```json
+{
+  "id": "67c3bf3b-2885-4ea1-b977-94cd1dc53e9e",
+  "title": "维护补偿",
+  "from": "运营中心",
+  "head": "",
+  "texts": "感谢您的耐心等待...",
+  "attach": 3
+}
+```
+
+## 请求频率
+
+- `getlist` 最短间隔 250 ms；
+- `getattach` 最短间隔 750 ms；
+- 其余动作最短间隔 100 ms；
+- 同一玩家的相同查询仍在处理时返回 `QUERY_IN_PROGRESS`；
+- 普通回包超过 `security.max-ui-response-bytes` 时返回 `RESPONSE_TOO_LARGE`。
+

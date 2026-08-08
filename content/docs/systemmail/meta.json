@@ -1,0 +1,28 @@
+{
+    "title": "SystemMail — 系统邮件",
+    "description": "系统邮件与附件投递",
+    "icon": "logo/systemmail-logo.png",
+    "tags": [
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "系统邮件", "color": "#38BDF8" },
+        { "label": "API", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#22D3EE",
+    "entry": "systemmail/1_start",
+    "tagline": "投递系统邮件与附件",
+    "order": 8,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player_inbox",
+        "3_admin",
+        "---配置与接入---",
+        "4_configuration",
+        "5_ui_protocol",
+        "6_api",
+        "---维护---",
+        "7_troubleshooting"
+    ]
+}

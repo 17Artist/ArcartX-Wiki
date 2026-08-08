@@ -1,0 +1,244 @@
+---
+title: 公开 API
+description: 通过 Java 或 Kotlin 发送、查询和领取系统邮件
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 公开 API
+
+包名：
+
+```text
+priv.seventeen.artist.arcartx.systemmail.api
+```
+
+SystemMail API 面向其他服务端插件。所有数据库操作都通过 `CompletionStage<T>` 异步返回，不占用 Bukkit 主线程。
+
+## 获取服务
+
+Kotlin：
+
+```kotlin
+if (!SystemMailApi.isReady()) return
+val mailService = SystemMailApi.service()
+```
+
+Java：
+
+```java
+if (!SystemMailApi.isReady()) return;
+SystemMailService mailService = SystemMailApi.service();
+```
+
+也可以通过 Bukkit `ServicesManager` 获取：
+
+```java
+RegisteredServiceProvider<SystemMailService> registration =
+    Bukkit.getServicesManager().getRegistration(SystemMailService.class);
+
+if (registration == null) return;
+SystemMailService mailService = registration.getProvider();
+```
+
+
+
+## 服务方法
+
+| 方法                           | 业务结果              | 说明           |
+|------------------------------|-------------------|--------------|
+| `send(request)`              | `DeliveryReceipt` | 发送一封系统邮件     |
+| `getMail(playerId, mailId)`  | `MailView?`       | 查询玩家自己的单封邮件  |
+| `getInbox(playerId, query)`  | `List<MailView>`  | 查询玩家收件箱      |
+| `getUnreadCount(playerId)`   | `Int`             | 查询未读数量       |
+| `markRead(playerId, mailId)` | `MailView?`       | 标记已读并返回详情    |
+| `claim(playerId, mailId)`    | `ClaimResult`     | 领取邮件的全部可领附件  |
+| `delete(playerId, mailId)`   | `DeleteResult`    | 删除没有受保护附件的邮件 |
+
+表中的业务结果均包在 `CompletionStage<T>` 中。
+
+## 发送邮件
+
+### Kotlin
+
+```kotlin
+val request = SystemMailRequest.builder()
+    .idempotencyKey("daily-login:2026-08-08:${player.uniqueId}")
+    .recipient(player.uniqueId)
+    .title("每日登录奖励")
+    .content("感谢今天来到服务器。\n请及时领取附件。")
+    .senderName("运营中心")
+    .senderAvatar("system:operations")
+    .item(rewardItem)
+    .currency("Vault", 500.0, "金币", "mail/currency/coin.png")
+    .command(
+        "advancement grant <player> only example:daily",
+        CommandExecutor.CONSOLE,
+        "每日成就进度",
+        "mail/command/reward.png"
+    )
+    .sourcePlugin("DailyReward")
+    .deliverAt(Instant.now())
+    .expireAt(Instant.now().plus(7, ChronoUnit.DAYS))
+    .build()
+
+SystemMailApi.service().send(request).whenComplete { receipt, error ->
+    if (error != null) {
+        logger.log(Level.SEVERE, "发送每日登录邮件失败", error)
+        return@whenComplete
+    }
+    logger.info(
+        "mail=${receipt.mailId}, recipients=${receipt.recipientCount}, duplicate=${receipt.duplicate}"
+    )
+}
+```
+
+### Java
+
+```java
+SystemMailRequest request = SystemMailRequest.builder()
+    .idempotencyKey("purchase:" + orderId)
+    .recipient(playerId)
+    .title("订单到账")
+    .content("订单 " + orderId + " 已到账。")
+    .senderName("商城")
+    .senderAvatar("system:store")
+    .item(itemStack)
+    .currency("Vault", 1000.0, "金币", "mail/currency/coin.png")
+    .command(
+        "lp user <player> permission set reward.claimed",
+        CommandExecutor.CONSOLE,
+        "订单权限奖励",
+        "mail/command/reward.png"
+    )
+    .sourcePlugin("Store")
+    .build();
+
+SystemMailApi.service().send(request).whenComplete((receipt, error) -> {
+    if (error != null) {
+        getLogger().log(Level.SEVERE, "发送订单邮件失败", error);
+        return;
+    }
+    getLogger().info("Created mail " + receipt.getMailId());
+});
+```
+
+## 请求字段
+
+| Builder 方法                              | 是否必填 | 说明                    |
+|-----------------------------------------|-----:|-----------------------|
+| `idempotencyKey(value)`                 |    是 | 同一业务动作保持不变的幂等键        |
+| `recipient(uuid)` / `recipients(uuids)` |    是 | 一个或多个收件人              |
+| `title(value)`                          |    是 | 邮件标题                  |
+| `content(value)`                        |    否 | 正文，默认空字符串；多行使用 `\n`   |
+| `senderName(value)`                     |    否 | 发件人，默认“系统邮件”          |
+| `senderAvatar(value)`                   |    否 | AXUI 头像路径，默认 `""`     |
+| `item(value)` / `items(values)`         |    否 | Bukkit `ItemStack` 附件 |
+| `currency(...)`                         |    否 | 货币附件                  |
+| `command(...)`                          |    否 | 服务端命令附件               |
+| `sourcePlugin(value)`                   |    是 | 调用方的稳定插件标识            |
+| `deliverAt(value)`                      |    否 | 投递时间，默认当前时间           |
+| `expireAt(value)`                       |    否 | 过期时间，默认永不过期；必须晚于投递时间  |
+
+API 中 `SystemMailRequest.content` 和 `MailView.content` 始终是包含换行符的 `String`。只有 AXUI 的 `systemmail_detail.texts` 会转换为 `List<String>`。
+
+## 幂等键
+
+`idempotencyKey` 用于防止奖励重复投递，不是随手填写的备注。对于同一个业务动作，它必须保持稳定，例如订单号、任务实例 ID，或“活动 + 日期 + 玩家 UUID”。
+
+- 唯一范围是区分大小写的 `(sourcePlugin, idempotencyKey)`；
+- 来源、key 和规范化请求完全相同：返回原 `mailId`，`duplicate=true`；
+- 如果另一台子服仍在分批构建原邮件，重试会立即返回已经保存的 `mailId`；原任务或后续恢复任务会继续完成构建；
+- 相同来源与 key 对应不同请求：直接失败，提醒调用方误用了 key；
+- 超时或结果不明时，必须使用原 key 重试，不要生成新 key。
+
+请求比较包含收件人、标题、正文、发件人、头像、物品、货币、命令、附件 icon、来源以及投递/过期时间。
+
+
+构建期间邮件处于 `BUILDING`，不会出现在收件箱、未读数或通知轮询中。全部批次和数量核对完成后，才会切换为 `ACTIVE`。进程中断后，SystemMail 会在启动维护或使用相同幂等键重试时继续构建，不会产生只有部分玩家可见的邮件，也不会重复创建附件状态。
+
+## 货币附件
+
+```kotlin
+.currency("Vault", 500.0, "金币", "mail/currency/coin.png")
+.currency(CurrencyAttachment("PlayerPoints", 20.0, "点券"))
+```
+
+`provider` 必须与 `ArcartXLinkManager.getEconomyProvider(provider)` 的注册标识一致,这个id可以通过AX的插件源码得到，详情可自行查看AX代码仓库。
+
+- `displayName`：玩家看到的货币名称；未填写时读取AX配置中的显示名称；
+- `icon`：AXUI 贴图路径，默认 `""`，只影响显示。
+
+## 命令附件
+
+```kotlin
+.command(
+    "lp user <player> permission set event.reward",
+    CommandExecutor.CONSOLE,
+    "活动权限奖励",
+    "mail/command/reward.png"
+)
+```
+
+命令只会在同一封邮件的全部物品和货币附件完成后执行。`displayTitle` 与 `icon` 用于玩家界面，真实命令不会下发客户端。
+
+支持：
+
+- `<player>`：玩家名；
+- `<uuid>`：玩家 UUID；
+- `<mail_id>`：邮件 UUID。
+
+命令必须命中 `commands.allowed-prefixes`。默认空列表会拒绝所有命令附件。一般使用 `CONSOLE`；只有确实需要玩家权限和上下文时才使用 `PLAYER`。
+
+## 查询与领取
+
+```kotlin
+val query = MailQuery(
+    page = 0,
+    pageSize = 20,
+    state = MailState.UNREAD,
+    search = "运营中心",
+    hasAvailableAttachments = true
+)
+
+service.getUnreadCount(playerId)
+service.getInbox(playerId, query)
+service.getMail(playerId, mailId)
+service.markRead(playerId, mailId)
+service.claim(playerId, mailId)
+service.delete(playerId, mailId)
+```
+
+`hasAvailableAttachments=true` 只匹配至少还有一个 `AVAILABLE` 附件的邮件。
+
+领取 API 玩家物品空槽不足时，`ClaimResult.message` 为 `INVENTORY_FULL`，货币和命令也不会先执行。
+
+<Callout type="warn">
+公开 API 严格使用邮件原始过期时间。`mail.ui-claim-expiry-grace-minutes` 只保护玩家当前 AXUI 会话，不适用于 `SystemMailService.claim`。
+</Callout>
+
+`AttachmentView.state` 可能为：
+
+```text
+AVAILABLE
+PROCESSING
+CLAIMED
+QUARANTINED
+```
+
+## 事件
+
+| 事件                                     | 时机                   |
+|----------------------------------------|----------------------|
+| `SystemMailPreSendEvent`               | 发送前，可取消；可能在异步线程触发    |
+| `SystemMailDeliveredEvent`             | 在线玩家的投递事件被处理时        |
+| `SystemMailAttachmentClaimedEvent`     | 附件状态已提交为 `CLAIMED` 后 |
+| `SystemMailAttachmentQuarantinedEvent` | 外部副作用结果无法确认并进入隔离后    |
+
+事件只适合做扩展和观察，不应作为资产事实来源。监听 `SystemMailPreSendEvent` 时先检查线程，不要无条件调用仅限 Bukkit 主线程的 API。
+
+## 异常处理
+
+`CompletionStage` 可能异常完成。调用方应记录完整异常，并根据业务决定何时重试。
+
+对于 `send`，超时不能直接理解为“邮件没有创建”。使用原 `idempotencyKey` 重试，SystemMail 会返回已经创建的邮件，或只创建一次新邮件。
