@@ -48,6 +48,7 @@ SystemMailService mailService = registration.getProvider();
 | 方法                           | 业务结果              | 说明           |
 |------------------------------|-------------------|--------------|
 | `send(request)`              | `DeliveryReceipt` | 发送一封系统邮件     |
+| `sendDurable(request)`       | `DeliveryReceipt` | 恢复持久化的邮件发送意图 |
 | `getMail(playerId, mailId)`  | `MailView?`       | 查询玩家自己的单封邮件  |
 | `getInbox(playerId, query)`  | `List<MailView>`  | 查询玩家收件箱      |
 | `getUnreadCount(playerId)`   | `Int`             | 查询未读数量       |
@@ -141,6 +142,36 @@ SystemMailApi.service().send(request).whenComplete((receipt, error) -> {
 | `expireAt(value)`                       |    否 | 过期时间，默认永不过期；必须晚于投递时间  |
 
 API 中 `SystemMailRequest.content` 和 `MailView.content` 始终是包含换行符的 `String`。只有 AXUI 的 `systemmail_detail.texts` 会转换为 `List<String>`。
+
+## 恢复持久 Outbox
+
+普通业务使用 `send(request)`。只有调用方已经把完整邮件意图保存到自己的持久化 outbox，并需要在宕机或依赖故障后重放时，才使用 `sendDurable(request)`。
+
+两者使用相同的收件人、附件、命令白名单、过期时间和幂等校验。区别只有一个：普通 `send` 不接受早于当前时间 5 分钟以上的 `deliverAt`，`sendDurable` 则允许按 outbox 中原本保存的历史投递时间恢复。
+
+调用方必须在第一次发送前保存并在重放时原样还原：
+
+- `sourcePlugin` 与 `idempotencyKey`；
+- 收件人、标题、正文、发件人和头像；
+- 所有物品、货币与命令附件；
+- `deliverAt` 与 `expireAt`。
+
+以下是调用流程伪代码，`intent` 与 `outbox` 由调用插件自行实现：
+
+```kotlin
+// intent 必须来自调用方已经落库的 outbox 记录。
+SystemMailApi.service().sendDurable(intent.toSystemMailRequest()).whenComplete { receipt, error ->
+    if (error == null) {
+        outbox.markCompleted(intent.id, receipt.mailId.value)
+    } else {
+        outbox.scheduleRetry(intent.id, error)
+    }
+}
+```
+
+<Callout type="warn">
+不要更换幂等键重放，也不要用 `sendDurable` 随意创建历史邮件。只有取得成功回执后，才能把调用方自己的 outbox 记录标记为完成。原 `expireAt` 不会自动顺延；邮件已经过期时，玩家仍然无法查看或领取。
+</Callout>
 
 ## 幂等键
 
