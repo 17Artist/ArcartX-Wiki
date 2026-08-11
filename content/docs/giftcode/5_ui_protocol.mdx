@@ -1,0 +1,57 @@
+---
+title: 玩家 UI 协议
+description: GiftCode 兑换界面的 AXUI 通讯契约
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 玩家 UI 协议
+
+本页用于修改 `plugins/GiftCode/ui/redeem.yml`，或重新制作玩家兑换界面。
+
+## UI → 服务端
+
+只有一个动作：
+
+```aria
+Packet.send('redeem', var.code)
+```
+
+| 动作       | 参数             | 用途         |
+|----------|----------------|------------|
+| `redeem` | `code: String` | 提交玩家输入的兑换码 |
+
+协议数组必须恰好包含一个字符串，不需要额外发送 `open`、`init`、`close`、版本号或请求 ID。
+
+## 服务端 → UI
+
+### `giftcode_result`
+
+正常业务结果使用 `giftcode_result`：
+
+```json
+{
+  "success": true,
+  "msg": "兑换成功！奖励邮件已经送达。"
+}
+```
+
+| 字段        | 类型        | 内容                            |
+|-----------|-----------|-------------------------------|
+| `success` | `Boolean` | `true` 显示成功状态，`false` 显示未兑换状态 |
+| `msg`     | `String`  | 直接展示给玩家的结果文字                  |
+
+兑换码无效、过期、已被领取或达到总上限，也会通过该 handler 返回，并把 `success` 设为 `false`。
+
+### `giftcode_error`
+
+数据格式错误、会话失效、频率限制或服务端异常使用 `giftcode_error`：
+
+```json
+{
+  "msg": "兑换处理失败，请稍后重试"
+}
+```
+
+收到后恢复提交按钮，并向玩家显示 `msg`。
+

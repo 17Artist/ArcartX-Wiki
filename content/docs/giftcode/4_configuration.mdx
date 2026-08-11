@@ -1,0 +1,134 @@
+---
+title: 配置
+description: 数据库、Redis、兑换码、界面与后台投递设置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置
+
+主配置文件位于 `plugins/GiftCode/config.yml`。语言文件为 `plugins/GiftCode/lang.yml`。
+
+## 节点与时区
+
+```yaml
+server-id: server-1
+timezone: Asia/Shanghai
+```
+
+- `server-id`：1–64 位字母、数字、点、下划线或短横线；群组服的每个节点必须不同；
+- `timezone`：Java `ZoneId`，用于导出文件和管理员看到的时间。
+
+## 数据库
+
+### 单服 SQLite
+
+```yaml
+database:
+  type: "sqlite"
+  sqlite-file: "giftcode.db"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "root"
+    password: "change-me"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 6
+```
+
+`sqlite-file` 相对于 `plugins/GiftCode/`，默认数据库文件为 `plugins/GiftCode/giftcode.db`。SQLite 只适合一个服务端进程。
+
+### 多服 MySQL
+
+```yaml
+database:
+  type: "mysql"
+  sqlite-file: "giftcode.db"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "arcartx"
+    password: "change-me"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 6
+```
+
+所有节点必须连接同一个 MySQL 数据库。
+
+## Redis
+
+```yaml
+redis:
+  enabled: false
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  database: 0
+  timeout-millis: 2000
+  lock-ttl-millis: 15000
+  lock-wait-millis: 1500
+  key-prefix: "giftcode:"
+```
+
+Redis 是可选的，只用于热门兑换码的并发协调。Redis 临时不可用时，GiftCode 会回退到数据库事务；兑换正确性仍以数据库为准。
+
+<Callout type="info">
+Redis 不能代替共享 MySQL。群组服如果各自使用不同数据库，即使连接同一个 Redis，也无法共享兑换记录。
+</Callout>
+
+## 兑换码格式
+
+```yaml
+codes:
+  prefix: AX
+  alphabet: ABCDEFGHJKLMNPQRSTUVWXYZ23456789
+  group-length: 4
+  group-count: 3
+  max-generate-per-command: 10000
+  max-input-length: 64
+```
+
+默认会生成类似 `AX-7G8M-K2QP-V9RX` 的兑换码。
+
+| 配置项                        | 说明                                |
+|----------------------------|-----------------------------------|
+| `prefix`                   | 0–8 位 ASCII 字母或数字                 |
+| `alphabet`                 | 至少 16 个不重复的 ASCII 字母或数字           |
+| `group-length`             | 每组 3–8 位                          |
+| `group-count`              | 2–6 组                             |
+| `max-generate-per-command` | 单次生成上限，允许 1–100000                |
+| `max-input-length`         | 玩家输入长度上限，允许 16–128，且不能短于生成后的完整兑换码 |
+
+前缀与各分组拼接后的标准化长度必须在 8–64 位之间。更改格式只影响新生成的兑换码，不会自动替换已经生成的码。
+
+## 邮件重试
+
+```yaml
+outbox:
+  poll-seconds: 5
+  batch-size: 32
+  lease-seconds: 30
+  max-attempts: 100
+  base-retry-seconds: 2
+```
+
+当 SystemMail 暂时不可用时，已确认的兑换会保留在待发送队列中。GiftCode 按间隔分批重试，失败间隔逐渐增加，最长一小时；超过 `max-attempts` 后进入死信状态，需要管理员修复原因后执行 `/gca retry <领取记录ID>`。
+
+## 重载与重启
+
+```text
+/gca reload
+```
+
+该命令只重载：
+
+- `lang.yml`；
+- `ui/redeem.yml`。
+
+修改 `config.yml` 中的节点、时区、数据库、Redis、兑换码格式或 outbox 参数后，请完整重启服务器。
+
+<Callout type="warn">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 GiftCode。数据库连接、后台任务和 UI 注册应随服务器完整启动与关闭。
+</Callout>

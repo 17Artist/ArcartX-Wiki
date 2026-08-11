@@ -11,6 +11,7 @@
         "overture",
         "chronos",
         "blink",
-        "systemmail"
+        "systemmail",
+        "giftcode"
     ]
 }

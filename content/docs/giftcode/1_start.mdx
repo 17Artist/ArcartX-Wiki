@@ -1,0 +1,107 @@
+---
+title: 说明与安装
+description: GiftCode 的用途、依赖与首次配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+GiftCode 是面向 ArcartX 服务器的**礼包兑换码插件**。管理员可以在游戏内编辑礼包、批量生成兑换码并查看领取情况；玩家通过 `/cdk` 兑换，奖励会以 SystemMail 邮件送达。
+
+<Callout type="warn">
+**GiftCode 为 ArcartX 高级会员专属插件。** 使用时需要有效授权，并依赖 ArcartX 与 SystemMail。
+</Callout>
+
+## 核心能力
+
+| 能力     | 说明                                      |
+|--------|-----------------------------------------|
+| 两种兑换模式 | 支持一人一码，也支持全服共享、每名玩家领取一次                 |
+| 游戏内编辑  | 设置礼包文字、有效期以及物品、货币和命令奖励                  |
+| 批量生成   | 生成后写入数据库，并导出便于分发的明文 TXT                 |
+| 邮件投递   | 通过 SystemMail 发放奖励，临时失败时在后台继续重试         |
+| 单服与跨服  | 单服可用 SQLite；群组服共享 MySQL，可选 Redis 协调热点兑换 |
+
+## 安装条件
+
+- Java 17+；
+- Minecraft 1.18.2+；
+- ArcartX 2.5.36+；
+- SystemMail 1.0.0+；
+- GiftCode 有效授权。
+
+如果尚未安装邮件系统，请先完成 [SystemMail 安装](/docs/systemmail/1_start)。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+确认 ArcartX 与 SystemMail 已正常启用，再将 GiftCode JAR 放入服务端 `plugins/`，完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+打开首次生成的 `plugins/GiftCode/license.yml`，填写高级会员授权，再完整重启：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+</Step>
+
+<Step>
+
+
+服务端会自动释放 `plugins/GiftCode/ui/redeem.yml`，已有文件不会被覆盖。
+
+</Step>
+
+<Step>
+
+### 检查启动结果
+
+控制台出现“兑换码系统已就绪”后，确认 `plugins/GiftCode/` 中已经生成：
+
+```text
+config.yml
+lang.yml
+license.yml
+ui/redeem.yml
+exports/
+giftcode.db
+```
+
+`giftcode.db` 只会在默认 SQLite 模式下使用。
+
+</Step>
+
+</Steps>
+
+## 创建第一个礼包
+
+```text
+/gca create starter single
+/gca gui
+```
+
+在编辑器中填写邮件内容、添加奖励并点击“保存修改”，然后生成 100 个有效期为 30 天的兑换码：
+
+```text
+/gca generate starter 100 30d
+```
+
+生成完成后，命令会显示批次 ID 与导出文件路径。玩家可以执行 `/cdk` 打开兑换界面。
+
+<Callout type="info">
+导出的 TXT 用于分发，不是兑换状态的数据来源。数据库保存实际兑换码与领取状态。删除 TXT 不会停用兑换码；需要恢复文件时可按批次重新导出。
+</Callout>

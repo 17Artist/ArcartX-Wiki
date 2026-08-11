@@ -1,0 +1,24 @@
+{
+    "title": "GiftCode — 兑换码",
+    "description": "创建、分发兑换礼包码",
+    "icon": "logo/giftcode-logo.png",
+    "tags": [
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" }
+    ],
+    "root": true,
+    "color": "#2563EB",
+    "entry": "giftcode/1_start",
+    "tagline": "创建并投放礼包码",
+    "order": 9,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与界面---",
+        "4_configuration",
+        "5_ui_protocol"
+    ]
+}
