@@ -4,7 +4,7 @@
     "icon": "logo/systemmail-logo.png",
     "tags": [
         { "label": "高级会员专属", "color": "#F59E0B" },
-        { "label": "系统邮件", "color": "#38BDF8" },
+        { "label": "基础玩法", "color": "#38BDF8" },
         { "label": "API", "color": "#8B5CF6" }
     ],
     "root": true,
