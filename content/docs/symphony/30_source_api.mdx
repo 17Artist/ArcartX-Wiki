@@ -45,20 +45,55 @@ api.sources.removeSource(player, source)
 
 ## 从文字读取
 
-已有系统如果保存的是三段式文字，可以直接交给解析器。每行依次写完整属性 ID、运算方式和数值：
+`replaceSourceFromLines` 接收一个字符串列表，列表中的每个字符串表示一项属性修改。每行必须依次写完整属性 ID、运算方式和数值，三部分之间用一个或多个空格或制表符分隔：
+
+```text
+<命名空间:属性> <运算方式> <数值>
+```
+
+| 部分    | 写法                                     | 说明                                                            |
+|-------|----------------------------------------|---------------------------------------------------------------|
+| 属性 ID | `symphony:attack_damage`               | 必须写完整命名空间；这里不会把 `attack_damage` 自动补成 `symphony:attack_damage` |
+| 运算方式  | `add`、`multiply_base`、`multiply_total` | 不区分大小写；后两种也可以写成 `multiply-base`、`multiply-total`              |
+| 数值    | `15`、`-3.5`、`0.2`、`20%`                | 必须是有限数字；末尾带 `%` 时先除以 `100`，因此 `20%` 的内部值是 `0.2`               |
+
+三种运算的含义如下：
+
+| 运算方式             | 计算方式               |
+|------------------|--------------------|
+| `add`            | 当前值加上输入值           |
+| `multiply_base`  | 当前值加上“属性基础值 × 输入值” |
+| `multiply_total` | 当前值乘以 `1 + 输入值`    |
+
+例如，属性基础值为 `100`，依次提供 `add 15`、`multiply_base 10%` 和 `multiply_total -5%`，最终结果为 `(100 + 15 + 100 × 0.10) × 0.95 = 118.75`。运算阶段固定为 `add`、`multiply_base`、`multiply_total`，不由文字在列表中的先后顺序决定。
+
+完整调用示例：
 
 ```kotlin
 api.sources.replaceSourceFromLines(
     player,
     AttributeSourceKey("myplugin", "legacy-panel"),
     listOf(
+        "# 固定攻击力",
         "symphony:attack_damage add 15",
+        "symphony:attack_damage multiply_base 10%",
+        "symphony:attack_damage multiply_total -5%",
         "symphony:arcane_resistance add 20%"
     )
 )
 ```
 
-空行和以 `#` 开头的注释会被忽略。新系统更适合直接构造 `AttributeModifier`，这样能同时携带优先级、有效期和说明。
+`symphony:arcane_resistance add 20%` 表示加上 `0.2`，不是增加基础值的 `20%`；要按基础值增加，应使用 `multiply_base 20%`。
+
+解析时还需注意：
+
+- 每行开头和结尾的空白会被去除；空行以及去除空白后以 `#` 开头的整行注释会被忽略。
+- 不支持行尾注释，例如 `symphony:attack_damage add 15 # 注释` 会被判定为无效数字。
+- 列表最多包含 `512` 行，空行和注释也计入数量；每个原始字符串最多 `512` 个字符。
+- 属性 ID 必须符合小写命名空间格式，并且已经注册。未知属性、未知运算方式、无效数字或任意一行格式错误，都会使本次调用返回 `SourceUpdateResult.Rejected`，不会写入部分结果。
+- 每个有效行会生成一个 `line-<原始行号>` 修改器，优先级固定为 `0`，也不能在文字中设置有效期、持久标记或说明。
+
+需要设置修改器 ID、优先级、有效期或说明时，应直接构造 `AttributeModifier`，不要使用文字格式。
 
 ## 从 ItemStack 写入
 
