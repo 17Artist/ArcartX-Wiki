@@ -1,0 +1,110 @@
+---
+title: 说明与安装
+description: Echelon 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Echelon 是一套**玩家等级系统**，可以用于 RPG 等级、生涯等级或其他成长玩法。服主可以配置每级经验、分段经验公式和阶段称号，也可以按需接入怪物经验、等级礼包及其他插件。
+
+<Callout type="warn">
+**Echelon 为 ArcartX 高级会员专属插件。** 使用时需要填写有效授权。
+</Callout>
+
+## 核心能力
+
+| 能力      | 说明                                    |
+|---------|---------------------------------------|
+| 等级曲线    | 支持逐级固定经验和分段公式，两种方式可以混用                |
+| 阶段称号    | 按等级范围显示不同称号                           |
+| 在线与离线经验 | 管理员或其他插件都可以为离线玩家增加经验                  |
+| 等级礼包    | 达到指定等级后，通过 SystemMail 发放物品、货币或命令奖励    |
+| 单服与群组服  | 单服可用 SQLite；多个子服共享同一个 MySQL 数据库       |
+| 插件接入    | 支持 PlaceholderAPI、MythicMobs、Symphony |
+
+## 运行条件
+
+- Java 17+；
+- Paper 或 Spigot 1.18.2+；
+- Echelon 1.0.0+；
+- 高级会员有效授权。
+
+
+| 插件             | 用途               |
+|----------------|------------------|
+| PlaceholderAPI | 显示等级、经验和称号       |
+| MythicMobs     | 击杀指定怪物获得经验       |
+| Symphony       | 把 Echelon 作为等级来源 |
+| SystemMail     | 发送等级礼包           |
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+将 `Echelon.jar` 放入服务端 `plugins/`，然后完整启动一次服务器。插件会生成 `plugins/Echelon/license.yml`。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+打开 `plugins/Echelon/license.yml`，填写高级会员授权：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+保存后完整重启服务器。授权通过前，Echelon 不会启用数据库、命令、等级服务或插件联动。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认 `plugins/Echelon/` 中已经生成：
+
+```text
+config.yml
+language.yml
+license.yml
+echelon.db
+```
+
+`echelon.db` 只在默认 SQLite 模式下使用。
+
+</Step>
+
+<Step>
+
+### 选择数据库
+
+单服保留默认 SQLite 即可。群组服需要把所有 Echelon 节点连接到同一个 MySQL 数据库。
+
+</Step>
+
+<Step>
+
+### 检查等级
+
+进入服务器后执行：
+
+```text
+/echelon show
+```
+
+默认等级上限为 100，初始等级为 Lv.1。
+
+</Step>
+
+</Steps>
+

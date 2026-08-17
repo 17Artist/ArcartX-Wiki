@@ -1,0 +1,148 @@
+---
+title: 开发者 API
+description: 查询等级、修改经验与监听升级事件
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 开发者 API
+
+Echelon 通过 `EchelonService` 提供等级查询、经验修改和进度设置，并通过 `PlayerLevelUpEvent` 通知升级。
+
+## 添加依赖
+
+把 Echelon JAR 作为仅编译依赖，不要将 Echelon 类打进自己的插件：
+
+```kotlin
+dependencies {
+    compileOnly(files("libs/Echelon-1.0.0.jar"))
+}
+```
+
+Blink 插件：
+
+```kotlin
+blink {
+    depend.set(listOf("Echelon"))
+}
+```
+
+普通 Bukkit、Spigot 或 Paper 插件：
+
+```yaml
+depend: [Echelon]
+```
+
+公开类位于：
+
+```text
+priv.seventeen.artist.arcartx.echelon.api
+priv.seventeen.artist.arcartx.echelon.api.event
+```
+
+## 获取服务
+
+```kotlin
+import priv.seventeen.artist.arcartx.echelon.api.EchelonAPI
+
+if (!EchelonAPI.isReady()) return
+val service = EchelonAPI.service()
+```
+
+Java：
+
+```java
+if (!EchelonAPI.isReady()) return;
+EchelonService service = EchelonAPI.service();
+```
+
+也可以通过 Bukkit `ServicesManager` 获取 `EchelonService`。
+
+## EchelonService
+
+| 方法                                     | 说明                                |
+|----------------------------------------|-----------------------------------|
+| `cached(UUID)`                         | 读取已经准备好的在线缓存；玩家离线或数据未就绪时返回 `null` |
+| `get(UUID)`                            | 异步读取在线或离线玩家数据                     |
+| `addExperience(UUID, long, String)`    | 增加经验，经验必须大于 `0`                   |
+| `setProgress(UUID, int, long, String)` | 设置等级和当前等级内经验                      |
+
+除 `cached` 外，其余方法都返回 `CompletionStage`。回调线程不固定，不要直接在回调中修改世界、实体、玩家背包或界面。
+
+```kotlin
+service.addExperience(player.uniqueId, 50, "quest:daily")
+    .whenComplete { result, error ->
+        Bukkit.getScheduler().runTask(myPlugin, Runnable {
+            if (error != null) {
+                myPlugin.logger.warning("增加经验失败：${error.message}")
+            } else {
+                player.sendMessage("当前等级：Lv.${result.after.level}")
+            }
+        })
+    }
+```
+
+最后一个参数是经验来源，建议使用 `quest:daily`、`activity:summer` 这类稳定名称。内容最长保留 128 个字符，空内容会记录为 `api:unknown`。
+
+`setProgress` 的经验表示目标等级内的经验。数值达到该等级升级要求时会限制在该级允许的最大值；目标为满级时，当前级经验固定为 `0`。
+
+## LevelSnapshot
+
+| 属性                   | 内容                     |
+|----------------------|------------------------|
+| `playerId`           | 玩家 UUID                |
+| `playerName`         | Echelon 最后记录的玩家名       |
+| `level`              | 当前等级                   |
+| `experience`         | 当前等级内已有经验              |
+| `requiredExperience` | 升到下一级需要的经验，满级时为 `null` |
+| `totalExperience`    | 已经实际计入的总经验             |
+| `title`              | 当前阶段称号                 |
+| `revision`           | 玩家数据更新次数               |
+
+## ExperienceResult
+
+| 属性                    | 内容                     |
+|-----------------------|------------------------|
+| `before`、`after`      | 修改前后的等级快照              |
+| `amount`              | 本次请求的经验变动量             |
+| `levelsGained`        | 本次提升的等级数               |
+| `discardedExperience` | 因达到满级而没有计入的经验          |
+| `levelEventId`        | 本次升级事件编号，没有升级时为 `null` |
+
+## 升级事件
+
+```kotlin
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import priv.seventeen.artist.arcartx.echelon.api.event.PlayerLevelUpEvent
+
+class LevelListener : Listener {
+    @EventHandler
+    fun onLevelUp(event: PlayerLevelUpEvent) {
+        event.player.sendMessage(
+            "等级：Lv.${event.before.level} → Lv.${event.after.level}"
+        )
+    }
+}
+```
+
+| 属性                  | 内容            |
+|---------------------|---------------|
+| `eventId`           | 升级事件的唯一编号     |
+| `player`            | 当前在线玩家        |
+| `before`、`after`    | 升级前后的等级快照     |
+| `source`            | 本次经验变化的来源     |
+| `originallyOffline` | 升级是否发生在玩家离线期间 |
+
+`PlayerLevelUpEvent` 的行为：
+
+- 始终在 Bukkit 主线程触发；
+- 一次增加经验即使跨越多个等级，也只触发一次；
+- `source` 是经验接口传入的来源；
+- 离线升级会保留到玩家下次登录；
+- `originallyOffline` 表示升级是否发生在离线期间。
+
+<Callout type="warn">
+服务器在事件处理完成前意外停止时，同一个 `eventId` 可能再次出现。监听器如果会发放物品、货币、权限或执行命令，必须按 `eventId` 避免重复处理。
+</Callout>
+

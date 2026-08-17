@@ -1,0 +1,87 @@
+---
+title: 常见问题
+description: Echelon 的启动、配置、跨服与插件联动排查
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 常见问题
+
+## 插件启动后立即停用
+
+先检查 `plugins/Echelon/license.yml` 中的 `licenseId` 与 `licenseKey`，并确认服务器能够连接授权服务。授权未通过时，Echelon 不会启用数据库、命令、等级服务或插件联动。
+
+不要把 `license.yml` 上传到公开仓库或发送给无关人员。
+
+## 插件启动失败
+
+查看控制台中第一条 Echelon 错误。常见原因包括：
+
+- 数据库地址、账号或连接参数错误；
+- 等级经验存在空缺或重叠；
+- 公式包含不支持的变量、符号或无效结果；
+- 阶段称号范围重叠。
+
+Echelon 会在启动时检查完整经验曲线，任何一级缺少升级经验都会拒绝启用。
+
+## `/echelon show` 提示数据仍在加载
+
+玩家刚进入服务器时，Echelon 会异步读取等级数据。稍等片刻后重新执行。如果一直无法完成，请检查数据库连接和控制台错误。
+
+## 修改配置后没有生效
+
+普通配置和插件联动可以执行：
+
+```text
+/eadmin reload
+```
+
+数据库类型、文件名、地址、账号、连接参数、线程数和连接池大小发生变化时，必须完整重启服务器。
+
+## 重载失败
+
+重载失败时，Echelon 会继续使用之前的有效设置。控制台会指出经验范围重叠、等级缺失、公式错误或数据库设置变化等具体原因。
+
+## 找不到离线玩家
+
+玩家以前进入过服务器时可以使用最后记录的玩家名；从未被 Echelon 记录的玩家必须使用 UUID。
+
+## 多个子服等级不一致
+
+确认所有节点：
+
+- 都使用 `database.type: "mysql"`；
+- MySQL 地址、端口和数据库名称完全相同；
+- 没有节点仍在使用本地 SQLite；
+- 数据库账号有正常读写权限。
+
+## PlaceholderAPI 一直显示 0
+
+确认 PlaceholderAPI 已安装、`integrations.placeholder-api.enabled` 为 `true`，并等待玩家等级数据加载完成。Echelon 占位符用于在线玩家。
+
+## MythicMobs 怪物没有给予经验
+
+依次检查：
+
+1. `integrations.mythicmobs.enabled` 是否为 `true`；
+2. 怪物配置路径是否与 `experience-path` 一致；
+3. 经验是否为正整数；
+4. 最后击杀者是否为玩家。
+
+## 玩家升级但没有收到礼包
+
+依次检查：
+
+1. SystemMail 是否已经安装并正常启用；
+2. `integrations.system-mail.enabled` 是否为 `true`；
+3. 对应等级礼包是否存在并已启用；
+4. 玩家是否确实从较低等级跨过了礼包等级；
+5. `/eadmin outbox` 是否显示待发送或已停止重试；
+6. Echelon 与 SystemMail 控制台是否有发送错误。
+
+新建礼包不会向已经达到该等级的玩家补发。仅修改经验曲线重新计算等级，也不会触发礼包邮件。
+
+
+<Callout type="warn">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 Echelon。数据库连接、异步任务、命令和插件联动应随服务器完整启动与关闭。
+</Callout>

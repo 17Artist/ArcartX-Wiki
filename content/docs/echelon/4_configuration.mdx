@@ -1,0 +1,146 @@
+---
+title: 配置
+description: 数据库、等级经验、阶段称号与提示文字
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置
+
+Echelon 的主配置位于 `plugins/Echelon/config.yml`，提示文字位于 `plugins/Echelon/language.yml`。
+
+## 数据库
+
+```yaml
+database:
+  type: "sqlite"
+  sqlite-file: "echelon.db"
+  worker-threads: 4
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "root"
+    password: "change-me"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 8
+```
+
+### 单服 SQLite
+
+保留 `type: "sqlite"` 时，数据库文件默认为 `plugins/Echelon/echelon.db`。SQLite 只适合一个服务端进程。
+
+### 群组服 MySQL
+
+把 `type` 改为 `mysql`，并让所有 Echelon 节点填写同一套 MySQL 地址、端口和数据库名称。。
+
+`parameters` 只填写 JDBC 参数本体，不要在开头添加 `?`。
+
+| 配置项               | 范围或建议                        |
+|-------------------|------------------------------|
+| `worker-threads`  | 后台任务线程数，允许 1–32，通常保留 `4`     |
+| `mysql.pool-size` | MySQL 连接池大小，允许 2–50，通常保留 `8` |
+| `mysql.port`      | 1–65535，默认 `3306`            |
+
+## 等级上限与提示
+
+```yaml
+level:
+  maximum-level: 100
+  notify-player: true
+```
+
+- `maximum-level`：等级上限，允许 1–10000；
+- `notify-player`：是否向升级玩家发送聊天消息。设为 `false` 时只关闭这条消息，升级事件、等级礼包和数据保存仍会正常执行。
+
+## 固定经验
+
+```yaml
+level:
+  experience:
+    exact:
+      "1": 100
+      "2": 125
+      "3": 150
+```
+
+键表示玩家的当前等级。`"1": 100` 表示 Lv.1 升到 Lv.2 需要 100 经验。满级不需要填写经验，例如上限为 100 时只需覆盖到 Lv.99。
+
+## 分段公式
+
+```yaml
+level:
+  experience:
+    stages:
+      - min-level: 1
+        max-level: 10
+        formula: "100 + (level - 1) * 25"
+      - min-level: 11
+        max-level: 30
+        formula: "350 + (stage_level - 1) * 50"
+```
+
+| 变量            | 含义                  |
+|---------------|---------------------|
+| `level`       | 当前实际等级              |
+| `stage_level` | 当前等级在这一段中的序号，从 1 开始 |
+| `min_level`   | 本段起始等级              |
+| `max_level`   | 本段结束等级              |
+
+公式支持数字、括号和 `+ - * / % ^`。固定经验与分段公式可以混用，同一级同时存在时以 `exact` 为准。
+
+所有设置合并后，必须覆盖 Lv.1 到满级前一级，并满足：
+
+- 公式范围不能重叠；
+- 每级经验必须为有效正数；
+- 公式不能超过 256 个字符；
+- 计算结果不能超出整数范围。
+
+<Callout type="info">
+修改经验曲线不会清空玩家总经验。Echelon 会按新曲线重新计算显示等级，但不会因为配置变化而补发升级提示。
+</Callout>
+
+## 阶段称号
+
+```yaml
+level:
+  titles:
+    - min-level: 1
+      max-level: 10
+      title: "初出茅庐"
+    - min-level: 11
+      max-level: 30
+      title: "渐入佳境"
+```
+
+称号范围不能重叠，单个称号最长 128 个字符。未覆盖的等级会显示“未命名阶段”，建议为全部等级设置称号。
+
+## 提示文字
+
+`language.yml` 支持 `&` 颜色代码。常用变量如下：
+
+| 位置                           | 可用变量                                                       |
+|------------------------------|------------------------------------------------------------|
+| `player.status`              | `{player}`、`{level}`、`{experience}`、`{required}`、`{title}` |
+| `player.level-up`            | `{old}`、`{new}`、`{title}`                                  |
+| `admin.add-success`          | `{player}`、`{amount}`、`{level}`                            |
+| `admin.add-success-level-up` | `{player}`、`{amount}`、`{level}`、`{gained}`                 |
+| `admin.add-success-capped`   | `{player}`、`{amount}`、`{level}`、`{discarded}`              |
+
+缺少的提示键会临时使用 JAR 内置中文，不会自动写回文件。
+
+## 重载与重启
+
+```text
+/eadmin reload
+```
+
+该命令会重新读取等级、称号、提示文字和插件联动。新配置有误时，Echelon 会继续使用重载前的有效设置，并在控制台说明原因。
+
+修改数据库类型、文件名、地址、账号、连接参数、线程数或连接池大小后，必须完整重启服务器。
+
+## 备份
+
+- SQLite：完整停服后备份 `plugins/Echelon/echelon.db`；
+- MySQL：备份当前数据库中的全部 Echelon 表；
+- 同时保留 `config.yml`、`language.yml` 与 `license.yml`。

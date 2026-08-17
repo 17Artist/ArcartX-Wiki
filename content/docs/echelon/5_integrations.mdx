@@ -1,0 +1,102 @@
+---
+title: 插件联动
+description: PlaceholderAPI、MythicMobs、Symphony 与 SystemMail
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 插件联动
+
+所有可选联动都位于 `config.yml` 的 `integrations`。PlaceholderAPI 默认开启，其他联动默认关闭；没有安装对应插件时，Echelon 的基础等级功能仍可使用。
+
+## PlaceholderAPI
+
+```yaml
+integrations:
+  placeholder-api:
+    enabled: true
+```
+
+| 占位符                                                     | 内容                 |
+|---------------------------------------------------------|--------------------|
+| `%echelon_level%`                                       | 当前等级               |
+| `%echelon_title%`、`%echelon_stage_title%`               | 当前阶段称号             |
+| `%echelon_experience%`、`%echelon_exp%`                  | 当前等级内已有经验          |
+| `%echelon_required_experience%`                         | 升到下一级需要的经验，满级为 `0` |
+| `%echelon_stage_experience%`、`%echelon_max_experience%` | 升级所需经验的别名          |
+| `%echelon_total_experience%`                            | 玩家已经计入的总经验         |
+| `%echelon_progress_percent%`                            | 当前级进度百分比，保留两位小数    |
+
+玩家数据尚未读取完成时，占位符会暂时返回 `0`。这些占位符用于在线玩家。
+
+## MythicMobs
+
+```yaml
+integrations:
+  mythicmobs:
+    enabled: true
+    experience-path: "Echelon.Experience"
+```
+
+在 MythicMobs 怪物配置中写入经验：
+
+```yaml
+TrainingDummy:
+  Type: ZOMBIE
+  Display: '&c训练假人'
+  Echelon:
+    Experience: 50
+```
+
+玩家亲自击杀该怪物后会获得 50 点经验。经验必须是正整数；没有填写经验或最后击杀者不是玩家时不会发放。
+
+修改 `experience-path` 后，怪物配置中的路径也要一起修改。
+
+## Symphony
+
+```yaml
+integrations:
+  symphony:
+    enabled: true
+    provider-priority: 100
+    display-name: "玩家等级"
+```
+
+启用后，Symphony 可以读取 Echelon 的等级、当前经验、升级所需经验和阶段称号。
+
+- Provider ID 固定为 `echelon:level`；
+- `display-name` 是 Symphony 中显示的名称；
+- `provider-priority` 用于多个等级来源同时存在时决定优先级。
+
+## SystemMail
+
+先安装与 Echelon 配套的 SystemMail，再启用：
+
+```yaml
+integrations:
+  system-mail:
+    enabled: true
+    poll-seconds: 5
+    batch-size: 32
+    lease-seconds: 30
+    max-attempts: 100
+    base-retry-seconds: 2
+```
+
+通常只需要修改 `enabled`。其余设置控制后台投递：
+
+| 配置项                  | 用途               |
+|----------------------|------------------|
+| `poll-seconds`       | 检查待发送礼包的间隔       |
+| `batch-size`         | 每次最多处理的礼包数量      |
+| `lease-seconds`      | 一次发送任务的占用时间      |
+| `max-attempts`       | 自动重试次数上限         |
+| `base-retry-seconds` | 首次重试间隔，后续间隔会逐渐增加 |
+
+玩家升级跨过已启用礼包等级时，每个符合条件的等级都会发送一封邮件。同一玩家的同一级礼包只会发送一次。
+
+SystemMail 暂时不可用时，礼包会保留并继续重试。礼包创建与附件格式见[管理与等级礼包](/docs/echelon/3_admin#创建等级礼包)。
+
+<Callout type="info">
+修改联动开关或参数后可以执行 `/eadmin reload`。
+</Callout>

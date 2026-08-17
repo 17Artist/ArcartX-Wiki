@@ -12,6 +12,7 @@
         "chronos",
         "blink",
         "systemmail",
-        "giftcode"
+        "giftcode",
+        "echelon"
     ]
 }
