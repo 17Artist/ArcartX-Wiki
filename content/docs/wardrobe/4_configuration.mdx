@@ -1,0 +1,146 @@
+---
+title: 配置文件
+description: 数据库、界面、安全限制和预设解锁配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置文件
+
+Wardrobe 的配置位于 `plugins/Wardrobe/`：
+
+```text
+Wardrobe/
+├─ config.yml
+├─ language.yml
+├─ license.yml
+├─ wardrobe.db
+├─ fashions/
+│  └─ example.yml
+└─ ui/
+   └─ wardrobe.yml
+```
+
+## 授权配置
+
+首次启动生成 `license.yml`：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+## 主配置
+
+默认 `config.yml`：
+
+```yaml
+database:
+  type: sqlite
+  sqlite-file: wardrobe.db
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    database: wardrobe
+    username: root
+    password: ""
+    parameters: useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+    pool-size: 6
+
+ui:
+  page-size: 10
+
+expiry:
+  scan-seconds: 60
+
+security:
+  max-packet-fields: 16
+  max-field-length: 256
+  packet-window-millis: 10000
+  max-packets-per-window: 30
+
+presets:
+  max: 3
+  default-unlocked: 1
+  unlocks:
+    "1":
+      provider: Vault
+      cost: 1000.0
+      enabled: true
+    "2":
+      provider: Vault
+      cost: 2000.0
+      enabled: true
+```
+
+## 数据库
+
+| 配置                          | 说明                                 |
+|-----------------------------|------------------------------------|
+| `database.type`             | `sqlite` 或 `mysql`                 |
+| `database.sqlite-file`      | SQLite 文件名，相对于 `plugins/Wardrobe/` |
+| `database.mysql.host`       | MySQL 地址                           |
+| `database.mysql.port`       | 端口，范围 `1`～`65535`                  |
+| `database.mysql.database`   | 数据库名                               |
+| `database.mysql.username`   | 用户名                                |
+| `database.mysql.password`   | 密码                                 |
+| `database.mysql.parameters` | JDBC 连接参数                          |
+| `database.mysql.pool-size`  | 连接池大小，范围 `2`～`32`                  |
+
+单服保留默认 SQLite 即可；多个子服需要共享玩家衣柜时，应让所有节点连接同一个 MySQL 数据库。SQLite 文件名不能是绝对路径，也不能包含 `..`。
+
+MySQL 会创建以下数据表：
+
+| 表                       | 内容            |
+|-------------------------|---------------|
+| `wardrobe_players`      | 玩家当前预设与已解锁预设数 |
+| `wardrobe_entitlements` | 玩家拥有的时装及到期时间  |
+| `wardrobe_presets`      | 每个预设保存的穿搭     |
+
+<Callout type="warn">
+数据库类型、地址和账号修改后必须完整重启。`/wardrobe reload` 不会把正在使用的数据库连接切换到新配置。
+</Callout>
+
+## 界面与到期检查
+
+| 配置                    | 说明            | 范围          |
+|-----------------------|---------------|-------------|
+| `ui.page-size`        | 每页显示的时装数      | `1`～`30`    |
+| `expiry.scan-seconds` | 检查限时时装到期状态的间隔 | `5`～`300` 秒 |
+
+到期检查只负责及时刷新在线玩家状态。玩家再次打开界面、保存穿搭或读取数据时，Wardrobe 仍会校验到期时间。
+
+## 界面数据限制
+
+`security` 用于限制玩家端发送给衣柜界面的数据量：
+
+| 配置                       | 说明           | 范围                |
+|--------------------------|--------------|-------------------|
+| `max-packet-fields`      | 单次数据最多包含的字段数 | `1`～`64`          |
+| `max-field-length`       | 单个文本字段最大长度   | `16`～`2048`       |
+| `packet-window-millis`   | 频率统计窗口       | `1000`～`60000` 毫秒 |
+| `max-packets-per-window` | 每个窗口允许的数据次数  | `5`～`300`         |
+
+一般不需要修改这些值。自定义界面确实需要发送更多时装 ID 时，再配合[界面协议](/docs/wardrobe/6_ui_protocol)调整。
+
+## 预设栏位
+
+| 配置                              | 说明              | 范围                |
+|---------------------------------|-----------------|-------------------|
+| `presets.max`                   | 每名玩家最多拥有的预设数    | `1`～`20`          |
+| `presets.default-unlocked`      | 新玩家默认解锁的预设数     | `1`～`presets.max` |
+| `presets.unlocks.<索引>.enabled`  | 是否允许解锁该预设       | `true` / `false`  |
+| `presets.unlocks.<索引>.provider` | ArcartX 经济提供器名称 | 最多 64 个字符         |
+| `presets.unlocks.<索引>.cost`     | 解锁费用            | 大于等于 `0`          |
+
+解锁索引从 `1` 开始配置，因为索引 `0` 是第一个默认预设。例如 `presets.max: 3` 时，可配置的解锁项是 `"1"` 和 `"2"`。玩家只能按顺序解锁下一个预设。
+
+## 重载与备份
+
+执行 `/wardrobe reload` 可以重新读取：
+
+- `config.yml` 中除数据库连接外的设置；
+- `language.yml`；
+- `fashions/` 下的时装目录；
+- `ui/wardrobe.yml`；
+- 到期检查任务和在线玩家衣柜状态。

@@ -1,0 +1,26 @@
+{
+    "title": "Wardrobe — 衣柜",
+    "description": "管理时装、穿搭预设与收藏值",
+    "icon": "logo/wardrobe-logo.png",
+    "tags": [
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "外观玩法", "color": "#0EA5E9" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#0EA5E9",
+    "entry": "wardrobe/1_start",
+    "tagline": "管理玩家时装与穿搭预设",
+    "order": 11,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与界面---",
+        "4_configuration",
+        "5_fashions",
+        "6_ui_protocol"
+    ]
+}

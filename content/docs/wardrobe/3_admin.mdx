@@ -1,0 +1,75 @@
+---
+title: 命令、权限与变量
+description: Wardrobe 的管理命令、授权时长和收藏值变量
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 命令、权限与变量
+
+Wardrobe 的主命令为 `/wardrobe`，简写为 `/wd`。
+
+## 命令
+
+| 命令                                | 用途              | 权限               |
+|-----------------------------------|-----------------|------------------|
+| `/wardrobe open`                  | 打开自己的衣柜         | `wardrobe.open`  |
+| `/wardrobe give <玩家> <时装ID> <时长>` | 授予永久或限时时装       | `wardrobe.admin` |
+| `/wardrobe remove <玩家> <时装ID>`    | 移除玩家的时装         | `wardrobe.admin` |
+| `/wardrobe reload`                | 重载配置、语言、时装目录与界面 | `wardrobe.admin` |
+
+`give` 与 `remove` 可由控制台或玩家执行，但目标玩家必须在线。
+
+## 授权时长
+
+永久时装可以使用：
+
+```text
+permanent
+forever
+```
+
+限时时装使用“正整数 + 单位”：
+
+| 单位  | 含义    | 示例    |
+|-----|-------|-------|
+| `s` | 秒     | `30s` |
+| `m` | 分钟    | `15m` |
+| `h` | 小时    | `12h` |
+| `d` | 天     | `7d`  |
+| `M` | 30 天  | `3M`  |
+| `y` | 365 天 | `1y`  |
+
+请注意，`m` 是分钟，`M` 是 30 天，两者区分大小写。
+
+```text
+/wardrobe give Steve example_hat permanent
+/wardrobe give Steve summer_suit 30d
+/wardrobe remove Steve example_hat
+```
+
+重复授予限时时装时，会从“当前时间”和“原到期时间”中较晚的一项继续延长。已经永久拥有的时装不会被限时授权覆盖。
+
+移除时装后，它会同时从玩家的拥有列表、所有预设和当前外观中移除。
+
+## 权限
+
+| 权限               | 建议授予对象      |
+|------------------|-------------|
+| `wardrobe.open`  | 普通玩家        |
+| `wardrobe.admin` | 管理员或后台命令执行器 |
+
+
+## PlaceholderAPI
+
+安装 PlaceholderAPI 后，可以使用：
+
+```text
+%Wardrobe_Collection%
+```
+
+该变量返回玩家全部有效时装的收藏值总和。永久时装和未过期的限时时装都会计入，已经过期或被移除的时装不会计入。
+
+<Callout type="info">
+变量标识区分大小写，请使用完整写法 `%Wardrobe_Collection%`。
+</Callout>

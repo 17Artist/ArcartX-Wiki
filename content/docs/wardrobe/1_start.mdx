@@ -1,0 +1,119 @@
+---
+title: 说明与安装
+description: Wardrobe 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Wardrobe 是面向 ArcartX 服务器的**玩家衣柜插件**。服主可以配置时装目录、购买价格和预设栏位，玩家则可以在图形界面中预览、购买并保存自己的穿搭。
+
+<Callout type="warn">
+**Wardrobe 为 ArcartX 高级会员专属插件。** 使用时需要有效授权。
+</Callout>
+
+Wardrobe 负责管理时装目录、玩家拥有状态和穿搭预设。如果您的服务器使用了Chronos，或者玩家模型使用的不是ArcartX内置的玩家模型，又或者直接关闭了ArcartX的内置玩家模型动作功能，请看完以下说明：
+1. 衣橱插件管理的是基于ArcartX 内置玩家模型的时装功能进行实现的，当玩家使用了非内置玩家模型，时装效果将不再显示，在玩家切换回AX内置玩家模型后，时装恢复显示
+2. 对于使用了Chronos的服务器，该插件适用于 *控制器不改变玩家模型而是使用动画包* 的服务器，如上所述，如果玩家模型非AX内置玩家模型，时装功能将会关闭。
+3. 如果关闭了ArcartX内置玩家模型功能，所有效果不会显示。该功能完全基于ArcartX的内置玩家模型渲染器实现。（这里注意区分，内置玩家模型渲染器≠自定义玩家模型渲染器）
+
+## 核心能力
+
+| 能力   | 说明                                   |
+|------|--------------------------------------|
+| 时装目录 | 按部位、品质和分类展示服装，支持搜索与分页                |
+| 限时拥有 | 可授予永久或限时时装，到期后自动从可用衣柜中移除             |
+| 穿搭预设 | 玩家可以保存多套穿搭，并按配置解锁新栏位                 |
+| 时装购买 | 通过 ArcartX 支持的货币提供者，支持不同经济提供器        |
+| 收藏值  | 统计玩家当前有效时装的收藏值，并提供 PlaceholderAPI 变量 |
+| 存储方式 | 单服使用 SQLite，群组服可以共享 MySQL            |
+
+## 运行条件
+
+- Java 17+；
+- Spigot 或 Paper 1.18.2+；
+- ArcartX 2.6.50+；
+- 高级会员有效授权；
+- PlaceholderAPI 可选，仅在使用收藏值变量时需要。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+将 Wardrobe JAR 放入服务端 `plugins/`，然后完整启动一次服务器。首次启动会生成 `plugins/Wardrobe/license.yml`。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+打开 `license.yml`，填写高级会员授权：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+保存后完整重启服务器。授权通过前，Wardrobe 不会连接数据库、注册命令或开放衣柜界面。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认 `plugins/Wardrobe/` 中已经生成：
+
+```text
+config.yml
+language.yml
+license.yml
+wardrobe.db
+fashions/
+  example.yml
+ui/
+  wardrobe.yml
+```
+
+`wardrobe.db` 只在默认 SQLite 模式下使用。
+
+</Step>
+
+<Step>
+
+### 配置第一件时装
+
+编辑 `fashions/example.yml`，把示例模型 ID 换成已经导入 符合ArcartX时装格式的模型。保存后执行：
+
+```text
+/wardrobe reload
+```
+
+</Step>
+
+<Step>
+
+### 打开衣柜
+
+为玩家授予 `wardrobe.open` 权限，然后执行：
+
+```text
+/wardrobe open
+```
+
+</Step>
+
+</Steps>
+
+<Callout type="info">
+Wardrobe 不会自动迁移旧版 PlayerFashion、旧衣柜插件或其他表结构。正式启用前，请先备份旧数据，再按当前格式重新配置和授权时装。
+</Callout>
+
+接下来可以阅读[玩家使用](/docs/wardrobe/2_player)和[时装配置](/docs/wardrobe/5_fashions)。

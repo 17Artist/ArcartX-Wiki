@@ -1,0 +1,165 @@
+---
+title: 界面协议
+description: 自定义 Wardrobe 界面时可用的动作与数据处理器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+默认界面文件位于 `plugins/Wardrobe/ui/wardrobe.yml`。自定义界面时，可以使用下列客户端动作和服务端数据处理器。
+
+<Callout type="warn">
+动作参数按顺序读取，请保持字段顺序和类型一致。预设索引从 `0` 开始，页码从 `1` 开始。
+</Callout>
+
+## 客户端动作
+
+界面可以向服务端发送 6 个动作：
+
+| 动作       | 参数                                         | 用途            |
+|----------|--------------------------------------------|---------------|
+| `page`   | `page`                                     | 切换到指定页        |
+| `update` | `showAll`, `search`, `category`, `quality` | 更新筛选条件并刷新列表   |
+| `preset` | `presetIndex`                              | 切换到已解锁预设      |
+| `unlock` | 无                                          | 请求解锁下一个预设     |
+| `save`   | `fashionId...`                             | 保存当前完整预览      |
+| `pay`    | `fashionId...`                             | 确认购买并保存当前完整预览 |
+
+### `page`
+
+```text
+page [page]
+```
+
+`page` 为从 `1` 开始的数字。服务端会先向 `0` 取整，再把超出范围的页码修正到有效页。
+
+### `update`
+
+```text
+update [showAll, search, category, quality]
+```
+
+| 参数         | 类型      | 说明                        |
+|------------|---------|---------------------------|
+| `showAll`  | Boolean | 是否显示未拥有的时装                |
+| `search`   | String  | 名称或 ID 搜索文本，空文本或 `*` 表示不限 |
+| `category` | String  | 部位枚举名，空文本表示不限             |
+| `quality`  | String  | 品质筛选，空文本表示不限              |
+
+名称、ID 和部位匹配不区分大小写；品质按完整名称匹配。更新筛选后，页码会回到第 1 页。
+
+### `preset`
+
+```text
+preset [presetIndex]
+```
+
+`presetIndex` 从 `0` 开始。选择已经解锁的预设会立即切换；选择下一个未解锁预设时，服务端会发送 `preset` 弹窗，界面确认后再发送 `unlock`。
+
+### `unlock`
+
+```text
+unlock []
+```
+
+不带参数。服务端只会尝试解锁当前预设数量之后的下一个栏位。
+
+### `save`
+
+```text
+save [fashionId...]
+```
+
+发送当前预览中的**全部时装 ID**，没有 ID 表示清空当前穿搭。
+
+### `pay`
+
+```text
+pay [fashionId...]
+```
+
+同样发送完整预览。服务端只为玩家尚未拥有、允许购买且仍在预览中的时装计价。
+
+## 数据处理器
+
+Wardrobe 会向界面发送 11 类数据：
+
+| 处理器               | 数据                        | 用途                           |
+|-------------------|---------------------------|------------------------------|
+| `presetCount`     | `Int`                     | 最大预设数量                       |
+| `page`            | `Int`                     | 当前页码                         |
+| `maxPage`         | `Int`                     | 最大页数                         |
+| `current`         | `List<String>`            | 当前预设保存的时装 ID                 |
+| `view`            | `List<Map>`               | 当前页的时装卡片                     |
+| `collectionValue` | `Int`                     | 玩家收藏值                        |
+| `unlockedPreset`  | `Int`                     | 已解锁预设数量                      |
+| `currentPreset`   | `Int`                     | 当前预设索引                       |
+| `model`           | `List<Map>`               | 当前预设的模型预览数据                  |
+| `popInfo`         | `String` 或 `List<String>` | 弹窗显示内容                       |
+| `popState`        | `String`                  | 弹窗类型：`preset`、`pay` 或 `info` |
+
+## `view` 卡片结构
+
+`view` 中每件时装包含：
+
+| 字段            | 说明                                                     |
+|---------------|--------------------------------------------------------|
+| `id`          | 时装 ID                                                  |
+| `modelID`     | 模型 ID                                                  |
+| `mode`        | 穿戴模式：`TRADITION`、`TRADITION_HIDE` 或 `TRADITION_SINGLE` |
+| `modelType`   | 模型部位类型                                                 |
+| `meta`        | 时装配置中的界面数据                                             |
+| `state`       | 玩家拥有与可用状态                                              |
+| `displayInfo` | 界面展示的名称、品质、价格等信息                                       |
+| `showType`    | 用于筛选和展示的部位类型                                           |
+
+`state` 的值：
+
+| 值   | 含义             |
+|-----|----------------|
+| `1` | 已拥有，并且当前模型可以应用 |
+| `2` | 未拥有，但当前模型可以应用  |
+| `3` | 当前玩家模型不能应用时装   |
+
+配置部位与协议字段的对应关系：
+
+| 配置部位         | `showType`   | `modelType`                      |
+|--------------|--------------|----------------------------------|
+| `HEAD`       | `HEAD`       | `HEAD` 或 `HEAD_HIDE`             |
+| `BODY`       | `UPPER_BODY` | `UPPER_BODY` 或 `UPPER_BODY_HIDE` |
+| `LEGS`       | `LOWER_BODY` | `LOWER_BODY` 或 `LOWER_BODY_HIDE` |
+| `FEET`       | `FOOT`       | `FOOT` 或 `FOOT_HIDE`             |
+| `DECORATION` | `OTHER`      | `OTHER`                          |
+| `SUIT`       | `SET`        | `OTHER`                          |
+
+普通部位的 `mode` 为 `TRADITION_SINGLE`。套装的 `mode` 在 `hide: false` 时为 `TRADITION`，在 `hide: true` 时为 `TRADITION_HIDE`。界面应直接使用服务端发送的值，不要从 `showType` 反推其他字段。
+
+## `model` 结构
+
+`model` 用于构造当前预设的模型预览，每项包含：
+
+| 字段      | 说明     |
+|---------|--------|
+| `id`    | 时装 ID  |
+| `model` | 模型 ID  |
+| `mode`  | 时装部位   |
+| `type`  | 时装显示类型 |
+
+`model` 与 `current` 来自同一套已保存预设，前者用于构造模型，后者用于恢复选中状态。玩家模型不满足应用条件时，这两项仍会保留，因此不代表 ArcartX 此刻一定显示了这些时装。
+
+## 弹窗类型
+
+| `popState` | 用途           |
+|------------|--------------|
+| `preset`   | 确认解锁下一个预设    |
+| `pay`      | 确认购买缺少的时装并保存 |
+| `info`     | 显示成功、失败或普通提示 |
+
+
+## 界面生命周期
+
+打开界面前，Wardrobe 会先发送 `presetCount`。界面完成加载后，会发送页码、筛选结果、当前预览、预设、收藏值和模型信息。
+
+状态变化时，服务端可能重复发送一组完整数据；界面应按最新值覆盖显示。关闭界面后，Wardrobe 不再处理该玩家发送的衣柜动作。
+

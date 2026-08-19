@@ -1,0 +1,101 @@
+---
+title: 时装目录
+description: 配置模型、部位、品质、价格和收藏值
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 时装目录
+
+时装配置放在 `plugins/Wardrobe/fashions/`。Wardrobe 会读取其中的所有 `.yml` 文件，因此可以按活动、品质或部位拆分子目录。
+
+所有文件中的时装 ID **【必须全局唯一】**。
+
+## 完整示例
+
+```yaml
+fashions:
+  example_hat:
+    model: 一个帽子模型的ID
+    slot: HEAD
+    hide: false
+    priority: 0
+    quality: "普通"
+    collection-value: 10
+    preview-scale: 1.0
+    purchase:
+      enabled: true
+      provider: Vault
+      cost: 1000.0
+    meta:
+      display: "示例帽子"
+```
+
+修改后执行 `/wardrobe reload`。
+
+## 基础字段
+
+| 字段                 | 必填 | 说明                           |
+|--------------------|----|------------------------------|
+| `model`            | 是  | ArcartX 中的时装模型 ID，最多 256 个字符 |
+| `slot`             | 是  | 时装部位，见下表                     |
+| `hide`             | 是  | 是否隐藏对应部位                     |
+| `priority`         | 否  | 目录排序优先级，默认 `0`               |
+| `quality`          | 否  | 界面筛选使用的品质名称，最多 64 个字符        |
+| `collection-value` | 否  | 收藏值，负数按 `0` 处理               |
+| `preview-scale`    | 否  | 预览缩放，范围 `0.05`～`20.0`        |
+| `purchase`         | 否  | 玩家购买设置                       |
+| `meta`             | 否  | 发送给自定义界面的附加显示数据              |
+
+时装 ID 只能使用字母、数字、下划线、点、冒号和短横线，长度为 1～128 个字符。
+
+## 时装部位
+
+| `slot`       | 用途   |
+|--------------|------|
+| `HEAD`       | 头部   |
+| `BODY`       | 身体   |
+| `LEGS`       | 腿部   |
+| `FEET`       | 脚部   |
+| `DECORATION` | 装饰   |
+| `SUIT`       | 整套时装 |
+
+同一个普通部位只能保留一件时装；保存列表中后出现的有效时装会覆盖前一件。`SUIT` 与所有普通部位互斥，选择套装会清除普通部位，选择普通部位也会清除套装。
+
+<Callout type="info">
+`priority` 只影响衣柜目录与界面排序，不是穿戴优先级。
+</Callout>
+
+## 购买设置
+
+```yaml
+purchase:
+  enabled: true
+  provider: Vault
+  cost: 1000.0
+```
+
+| 字段         | 说明                   |
+|------------|----------------------|
+| `enabled`  | 是否允许玩家在衣柜中购买         |
+| `provider` | ArcartX 中注册的经济提供器名称  |
+| `cost`     | 价格，必须是大于等于 `0` 的有限数字 |
+
+`provider: Vault` 只是默认示例。Wardrobe 不直接依赖 Vault，服务器必须存在对应的 ArcartX 经济提供器。
+
+## 界面显示数据
+
+`meta` 会原样提供给自定义衣柜界面，常用字段是：
+
+```yaml
+meta:
+  display: "星海礼帽"
+  description: "活动限定时装"
+  icon: "wardrobe:star_hat"
+  scale: 1.2
+```
+
+如果没有设置 `meta.display`，界面会使用时装 ID。没有设置 `meta.scale` 时，会使用 `preview-scale`。
+
+`meta` 可以使用字符串、数字、布尔值，但不适合放置大量数据，字符串最长 2048 个字符。
+
