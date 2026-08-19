@@ -1,0 +1,42 @@
+---
+title: 第一人称动画
+description: 玩家对象:按持续时间或播放次数播放第一人称动画
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+- 以下函数的目标对象为**玩家**（`Player`），仅在目标为玩家时可用。
+- 动画名称需要对应玩家客户端已加载的第一人称动画资源且手持对应带有第一人称特殊模型的物品。
+
+## `playFirstPersonAnimationByTime(animation, speed, keepTime){:aria}`
+- 按指定持续时间为玩家播放第一人称动画
+<Callout type="info">
+    - **参数**：
+        - `animation` — 字符串类型，动画名称
+        - `speed` — 双精度浮点数类型，播放速度
+        - `keepTime` — 整数类型，持续时间（毫秒）
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    玩家对象.playFirstPersonAnimationByTime("slash", 1.0, 500)
+    ```
+</Callout>
+
+## `playFirstPersonAnimationByCountOf(animation, speed, count){:aria}`
+- 按指定播放次数为玩家播放第一人称动画
+<Callout type="info">
+    - **参数**：
+        - `animation` — 字符串类型，动画名称
+        - `speed` — 双精度浮点数类型，播放速度
+        - `count` — 整数类型，播放次数
+    - **返回值**：无
+    - **调用示例**
+    ```aria
+    玩家对象.playFirstPersonAnimationByCountOf("swing", 1.5, 3)
+    ```
+</Callout>
+
+<Callout type="warn">
+两个函数的参数数量都必须为 3 个，否则不会执行。
+</Callout>

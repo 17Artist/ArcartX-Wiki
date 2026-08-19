@@ -3,6 +3,7 @@
     "defaultOpen": false,
     "pages": [
         "1_info",
-        "2_message"
+        "2_message",
+        "3_first_person_animation"
     ]
 }
