@@ -1,0 +1,66 @@
+---
+title: 命令与权限
+description: Appearance 的管理命令、授权时长与权限节点
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 命令与权限
+
+Appearance 的主命令为 `/appearance`，简写为 `/ape`。
+
+## 命令
+
+| 命令                                    | 用途            | 权限                 |
+|---------------------------------------|---------------|--------------------|
+| `/appearance open`                    | 打开自己的外观界面     | `appearance.open`  |
+| `/appearance give <在线玩家> <外观ID> <时长>` | 解锁或续期外观       | `appearance.admin` |
+| `/appearance remove <在线玩家> <外观ID>`    | 移除玩家的外观       | `appearance.admin` |
+| `/appearance reload`                  | 重载配置、语言、模型与界面 | `appearance.admin` |
+
+`give` 与 `remove` 只接受精确匹配的在线玩家名。默认外观对所有玩家开放，不能通过这两个命令授予或移除。
+
+## 授权时长
+
+永久外观可以使用：
+
+```text
+permanent
+forever
+永久
+```
+
+限时时长支持以下单位：
+
+| 单位  | 含义    | 示例    |
+|-----|-------|-------|
+| `s` | 秒     | `30s` |
+| `m` | 分钟    | `15m` |
+| `h` | 小时    | `24h` |
+| `d` | 天     | `30d` |
+| `M` | 30 天  | `2M`  |
+| `y` | 365 天 | `1y`  |
+
+多个单位可以组合，例如 `2M15d`。每一段都必须是大于 `0` 的整数；`m` 与 `M` 区分大小写。
+
+```text
+/appearance give Steve knight permanent
+/appearance give Steve summer_model 2M15d
+/appearance remove Steve knight
+```
+
+重复授予限时外观时，会从“当前时间”和“原到期时间”中较晚的一项继续延长。已经永久解锁的外观不会被限时时长缩短，无效时长会直接拒绝。
+
+移除玩家当前正在使用的外观后，玩家会立即回到服务器设置的默认外观。
+
+## 权限
+
+| 权限                 | 建议授予对象 |
+|--------------------|--------|
+| `appearance.open`  | 普通玩家   |
+| `appearance.admin` | 管理员或后台 |
+
+
+<Callout type="warn">
+数据库配置只能通过完整重启切换。如果重载时发现 `database` 段发生变化，整次重载会取消，不会只应用其中一部分。
+</Callout>

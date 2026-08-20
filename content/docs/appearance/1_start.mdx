@@ -1,0 +1,110 @@
+---
+title: 说明与安装
+description: Appearance 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Appearance 是面向 ArcartX 的**玩家模型外观插件**。服主可配置不同的玩家模型，按永久或限时方式解锁；玩家可在图形界面中查看并切换自己拥有的外观。
+
+<Callout type="warn">
+**Appearance 为 ArcartX 高级会员专属插件。** 使用时需要有效授权。
+</Callout>
+
+请注意，该插件仅适用于需要类似YSM来给予玩家模型外观的服务器，不适用于多角色、Chronos驱动玩法的服务器，它仅适用于给玩家开放模型外观的生存服。
+
+## 核心能力
+
+| 能力      | 说明                      |
+|---------|-------------------------|
+| 模型外观    | 使用 ArcartX 玩家模型作为可切换外观  |
+| 永久与限时解锁 | 支持永久授权、时长和到期自动回退        |
+| 外观界面    | 分页展示可用、未解锁和已过期的外观       |
+| 单服与群组服  | SQLite / MySQL          |
+| 自定义展示   | 每个外观可以设置名称、缩放、排序和额外界面数据 |
+
+## 运行条件
+
+- Java 17+；
+- Spigot 或 Paper 1.18.2+；
+- ArcartX 2.5.36.8 +；
+- 高级会员有效授权。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+将 Appearance JAR 放入服务端 `plugins/`，确认 ArcartX 已经安装，然后完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+首次启动只会生成 `plugins/Appearance/license.yml`：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+填写高级会员授权后完整重启。授权通过前，Appearance 不会连接数据库、注册界面或应用玩家模型。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认 `plugins/Appearance/` 中已经生成：
+
+```text
+config.yml
+lang.yml
+license.yml
+appearance.db
+models/
+  example.yml
+ui/
+  appearance.yml
+libs/
+```
+
+`appearance.db` 只在默认 SQLite 模式下使用。
+
+</Step>
+
+<Step>
+
+### 配置模型
+
+编辑 `models/example.yml`，将示例模型 ID 换成已经导入 ArcartX 的模型。保存后执行：
+
+```text
+/appearance reload
+```
+
+</Step>
+
+<Step>
+
+### 打开外观界面
+
+为玩家授予 `appearance.open` 权限，然后执行：
+
+```text
+/appearance open
+```
+
+</Step>
+
+</Steps>
+

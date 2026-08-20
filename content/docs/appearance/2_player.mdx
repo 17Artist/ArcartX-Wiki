@@ -1,0 +1,31 @@
+---
+title: 玩家使用
+description: 浏览、选择和切换玩家模型外观
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 玩家使用
+
+玩家执行以下命令打开外观界面：
+
+```text
+/appearance open
+```
+
+也可以使用简写 `/ape open`。玩家需要 `appearance.open` 权限。
+
+
+## 默认外观
+
+默认外观由服主在 `config.yml` 中设置：
+
+- `default-model: default`：恢复 ArcartX 的默认玩家模型；
+- 填写一个外观 ID：把该自定义模型作为全服默认外观。
+
+玩家没有主动选择、所选外观被移除或已经过期时，会自动回到当前默认外观。
+
+<Callout type="info">
+如果服主把某个自定义模型设为默认外观，它会对所有玩家开放，不需要再执行 `/appearance give`。
+</Callout>
+

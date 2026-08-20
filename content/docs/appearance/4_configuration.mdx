@@ -1,0 +1,116 @@
+---
+title: 配置文件
+description: 默认外观、分页、到期检查、安全限制与数据库配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置文件
+
+Appearance 的配置位于 `plugins/Appearance/`：
+
+```text
+Appearance/
+├─ config.yml
+├─ lang.yml
+├─ license.yml
+├─ appearance.db
+├─ models/
+│  └─ example.yml
+└─ ui/
+   └─ appearance.yml
+```
+
+## 主配置
+
+默认 `config.yml`：
+
+```yaml
+default-model: "default"
+
+page-size: 10
+expiration-check-seconds: 30
+
+security:
+  max-packet-fields: 16
+  max-field-length: 256
+  packet-window-millis: 10000
+  max-packets-per-window: 30
+
+database:
+  type: "sqlite"
+  sqlite-file: "appearance.db"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "root"
+    password: "change-me"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 6
+    connection-timeout-ms: 10000
+```
+
+## 默认外观
+
+`default-model` 决定玩家没有有效选择时使用的模型：
+
+| 值         | 行为                                |
+|-----------|-----------------------------------|
+| `default` | 使用 ArcartX 默认玩家模型，界面显示内置的“默认外观”卡片 |
+| 自定义外观 ID  | 使用 `models/*.yml` 中对应的模型，并对所有玩家开放 |
+
+使用自定义默认外观时，该 ID 必须已经存在于模型目录。保留 ID `default` 不能写入模型配置。
+
+## 界面与到期检查
+
+| 配置                         | 说明              | 范围           |
+|----------------------------|-----------------|--------------|
+| `page-size`                | 每页显示的外观数        | `1`～`100`    |
+| `expiration-check-seconds` | 检查在线玩家外观到期状态的间隔 | `5`～`3600` 秒 |
+
+到期检查会让正在使用失效外观的玩家及时回到默认模型。
+
+## 界面数据限制
+
+`security` 用于限制玩家端向外观界面发送的数据：
+
+| 配置                       | 说明           | 范围                |
+|--------------------------|--------------|-------------------|
+| `max-packet-fields`      | 单次数据最多包含的字段数 | `1`～`64`          |
+| `max-field-length`       | 单个文本字段最大长度   | `16`～`2048`       |
+| `packet-window-millis`   | 频率统计窗口       | `1000`～`60000` 毫秒 |
+| `max-packets-per-window` | 每个窗口允许的数据次数  | `5`～`300`         |
+
+## 数据库
+
+| 配置                                     | 说明                        |
+|----------------------------------------|---------------------------|
+| `database.type`                        | `sqlite` 或 `mysql`        |
+| `database.sqlite-file`                 | SQLite 文件名`               |
+| `database.mysql.host`                  | MySQL 地址                  |
+| `database.mysql.port`                  | 端口，范围 `1`～`65535`         |
+| `database.mysql.database`              | 数据库名                      |
+| `database.mysql.username`              | 用户名                       |
+| `database.mysql.password`              | 密码                        |
+| `database.mysql.parameters`            | JDBC 连接参数，不要在开头写 `?`      |
+| `database.mysql.pool-size`             | 连接池大小，范围 `2`～`32`         |
+| `database.mysql.connection-timeout-ms` | 连接超时，范围 `2000`～`60000` 毫秒 |
+
+Appearance 会创建两个数据表：
+
+| 表                   | 内容             |
+|---------------------|----------------|
+| `appearance_player` | 玩家当前选择的非默认外观   |
+| `appearance_unlock` | 玩家解锁的外观与绝对到期时间 |
+
+
+
+## 重载与备份
+
+执行 `/appearance reload` 重新读取：
+
+- `config.yml` 中除数据库连接外的设置；
+- `lang.yml`；
+- `models/` 下的所有模型；
+- `ui/appearance.yml`。

@@ -1,0 +1,27 @@
+{
+    "title": "Appearance — 外观",
+    "description": "管理玩家模型外观与限时解锁",
+    "icon": "logo/appearance-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "特效", "color": "#0EA5E9" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#2563EB",
+    "entry": "appearance/1_start",
+    "tagline": "解锁并切换玩家模型外观",
+    "order": 12,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与界面---",
+        "4_configuration",
+        "5_models",
+        "6_ui_protocol"
+    ]
+}

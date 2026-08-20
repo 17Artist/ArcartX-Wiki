@@ -1,0 +1,80 @@
+---
+title: 界面协议
+description: 自定义 Appearance 界面时可用的动作与数据处理器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+<Callout type="warn">
+动作参数按顺序读取。页码从 `1` 开始，每个动作都必须恰好提供一个参数。
+</Callout>
+
+## 客户端动作
+
+| 动作     | 参数             | 用途        |
+|--------|----------------|-----------|
+| `page` | `page`         | 请求切换到指定页面 |
+| `sel`  | `appearanceId` | 选择并穿戴指定外观 |
+
+### `page`
+
+```aria
+Packet.send('page', targetPage)
+```
+
+### `sel`
+
+```aria
+Packet.send('sel', appearanceId)
+```
+
+外观 ID 长度为 1～64 个字符。
+选择成功后，服务端返回新的 `current`。客户端只需要提交外观 ID。
+
+## 服务端数据处理器
+
+| 处理器       | 数据                      | 用途                           |
+|-----------|-------------------------|------------------------------|
+| `page`    | `Number`                | 当前页码，从 `1` 开始                |
+| `maxPage` | `Number`                | 总页数，最小为 `1`                  |
+| `current` | `String`                | 当前外观 ID；使用原版默认模型时为 `default` |
+| `view`    | `Array<AppearanceView>` | 当前页面的外观卡片                    |
+
+界面打开后，服务端依次发送 `page`、`maxPage`、`current` 和 `view`。
+
+## `AppearanceView` 结构
+
+`view` 中每张卡片包含：
+
+| 字段              | 类型      | 说明                             |
+|-----------------|---------|--------------------------------|
+| `id`            | String  | 外观配置 ID                        |
+| `modelID`       | String  | 界面预览使用的 ArcartX 模型 ID          |
+| `scale`         | Number  | 模型预览缩放                         |
+| `meta`          | Object  | 模型配置中的界面展示数据                   |
+| `unlocked`      | Boolean | 玩家当前是否可以选择                     |
+| `isExpired`     | Boolean | 是否存在已过期的解锁记录                   |
+| `isDefault`     | Boolean | 是否为服务器当前默认外观                   |
+| `remainingTime` | String  | `默认`、`未解锁`、`已过期`、`永久` 或格式化剩余时间 |
+
+示例：
+
+```json
+[
+  {
+    "id": "knight",
+    "modelID": "player/knight",
+    "scale": 1.0,
+    "meta": { "display": "骑士" },
+    "unlocked": true,
+    "isExpired": false,
+    "isDefault": false,
+    "remainingTime": "永久"
+  }
+]
+```
+
+`unlocked` 才是卡片能否点击的判断依据。`isExpired` 用于区分“从未解锁”和“曾经拥有但已经到期”，`isDefault` 则用于突出显示全服默认项。
+

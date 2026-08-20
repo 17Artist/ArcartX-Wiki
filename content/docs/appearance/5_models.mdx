@@ -1,0 +1,78 @@
+---
+title: 模型配置
+description: 配置玩家模型、缩放、排序和界面展示数据
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 模型配置
+
+外观配置放在 `plugins/Appearance/models/`。Appearance 会读取其中的所有 `.yml` 文件，可以按活动、品质或用途拆分子目录。
+
+目录中至少需要一个 YAML 文件，所有文件里的外观 ID 必须全局唯一。
+
+## 完整示例
+
+```yaml
+appearances:
+  knight:
+    model: "player/knight"
+    scale: 1.0
+    priority: 100
+    meta:
+      display: "骑士"
+      quality: "史诗"
+```
+
+修改后执行 `/appearance reload`。
+
+## 字段说明
+
+| 字段                 | 必填 | 说明                             |
+|--------------------|----|--------------------------------|
+| `appearances.<id>` | 是  | 外观配置 ID，最长 64 个字符              |
+| `model`            | 是  | ArcartX 玩家模型资源 ID，最长 160 个字符   |
+| `scale`            | 否  | 模型缩放，默认 `1.0`，范围 `0.05`～`20.0` |
+| `priority`         | 否  | 同一解锁状态内的排序优先级，越大越靠前            |
+| `meta`             | 否  | 发送给界面的附加展示数据                   |
+
+外观 ID 必须以小写字母或数字开头，之后可以使用小写字母、数字、下划线、点和短横线：
+
+```text
+[a-z0-9][a-z0-9_.-]{0,63}
+```
+
+`default` 是插件保留 ID，不能在模型目录中定义。`model` 可以使用字母、数字、下划线、点、斜杠、冒号和短横线。
+
+## 界面展示数据
+
+`meta` 会发送给自定义界面：
+
+```yaml
+meta:
+  display: "星海骑士"
+  quality: "传说"
+  description: "赛季限定外观"
+```
+
+如果没有设置 `meta.display`，Appearance 会使用外观 ID。`meta` 可以包含字符串、数字、布尔值：
+
+## 默认模型与自定义模型
+
+当 `default-model: default` 时，Appearance 会在界面中加入一张内置卡片：
+
+| 字段             | 值         |
+|----------------|-----------|
+| `id`           | `default` |
+| `modelID`      | `@player` |
+| `scale`        | `1.0`     |
+| `meta.display` | `默认外观`    |
+
+选择它会恢复 ArcartX 内置玩家模型。
+
+如果 `default-model` 填写自定义外观 ID，该模型会成为全服默认项。它不需要玩家解锁，也不能通过管理命令移除。
+
+<Callout type="info">
+`priority` 只影响外观卡片顺序。默认项始终排在最前，已解锁且未过期的外观排在未解锁或已过期外观之前。
+</Callout>
+
