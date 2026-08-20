@@ -3,6 +3,7 @@
     "description": "等级、经验、阶段称号与升级礼包",
     "icon": "logo/echelon-logo.png",
     "tags": [
+        { "label": "闭源", "color": "#DC143C" },
         { "label": "高级会员专属", "color": "#F59E0B" },
         { "label": "基础玩法", "color": "#2563EB" },
         { "label": "API", "color": "#8B5CF6" }

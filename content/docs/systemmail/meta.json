@@ -3,8 +3,10 @@
     "description": "系统邮件与附件投递",
     "icon": "logo/systemmail-logo.png",
     "tags": [
+        { "label": "闭源", "color": "#DC143C" },
         { "label": "高级会员专属", "color": "#F59E0B" },
         { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" },
         { "label": "API", "color": "#8B5CF6" }
     ],
     "root": true,

@@ -4,8 +4,8 @@
     "root": true,
     "color": "#279BFF",
     "tags": [
-        { "label": "核心", "color": "#46D2FF" },
         { "label": "开源", "color": "#22C55E" },
+        { "label": "核心", "color": "#46D2FF" },
         { "label": "API", "color": "#8B5CF6" }
     ],
     "entry": "blink",
