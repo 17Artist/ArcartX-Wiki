@@ -1,0 +1,27 @@
+{
+    "title": "ChemdahView — 任务视图",
+    "description": "为 Chemdah 提供任务面板、追踪 HUD、路标与对话界面",
+    "icon": "logo/chemdahview-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "付费", "color": "#FF4500" },
+        { "label": "任务", "color": "#3B82F6" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#3B82F6",
+    "entry": "chemdahview/1_start",
+    "tagline": "任务面板、实施进度、追踪、对话",
+    "order": 14,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与界面---",
+        "4_configuration",
+        "5_quests",
+        "6_ui_protocol"
+    ]
+}

@@ -1,0 +1,281 @@
+---
+title: 界面协议
+description: 自定义任务面板、追踪 HUD 与对话框时使用的动作和数据结构
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+<Callout type="warn">
+任务列表页码从 `0` 开始。客户端只提交分类、页码、任务 ID、目标 ID 或对话 token，任务状态、追踪结果、奖励、进度和路标状态都以服务端回包为准。
+</Callout>
+
+## 协议总览
+
+### 客户端动作
+
+| UI   | 动作           | 参数                  | 用途          |
+|------|--------------|---------------------|-------------|
+| 任务面板 | `list`       | `category`, `page`  | 请求指定分类的一页任务 |
+| 任务面板 | `select`     | `questId`           | 获取任务详情      |
+| 任务面板 | `track`      | `questId`, `taskId` | 追踪目标        |
+| 任务面板 | `untrack`    | `questId`, `taskId` | 取消追踪        |
+| 任务面板 | `cleartrack` | 无                   | 清空全部追踪      |
+| 对话框  | `reply`      | `frame`, `token`    | 选择当前帧的回复    |
+| 对话框  | `close`      | `frame`             | 主动结束当前对话    |
+
+追踪 HUD 没有客户端动作，服务端会在内容变化时主动同步。
+
+### 服务端数据处理器
+
+| UI     | 处理器                | 数据                | 用途        |
+|--------|--------------------|-------------------|-----------|
+| 任务面板   | `tracking_sync`    | `TrackingCount`   | 当前追踪数与上限  |
+| 任务面板   | `quest_categories` | `QuestCategories` | 分类与单页容量   |
+| 任务面板   | `quest_sync`       | `QuestPage`       | 当前页任务摘要   |
+| 任务面板   | `quest_detail`     | `QuestView`       | 选中任务详情    |
+| 任务面板   | `tracking_result`  | `TrackingResult`  | 追踪动作结果    |
+| 任务面板   | `quest_error`      | `UiError`         | 被拒绝的面板操作  |
+| 追踪 HUD | `tracker_sync`     | `TrackerSnapshot` | 完整追踪目标快照  |
+| 对话框    | `dialogue_frame`   | `DialogueFrame`   | 当前对话内容与回复 |
+| 对话框    | `dialogue_close`   | 空对象               | 服务端结束对话   |
+| 对话框    | `dialogue_error`   | `DialogueError`   | 对话帧或回复失效  |
+
+## 任务面板
+
+玩家执行 `/chemdahview open` 并确认界面已经打开后，服务端依次发送：
+
+1. `tracking_sync`；
+2. `quest_categories`；
+3. 空分类第 `0` 页的 `quest_sync`。
+
+
+### 分类与分页
+
+```aria
+Packet.send('list', selectedCategory, targetPage)
+```
+
+| 参数         | 说明                                                |
+|------------|---------------------------------------------------|
+| `category` | 使用 `quest_categories.categories[].id`；空字符串表示全部进行中 |
+| `page`     | 从 `0` 开始的非负整数                                     |
+
+`quest_categories` 返回：
+
+```json
+{
+  "pageSize": 12,
+  "categories": [
+    {"id":"","displayName":"全部","totalItems":35,"special":true},
+    {"id":"主线","displayName":"主线","totalItems":27,"special":false},
+    {"id":"completed","displayName":"已完成","totalItems":41,"special":true}
+  ]
+}
+```
+
+| 分类字段          | 类型      | 说明                |
+|---------------|---------|-------------------|
+| `id`          | String  | 请求 `list` 时原样使用   |
+| `displayName` | String  | 分类按钮文字            |
+| `totalItems`  | Number  | 当前分类中的任务总数        |
+| `special`     | Boolean | 是否为“全部”“已完成”等特殊分类 |
+
+`quest_sync` 顶层只包含：
+
+```json
+{
+  "totalPages": 3,
+  "quests": [
+    {
+      "id": "frontier-survey",
+      "title": "§b边境测绘",
+      "type": "主线",
+      "taskCount": 4,
+      "completedTaskCount": 1,
+      "trackedTaskCount": 1
+    }
+  ]
+}
+```
+
+| 摘要字段                 | 类型     | 说明       |
+|----------------------|--------|----------|
+| `id`                 | String | 任务 ID    |
+| `title`              | String | 任务标题     |
+| `type`               | String | 任务分类     |
+| `taskCount`          | Number | 目标总数     |
+| `completedTaskCount` | Number | 已完成目标数   |
+| `trackedTaskCount`   | Number | 正在追踪的目标数 |
+
+即使列表为空，`totalPages` 也至少为 `1`。
+
+### 任务详情
+
+```aria
+Packet.send('select', questId)
+```
+
+服务端通过 `quest_detail` 返回：
+
+| `QuestView` 字段 | 类型                  | 说明      |
+|----------------|---------------------|---------|
+| `id`           | String              | 任务 ID   |
+| `title`        | String              | 任务标题    |
+| `type`         | String              | 任务分类    |
+| `description`  | `Array<String>`     | 任务说明    |
+| `tasks`        | `Array<TaskView>`   | 目标列表    |
+| `rewards`      | `Array<RewardView>` | 主任务奖励预览 |
+
+`TaskView`：
+
+| 字段                     | 类型                  | 说明                              |
+|------------------------|---------------------|---------------------------------|
+| `questId` / `taskId`   | String              | 所属任务与目标 ID                      |
+| `questTitle` / `title` | String              | 所属任务与目标标题                       |
+| `description`          | `Array<String>`     | 目标说明                            |
+| `objectiveText`        | String              | 主要目标文字                          |
+| `progress`             | `ProgressView`      | 原生进度                            |
+| `state`                | String              | `ACTIVE`、`LOCKED` 或 `COMPLETED` |
+| `tracked`              | Boolean             | 是否正在追踪                          |
+| `waypointStatus`       | String              | 当前路标状态                          |
+| `rewards`              | `Array<RewardView>` | 目标奖励预览                          |
+
+`ProgressView` 包含 `available`、`value`、`target`、`percent` 和已经格式化的 `text`。`percent` 范围为 `0.0`～`1.0`。
+
+`waypointStatus` 的取值：
+
+| 值                      | 含义                |
+|------------------------|-------------------|
+| `ACTIVE`               | 路标正在显示            |
+| `DISABLED`             | 全局路标已关闭           |
+| `NOT_DECLARED`         | 目标没有路标配置          |
+| `SERVER_TYPE_MISMATCH` | 当前服务器类型不允许        |
+| `WORLD_MISMATCH`       | 当前世界不允许           |
+| `TARGET_UNAVAILABLE`   | 无法取得有效位置          |
+| `CLIENT_NOT_READY`     | ArcartX 客户端资源尚未就绪 |
+
+只有 `ACTIVE` 应显示为“路标已启用”。
+
+`RewardView`：
+
+| 字段            | 类型              | 说明                |
+|---------------|-----------------|-------------------|
+| `id`          | String          | 奖励配置 ID           |
+| `type`        | String          | `item` 或 `custom` |
+| `displayName` | String          | 显示名称              |
+| `description` | `Array<String>` | 奖励说明              |
+| `icon`        | String          | 自定义奖励图片路径         |
+| `amount`      | Number          | 物品数量              |
+| `amountText`  | String          | 界面数量文字            |
+| `itemContent` | String          | 物品的序列化内容          |
+
+奖励结构只允许用于显示。
+
+### 追踪动作
+
+```aria
+Packet.send('track', questId, taskId)
+Packet.send('untrack', questId, taskId)
+Packet.send('cleartrack')
+```
+
+`track` 和 `untrack` 必须提供两个 ID，`cleartrack` 不带参数。服务端在 `tracking_result` 中返回权威结果：
+
+```json
+{
+  "action": "track",
+  "questId": "frontier-survey",
+  "taskId": "dig-dirt",
+  "code": "ADDED",
+  "current": 2,
+  "maximum": 3,
+  "tracked": [
+    {"questId":"frontier-survey","taskId":"dig-dirt"}
+  ]
+}
+```
+
+| `code`            | 含义          |
+|-------------------|-------------|
+| `ADDED`           | 已加入追踪       |
+| `REMOVED`         | 已取消追踪       |
+| `ALREADY_TRACKED` | 原本已经追踪      |
+| `NOT_TRACKED`     | 原本没有追踪      |
+| `LIMIT_REACHED`   | 已达到追踪上限     |
+| `UNAVAILABLE`     | 任务或目标当前不可追踪 |
+| `CLEARED`         | 已清空全部追踪     |
+
+清空结果还会包含 `removed`。客户端应等待 `tracking_result` 后再更新按钮和计数，不要先改本地状态。
+
+`tracking_sync` 只包含 `current` 与 `maximum`，用于初始化或更新面板中的追踪计数。
+
+### 面板错误
+
+`quest_error` 包含用于逻辑判断的 `code` 和可以直接展示的 `msg`：
+
+```json
+{
+  "action": "list",
+  "code": "CATEGORY_NOT_FOUND",
+  "msg": "任务分类不存在或已失效"
+}
+```
+
+可能的错误码包括 `ACTION_NOT_ALLOWED`、`INVALID_ARGUMENT`、`PROFILE_LOADING`、`NOT_FOUND`、`CATEGORY_NOT_FOUND`、`PAGE_OUT_OF_RANGE` 和 `RATE_LIMITED`。
+
+## 追踪 HUD
+
+HUD 只处理 `tracker_sync`：
+
+```json
+{
+  "current": 2,
+  "maximum": 3,
+  "tasks": [
+    {
+      "questId": "frontier-survey",
+      "taskId": "dig-dirt",
+      "title": "清理松软泥土",
+      "objectiveText": "清理泥土",
+      "state": "ACTIVE",
+      "tracked": true,
+      "waypointStatus": "ACTIVE",
+      "rewards": []
+    }
+  ]
+}
+```
+
+`tasks` 中每项都使用与任务详情相同的 `TaskView`。每次回包都是完整快照，客户端应直接覆盖旧数据，不要定时发送查询包。
+
+## 对话框
+
+`dialogue_frame` 返回当前帧：
+
+```json
+{
+  "frame": "92f4f3c5-...",
+  "title": "边境联络员",
+  "messages": ["风暴快到了。"],
+  "canReply": true,
+  "replies": [
+    {"token":"reply-rid","text":"我现在就去。"}
+  ]
+}
+```
+
+回复或主动关闭时，必须原样带回当前 `frame`：
+
+```aria
+Packet.send('reply', currentFrame, replyToken)
+Packet.send('close', currentFrame)
+```
+
+`replyToken` 只能使用服务端下发的 `replies[].token`。成功回复后，Chemdah 会继续发送新的 `dialogue_frame`，或通过 `dialogue_close` 结束界面。
+
+`dialogue_error` 包含 `code` 与 `msg`；过期帧或选项会返回 `STALE_FRAME`。收到 `dialogue_close` 后直接关闭界面，不要再次发送 `close`。
+
+
+

@@ -1,0 +1,217 @@
+---
+title: 任务配置
+description: 配置任务说明、奖励预览、追踪路标与对话主题
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 任务配置
+
+ChemdahView 从 Chemdah 已加载的任务模板和玩家任务实例中读取数据。目标判断、进度统计、完成记录与真实奖励仍按 Chemdah 原有配置执行。
+
+## 展示内容来源
+
+### 主任务
+
+| 显示内容 | 首选来源                         | 回退                               |
+|------|------------------------------|----------------------------------|
+| 标题   | Chemdah `meta.name`          | 任务模板 ID                          |
+| 分类   | `meta.type` 的第一个有效值          | `uncategorized`                  |
+| 说明   | `addon.ui.description`       | `addon.arcartx-view.description` |
+| 目标   | 玩家已接取任务中的目标                  | 空列表                              |
+| 奖励   | `addon.arcartx-view.rewards` | 空列表                              |
+
+### 任务目标
+
+| 显示内容 | 首选来源                                | 回退                               |
+|------|-------------------------------------|----------------------------------|
+| 标题   | 目标 `meta.name`                      | 所属任务标题或目标 ID                     |
+| 说明   | `addon.ui.description`              | `addon.arcartx-view.description` |
+| 目标文字 | `addon.arcartx-view.objective-text` | 统计、追踪或原生进度文字                     |
+| 进度   | Chemdah 原生 objective                | 不支持时标记为不可用                       |
+| 奖励   | 目标的 `addon.arcartx-view.rewards`    | 空列表                              |
+
+击杀、破坏、命令等可计数 objective 会直接显示 Chemdah 提供的当前值、目标值和进度比例。
+
+## 完整示例
+
+`plugins/Chemdah/core/quest/*.yml` ：
+
+```yaml
+__option__:
+  # 需要在“已完成”分类中显示历史时启用。
+  record-completed: true
+
+frontier-survey:
+  meta:
+    name: "§b边境测绘"
+    type: "主线"
+  addon:
+    ui:
+      description:
+        - "前往北部边境完成测绘。"
+    arcartx-view:
+      rewards:
+        survey-diamond:
+          type: item
+          provider: Overture
+          item-id: survey-diamond
+          amount: 3
+          display-name: "§b测绘钻石"
+          description:
+            - "完成任务后取得。"
+        survey-money:
+          type: custom
+          icon: "icons/reward/credit.png"
+          display-name: "§6测绘津贴"
+          amount-text: "+ 2,500"
+          category: currency
+  task:
+    dig-dirt:
+      meta:
+        name: "§f清理松软泥土"
+      objective: block break
+      condition:
+        material: dirt
+      goal:
+        amount: 10
+      addon:
+        stats:
+          visible: true
+        ui:
+          description:
+            - "破坏 10 个泥土方块。"
+        arcartx-view:
+          objective-text: "清理泥土"
+          rewards:
+            task-token:
+              type: custom
+              icon: "icons/reward/token.png"
+              display-name: "§e测绘代币"
+              amount-text: "+ 1"
+              category: command
+        arcartx-waypoint:
+          enabled: true
+          server-types: ["open-world"]
+          worlds: ["world"]
+          style: "default"
+          title: "北部测绘点"
+          location: "world,120,72,-40"
+```
+
+`provider: Overture` 只是示例。实际值必须与当前服务器已注册的 ArcartX ItemProvider 标识完全一致（详情查看arcartx使用文档首页支持的物品库列表，插件名 = 物品提供者ID）。
+
+## 奖励预览
+
+奖励可以写在大任务或单个目标的 `addon.arcartx-view.rewards` 下。
+
+### 物品奖励
+
+```yaml
+example-item:
+  type: item
+  provider: Overture
+  item-id: example-item
+  amount: 3
+  display-name: "§b展示名称"
+  description:
+    - "第一行说明"
+```
+
+| 字段             | 必填 | 说明                        |
+|----------------|----|---------------------------|
+| `type`         | 是  | 固定为 `item`                |
+| `provider`     | 是  | ArcartX ItemProvider 标识   |
+| `item-id`      | 是  | 交给提供器生成物品的 ID             |
+| `amount`       | 否  | 显示数量，范围 `1`～`9999`，默认 `1` |
+| `display-name` | 否  | 未填写时使用物品显示名或材质名           |
+| `description`  | 否  | 最多 16 行，每行最多 256 个字符      |
+
+提供器不存在、物品 ID 无效或生成 AIR 时，该奖励不会进入预览，控制台会输出出问题的对应任务路径和奖励 ID。
+
+### 自定义奖励
+
+货币、命令、权限、经验等不能用物品表示的内容可以使用：
+
+```yaml
+money:
+  type: custom
+  icon: "icons/reward/credit.png"
+  display-name: "§6金币"
+  amount-text: "+ 2,500"
+  category: currency
+  description:
+    - "由任务 agent 实际发放。"
+```
+
+`display-name` 必填；`icon` 是客户端 UI 资源中的 PNG 路径；`amount-text` 和 `category` 只用于界面展示。
+
+<Callout type="warn">
+两类奖励都只是预览。请在 Chemdah 的 agent 中另行配置真实奖励。
+</Callout>
+
+## 任务分类与完成历史
+
+- 空分类代表全部进行中任务；
+- 普通分类来自任务的第一个有效 `meta.type`；
+- 没有分类的任务进入 `uncategorized`；
+- `completed` 是 ChemdahView 保留的已完成分类 ID，请勿用作普通任务类型；
+- 同一模板仍有进行中实例时，以进行中任务为准。
+
+需要显示完成历史时，Chemdah 必须实际记录任务完成状态，例如：
+
+```yaml
+__option__:
+  record-completed: true
+```
+
+## 任务路标
+
+路标配置写在具体目标的 `addon.arcartx-waypoint` 下：
+
+```yaml
+addon:
+  arcartx-waypoint:
+    enabled: true
+    server-types: ["open-world"]
+    worlds: ["world"]
+    style: "default"
+    title: "任务目的地"
+    location: "world,120,72,-40"
+```
+
+| 字段             | 说明                          |
+|----------------|-----------------------------|
+| `enabled`      | 是否启用该目标的路标，默认 `true`        |
+| `server-types` | 允许显示路标的 `server.type` 列表    |
+| `worlds`       | 允许显示路标的 Bukkit 世界名列表        |
+| `style`        | ArcartX 路标样式 ID；留空时使用主配置默认值 |
+| `title`        | 路标显示标题                      |
+| `location`     | 固定格式 `世界,x,y,z`             |
+
+`server-types` 或 `worlds` 为空时均不会显示路标。未填写 `location` 时，插件会尝试读取 Chemdah 原生 `addon.track.center`。
+
+## 对话主题
+
+在 Chemdah 对话文件的 `__option__` 中使用固定主题 ID `arcartx`：
+
+```yaml
+__option__:
+  theme: "arcartx"
+  title: "§b边境联络员"
+
+frontier-dialogue:
+  npc id: "adyeshach frontier-guide"
+  npc:
+    - "§7北境刚送来新的任务情报。"
+  player:
+    - reply: "查看任务说明。"
+      then: |
+        goto frontier-briefing
+    - reply: "稍后再谈。"
+      then: |
+        talk "§7需要时再来找我。"
+```
+
+NPC、条件、`goto`、`talk` 和 agent 等语法仍以 Chemdah 文档为准。ChemdahView 只负责显示当前对话帧，并把玩家选择交还原 Chemdah 会话。
+

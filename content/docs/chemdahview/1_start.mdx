@@ -1,0 +1,108 @@
+---
+title: 说明与安装
+description: ChemdahView 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+ChemdahView 是 Chemdah 的 ArcartX 界面附属插件，为玩家提供任务面板、多目标追踪 HUD、任务路标、奖励预览和对话界面。
+
+<Callout type="warn">
+**ChemdahView 是付费插件。** 使用时需要填写购买该插件后取得的授权ID和密钥。
+</Callout>
+
+ChemdahView 只负责展示与交互。任务接取、目标进度、完成记录和奖励发放仍由 Chemdah 处理，插件本身不会创建数据库，也不会根据界面中的奖励预览自动发奖。
+
+## 核心能力
+
+| 能力     | 说明                                |
+|--------|-----------------------------------|
+| 任务面板   | 按分类浏览进行中与已完成任务，查看目标进度和奖励预览        |
+| 追踪 HUD | 同时追踪多个任务目标，并在任务变化时自动刷新            |
+| 任务路标   | 按服务器类型和世界限制显示 ArcartX 路标          |
+| 对话界面   | 为 Chemdah 提供 ID 为 `arcartx` 的对话主题 |
+
+## 运行条件
+
+- Java 17+；
+- Spigot 或 Paper 1.18.2+；
+- Chemdah 1.1.35+；
+- ChemdahView 有效授权。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+将 ChemdahView JAR 放入服务端 `plugins/`，确认 ArcartX、Chemdah已经安装，然后完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+首次启动会生成 `plugins/ChemdahView/license.yml`：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+填写购买 ChemdahView 后取得的授权，然后完整重启服务器。修改授权后不能只执行插件重载。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认数据目录中已经生成：
+
+```text
+ChemdahView/
+├─ license.yml
+├─ config.yml
+├─ language.yml
+└─ ui/
+   ├─ quests.yml
+   ├─ tracker.yml
+   └─ conversation.yml
+```
+
+</Step>
+
+<Step>
+
+### 配置 Chemdah 任务
+
+在 Chemdah 任务中添加 `arcartx-view` 或 `arcartx-waypoint` 配置。需要使用对话界面时，将 Chemdah 对话主题设为 `arcartx`。
+
+</Step>
+
+<Step>
+
+### 打开任务面板
+
+执行：
+
+```text
+/chemdahview open
+```
+
+也可以使用简写 `/cv open`。
+
+</Step>
+
+</Steps>
+
+<Callout type="info">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载。日常修改配置、任务展示或 UI 后，请使用 `/chemdahview reload`。
+</Callout>
+
