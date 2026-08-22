@@ -9,7 +9,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 ## 回调接口
 
 - ArcartX定义了一组回调接口用于各种回调场景，大多位于 `priv.seventeen.artist.arcartx.util.collections` 包下。
-- 其中 `CallBack`、`PlayerCallBack`、`UICallBack` 为函数式接口（`fun interface`），在Java中可以使用Lambda表达式；`KeyCallBack` 含两个方法，需使用匿名类实现。
+- 其中 `CallBack`、`PlayerCallBack`、`UICallBack`、`ChatCardCallBack` 为函数式接口（`fun interface`），在Java中可以使用Lambda表达式；`KeyCallBack` 含两个方法，需使用匿名类实现。
 
 ## `CallBack`
 - 最基础的无参回调接口
@@ -99,8 +99,30 @@ arcartXUI.registerCallBack(CallBackType.PACKET, event -> {
 ```
 </Callout>
 
+## `ChatCardCallBack`
+- 聊天卡片事件回调接口，接收一个 `CallData` 参数
+
+<Callout type="info">
+```java
+@FunctionalInterface
+public interface ChatCardCallBack {
+    void call(CallData event);
+}
+```
+- **使用场景**：聊天卡片内的 `Packet.send` 回调，配合 `ArcartXChatCard.registerCallBack(ChatCardCallBack)` 注册
+- **调用示例**
+```java
+chatCard.registerCallBack(event -> {
+    Player player = event.player();
+    String identifier = event.identifier();
+    List<String> data = event.data();
+});
+```
+- 位于 `priv.seventeen.artist.arcartx.core.chatcard.adapter` 包下
+</Callout>
+
 ## `CallData`
-- UI回调的数据载体，是一个 `record`（`@JvmRecord data class`）
+- UI和聊天卡片回调的数据载体，是一个 `record`（`@JvmRecord data class`）
 
 <Callout type="info">
 ```java

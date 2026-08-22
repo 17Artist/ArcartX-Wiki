@@ -1,0 +1,324 @@
+---
+title: ArcartXChatCardRegistry:聊天卡片注册器
+description: 聊天卡片注册与数据通信API
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## ArcartXChatCardRegistry
+
+- 聊天卡片注册器负责管理聊天卡片模板的注册、重载、注销、发送和包回调。
+- 通过 `ArcartXAPI.getChatCardRegistry()` 获取。
+- 附属插件注册的聊天卡片与ArcartX自身 `chat_card` 文件夹加载的聊天卡片使用相同的客户端渲染方式。
+
+
+## 公开属性
+
+### `PACKET_ID`
+- 聊天卡片控件动作的固定回调包ID。
+
+<Callout type="info">
+- **类型**：`String`
+- **值**：`ArcartX:ChatCard`
+- **调用示例**
+```java
+String packetId = ArcartXChatCardRegistry.PACKET_ID;
+```
+</Callout>
+
+### `registeredChatCards`
+- 已注册的聊天卡片映射（只读，不可修改）。
+
+<Callout type="info">
+- **类型**：`Map<String, ChatCard>` — 键为聊天卡片唯一标识，值为聊天卡片配置对象
+- **调用示例**
+```java
+Map<String, ChatCard> cards = ArcartXAPI.getChatCardRegistry().getRegisteredChatCards();
+```
+</Callout>
+
+### `get(id){:java}`
+- 通过标识获取已注册的聊天卡片对象（Kotlin 中可用索引运算符 `registry[id]`）。
+
+<Callout type="info">
+- **参数**：`id`: String — 聊天卡片唯一标识
+- **返回值**：`ArcartXChatCard?` — 聊天卡片对象，若未注册则可能为 null
+- **调用示例**
+```java
+ArcartXChatCard chatCard = ArcartXAPI.getChatCardRegistry().get("my_plugin:reward");
+```
+</Callout>
+
+## 注册与注销
+
+### `register(id, src){:java}`
+- 注册一个聊天卡片模板，注册完成后会自动同步到所有在线玩家。
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 聊天卡片唯一标识
+    - `src`: YamlConfiguration / String / File / ChatCard — 聊天卡片配置数据源
+- **返回值**：`ArcartXChatCard` — 聊天卡片对象
+- **调用示例**
+```java
+// 从文件注册
+ArcartXChatCard chatCard = ArcartXAPI.getChatCardRegistry().register(
+    "my_plugin:reward",
+    new File(plugin.getDataFolder(), "chat_card/reward.yml")
+);
+
+// 从YAML字符串注册
+ArcartXChatCard chatCard = ArcartXAPI.getChatCardRegistry().register(
+    "my_plugin:reward",
+    yamlString
+);
+
+// 从YamlConfiguration注册
+ArcartXChatCard chatCard = ArcartXAPI.getChatCardRegistry().register(
+    "my_plugin:reward",
+    yamlConfig
+);
+```
+</Callout>
+
+<Callout type="warn">
+如果需要更新一个已注册的聊天卡片，请使用 `reload`。直接使用相同ID再次调用 `register` 会替换原对象，不会保留原对象上已注册的回调。
+</Callout>
+
+### `reload(id, src){:java}`
+- 热重载一个聊天卡片模板，会保留已注册的回调，并自动同步到所有在线玩家。
+
+<Callout type="info">
+- **参数**：
+    - `id`: String — 聊天卡片唯一标识
+    - `src`: YamlConfiguration / String / File — 新的聊天卡片配置数据源
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getChatCardRegistry().reload(
+    "my_plugin:reward",
+    new File(plugin.getDataFolder(), "chat_card/reward.yml")
+);
+```
+</Callout>
+
+### `unregister(id){:java}`
+- 注销一个聊天卡片模板，并自动通知所有在线客户端移除该模板。
+
+<Callout type="info">
+- **参数**：`id`: String — 聊天卡片唯一标识
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXAPI.getChatCardRegistry().unregister("my_plugin:reward");
+```
+</Callout>
+
+## 发送聊天卡片
+
+### `send(player, id, data){:java}`
+- 向玩家发送一个已注册的聊天卡片。
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `id`: String — 已注册的聊天卡片标识
+    - `data`: Map&lt;String, String&gt; — 发送给聊天卡片控件的数据
+- **返回值**：无
+- **调用示例**
+```java
+Map<String, String> data = new HashMap<>();
+data.put("name", player.getName());
+data.put("reward", "100金币");
+
+ArcartXAPI.getChatCardRegistry().send(player, "my_plugin:reward", data);
+```
+</Callout>
+
+<Callout type="warn">
+`send` 只会发送已注册的聊天卡片。如果ID不存在，本次调用不会发送任何内容。
+</Callout>
+
+## 包回调
+
+- 聊天卡片根控件必须为 `card` 类型。
+- 卡片内控件调用 `Packet.send(identifier, ...data)` 时，客户端会自动绑定当前聊天卡片ID。
+
+```yaml
+root_control:
+  type: card
+  attribute:
+    width: 500
+    height: 50
+  children:
+    claim:
+      type: texture
+      attribute:
+        width: 500
+        height: 50
+        normal: ~255,0,0
+        texts: "'领取奖励：' + self.parent.data['reward']"
+        fontSize: 32
+      action:
+        click: |-
+          Packet.send('claim', 'daily_reward')
+```
+
+
+## ArcartXChatCard 接口
+
+- `ArcartXChatCard` 是聊天卡片对象的底层接口，`ArcartXChatCardRegistry.register()` 返回的就是它的实例。
+- 提供了发送聊天卡片和注册包回调的能力。
+
+### 属性
+
+<Callout type="info">
+- `callbacks`: `MutableList<ChatCardCallBack>` — 已注册的包回调列表
+- `id`: `String` — 聊天卡片唯一标识（可读写）
+</Callout>
+
+### `registerCallBack(callBack){:java}`
+- 为聊天卡片注册一个包回调。
+
+<Callout type="info">
+- **参数**：`callBack`: ChatCardCallBack — 函数式接口，形如 `void call(CallData event)`
+- **返回值**：无
+- **调用示例**
+```java
+ArcartXChatCard chatCard = ArcartXAPI.getChatCardRegistry().register(
+    "my_plugin:reward",
+    new File(plugin.getDataFolder(), "chat_card/reward.yml")
+);
+
+chatCard.registerCallBack(event -> {
+    if (!"claim".equals(event.identifier())) {
+        return;
+    }
+
+    Player player = event.player();
+    String rewardId = event.data().isEmpty() ? "" : event.data().get(0);
+    // 处理领取奖励
+});
+```
+</Callout>
+
+### `send(player, data){:java}`
+- 向玩家发送此聊天卡片。
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `data`: Map&lt;String, String&gt; — 聊天卡片数据
+- **返回值**：无
+- **调用示例**
+```java
+chatCard.send(player, Map.of("reward", "100金币"));
+```
+</Callout>
+
+## ChatCardHandler
+
+- `ChatCardHandler` 是一个抽象类，使用方式与 `UIHandler` 一致。
+- 它封装了聊天卡片的注册、重载、注销、发送和包回调，创建实例即注册聊天卡片。
+
+### 基本用法
+
+```java
+public class RewardChatCard extends ChatCardHandler {
+
+    private final JavaPlugin plugin;
+
+    public RewardChatCard(JavaPlugin plugin) {
+        super(
+            "my_plugin:reward",
+            new File(plugin.getDataFolder(), "chat_card/reward.yml")
+        );
+        this.plugin = plugin;
+    }
+
+    @Override
+    public JavaPlugin getPlugin() {
+        return plugin;
+    }
+
+    @Override
+    public void onPacket(Player player, String identifier, List<String> data) {
+        if (!"claim".equals(identifier)) {
+            return;
+        }
+
+        String rewardId = data.isEmpty() ? "" : data.get(0);
+        // 处理领取奖励
+    }
+}
+```
+
+### 构造参数
+
+<Callout type="info">
+- `identifier`: String — 聊天卡片唯一标识（构造后作为公开只读属性 `identifier` 可访问）
+- `chatCardConfig`: File — 聊天卡片配置文件（私有构造参数）
+
+构造时会自动调用 `ArcartXChatCardRegistry.register()` 注册聊天卡片，并绑定包回调。
+</Callout>
+
+### 公开成员
+
+- `identifier`: `String` — 此聊天卡片的唯一标识（只读）。
+- `plugin`: `JavaPlugin` — 归属插件，子类必须实现（Java 中重写 `getPlugin()`）。
+- `chatCard`: `ArcartXChatCard` — 构造时注册得到的底层聊天卡片对象。
+
+<Callout type="info">
+`reload()` 会在注册器中创建新的聊天卡片对象并保留原回调。如果重载后需要直接操作当前对象，请通过 `ArcartXAPI.getChatCardRegistry().get(identifier)` 重新获取。
+</Callout>
+
+### `send(player, data){:java}`
+- 向玩家发送此聊天卡片。
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 目标玩家
+    - `data`: Map&lt;String, String&gt; — 聊天卡片数据
+- **返回值**：无
+- **调用示例**
+```java
+rewardChatCard.send(player, Map.of("reward", "100金币"));
+```
+</Callout>
+
+### `onPacket(player, identifier, data){:java}`
+- 收到客户端聊天卡片内 `Packet.send` 发来的数据包时触发。
+
+<Callout type="info">
+- **参数**：
+    - `player`: Player — 发送数据的玩家
+    - `identifier`: String — `Packet.send` 的第一个参数
+    - `data`: List&lt;String&gt; — `Packet.send` 的后续参数
+</Callout>
+
+### `reload(){:java}`
+- 从构造时传入的配置文件热重载此聊天卡片，并保留包回调。
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+```java
+rewardChatCard.reload();
+```
+</Callout>
+
+### `unregister(){:java}`
+- 注销此聊天卡片。
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：无
+```java
+rewardChatCard.unregister();
+```
+</Callout>
+
+<Callout type="warn">
+附属插件卸载时请调用 `unregister()`，避免聊天卡片继续保留在注册器和在线客户端中。
+</Callout>

@@ -26,6 +26,7 @@
         "20_chat_utils",
         "21_json_utils",
         "22_callbacks",
-        "23_interaction_proxy"
+        "23_interaction_proxy",
+        "24_chat_card"
     ]
 }

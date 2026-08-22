@@ -39,13 +39,14 @@ softdepend: [ArcartX]
 
 ## 获取API入口
 
-- ArcartX的所有API都通过 `ArcartXAPI` 这个入口类获取，它提供了8个静态方法，分别返回各个功能模块的管理器单例。
+- ArcartX的所有API都通过 `ArcartXAPI` 这个入口类获取，它提供了9个静态方法，分别返回各个功能模块的管理器单例。
 
 ```java
 import priv.seventeen.artist.arcartx.api.ArcartXAPI;
 
 // 获取各个管理器
 ArcartXAPI.getUIRegistry();              // UI注册
+ArcartXAPI.getChatCardRegistry();        // 聊天卡片注册
 ArcartXAPI.getKeyBindRegistry();         // 按键绑定
 ArcartXAPI.getEntityManager();           // 实体管理
 ArcartXAPI.getSoundPlayer();             // 音效播放

@@ -207,9 +207,9 @@ myUI.sendRun(player, "refreshList()");
 - **调用示例**
 ```java
 ui.registerCallBack(CallBackType.PACKET, event -> {
-    Player player = event.getPlayer();
-    String identifier = event.getIdentifier();
-    List<String> data = event.getData();
+    Player player = event.player();
+    String identifier = event.identifier();
+    List<String> data = event.data();
 });
 ```
 </Callout>
