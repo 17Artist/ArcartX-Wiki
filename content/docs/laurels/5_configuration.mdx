@@ -1,0 +1,119 @@
+---
+title: 配置文件
+description: 数据库、刷新周期、数值采集与榜单配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置文件
+
+Laurels 的文件位于 `plugins/Laurels/`：
+
+```text
+Laurels/
+├─ config.yml
+├─ language.yml
+├─ license.yml
+├─ laurels.db
+└─ libs/
+```
+
+## 完整配置
+
+```yaml
+database:
+  type: "sqlite"
+  sqlite-file: "laurels.db"
+  worker-threads: 4
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "root"
+    password: "change-me"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 4
+
+ranking:
+  refresh-seconds: 60
+  startup-refresh-spread-seconds: 10
+  join-sample-delay-ticks: 20
+  empty-text: "-"
+
+boards:
+  power:
+    placeholder: "%player_power%"
+    order: "DESC"
+    maximum-entries: 100
+
+  playtime:
+    placeholder: "%statistic_hours_played%"
+    order: "DESC"
+    maximum-entries: 100
+```
+
+## 榜单配置
+
+服务器至少需要一个、最多可以配置 64 个榜单：
+
+```yaml
+boards:
+  best_time:
+    placeholder: "%race_best_seconds%"
+    order: "ASC"
+    maximum-entries: 50
+```
+
+| 配置                | 说明                          |
+|-------------------|-----------------------------|
+| `boards.<名称>`     | 榜单 ID，最长 32 个字符             |
+| `placeholder`     | 玩家进服时读取的 PAPI 占位符           |
+| `order`           | `DESC` 从大到小，`ASC` 从小到大      |
+| `maximum-entries` | 榜单快照最多列出的名次数，范围 `1`～`10000` |
+
+榜单名称建议只使用小写字母、数字、下划线和短横线，并以字母或数字开头。读取配置时名称会统一转为小写，因此不要创建只在大小写上不同的榜单。
+
+`placeholder` 长度为 3～256 个字符，必须包含开头和结尾的 `%`。
+
+## 刷新设置
+
+| 配置                                       | 说明                    | 范围              |
+|------------------------------------------|-----------------------|-----------------|
+| `ranking.refresh-seconds`                | 从数据库生成新榜单的间隔          | `1`～`3600` 秒    |
+| `ranking.startup-refresh-spread-seconds` | 启动或重载后，第一次生成榜单的随机错峰范围 | `0`～`300` 秒     |
+| `ranking.join-sample-delay-ticks`        | 玩家进服后等待多久再读取数值        | `0`～`1200` tick |
+| `ranking.empty-text`                     | 名次不存在时返回的文本           | 最多 64 个字符，不能换行  |
+
+## SQLite
+
+```yaml
+database:
+  type: "sqlite"
+  sqlite-file: "laurels.db"
+  worker-threads: 4
+```
+
+## MySQL
+
+```yaml
+database:
+  type: "mysql"
+  worker-threads: 4
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "arcartx"
+    username: "arcartx"
+    password: "请填写密码"
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+    pool-size: 4
+```
+
+| 配置                         | 说明                | 范围          |
+|----------------------------|-------------------|-------------|
+| `database.worker-threads`  | 数据库与排行榜后台任务线程数    | `1`～`16`    |
+| `database.mysql.port`      | MySQL 端口          | `1`～`65535` |
+| `database.mysql.pool-size` | 当前节点的 MySQL 连接池大小 | `1`～`16`    |
+
+Laurels 的数据库操作量较少，通常保持默认 `4`，或按实际负载设置为 `2`～`4` 即可。
+

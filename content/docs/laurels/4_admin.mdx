@@ -1,0 +1,61 @@
+---
+title: 命令与权限
+description: Laurels 的查询、重载、刷新和状态命令
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 命令与权限
+
+Laurels 的主命令为 `/laurels`，玩家和控制台都可以执行。
+
+## 命令
+
+| 命令                        | 用途                  | 权限                      |
+|---------------------------|---------------------|-------------------------|
+| `/laurels top <榜单名> [数量]` | 在聊天中查看榜单            | 无                       |
+| `/laurels reload`         | 重载榜单、语言和刷新设置        | `laurels.admin.reload`  |
+| `/laurels refresh`        | 立即从数据库重新生成排行榜       | `laurels.admin.refresh` |
+| `/laurels status`         | 查看榜单数量、最近刷新时间和当前条目数 | `laurels.admin.status`  |
+
+## 立即刷新
+
+```text
+/laurels refresh
+```
+
+命令会在后台重建每个榜单。已有刷新正在进行时，新请求不会重复启动。
+
+手动刷新会立即开始，不受 `ranking.startup-refresh-spread-seconds` 影响。
+
+<Callout type="warn">
+刷新榜单不会重新采集在线玩家的 PlaceholderAPI 数值。
+</Callout>
+
+## 查看状态
+
+```text
+/laurels status
+```
+
+状态中的“已收录”是所有当前榜单快照条目数的总和。如果刚启动服务器或刷新失败，最近刷新时间可能显示“尚未刷新”。
+
+## 重载配置
+
+```text
+/laurels reload
+```
+
+可以重载：
+
+- 榜单名称、数值占位符、排序方向和容量；
+- 排行榜刷新间隔；
+- 启动或重载后的首次刷新错峰范围；
+- 玩家登录采集延迟；
+- 空名次文本；
+- `language.yml` 消息。
+
+<Callout type="warn">
+`database` 段的任何修改都需要完整重启。
+</Callout>
+

@@ -1,0 +1,112 @@
+---
+title: 排行榜如何更新
+description: 玩家数值的采集、保存、排序与刷新流程
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 排行榜如何更新
+
+<Steps>
+
+<Step>
+
+### 玩家进入服务器
+
+玩家进服后，Laurels 等待 `ranking.join-sample-delay-ticks`，让经济、属性或统计插件先完成数据加载。
+
+</Step>
+
+<Step>
+
+### 读取榜单数值
+
+延迟结束后，Laurels 为每个榜单解析一次配置的 PAPI 占位符。每名玩家在本次在线期间只采集一次。
+
+</Step>
+
+<Step>
+
+### 保存有效数字
+
+有效数值会连同玩家名和 UUID 写入 SQLite 或 MySQL。
+
+</Step>
+
+<Step>
+
+### 生成排行榜
+
+等待定时刷新排列
+
+</Step>
+
+<Step>
+
+### 查询名次
+
+Laurels 占位符和 `/laurels top` 直接读取已经生成的快照。
+
+</Step>
+
+</Steps>
+
+## 采集时机
+
+默认登录延迟为 20 tick，约 1 秒：
+
+```yaml
+ranking:
+  join-sample-delay-ticks: 20
+```
+
+如果数值前置插件需要更久才能准备好，可以适当增大。
+
+<Callout type="warn">
+`/laurels refresh` 只会从数据库重新生成名次，不会重新读取在线玩家的 PAPI 数值。玩家数值发生变化后，需要让玩家重新进入服务器，才能产生新的采集记录。
+</Callout>
+
+## 数值格式
+
+榜单占位符必须返回纯数字：
+
+```text
+1250
+-5
++20
+98.75
+```
+
+以下内容会被视为无效：
+
+```text
+1,250
+1250 点
+§a1250
+NaN
+Infinity
+1.2E3
+```
+
+数值最多包含 24 位整数和 8 位小数，不支持科学计数法。前后空格会被忽略；从未成功采集过的玩家不会出现在榜单中。
+
+## 排序规则
+
+| `order` | 排列方式   | 常见用途       |
+|---------|--------|------------|
+| `DESC`  | 数值从大到小 | 战斗力、财富、击杀数 |
+| `ASC`   | 数值从小到大 | 最短时间、最低用量  |
+
+
+## 刷新时间
+
+```yaml
+ranking:
+  refresh-seconds: 60
+  startup-refresh-spread-seconds: 10
+```
+
+`startup-refresh-spread-seconds` 用于避免多个子服在启动或重载配置后同时查询 MySQL。默认值为 `10`，表示每个节点会在 `0`～`10` 秒内随机安排第一次更新；填写 `0` 可以关闭错峰。
+
+第一次更新完成后，默认每 60 秒生成一次新榜单。玩家成功采集后，最晚会在下一次刷新时出现；管理员也可以执行 `/laurels refresh` 立即重建当前节点的榜单，手动刷新不会等待错峰时间。

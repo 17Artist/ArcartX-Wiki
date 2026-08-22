@@ -1,0 +1,63 @@
+---
+title: 占位符与榜单查询
+description: 在聊天、计分板和其他插件中读取 Laurels 名次
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 占位符与榜单查询
+
+Laurels 注册的 PlaceholderAPI 标识为 `laurels`。以下写法中的 `<榜单名>` 对应 `config.yml` 的 `boards`，`<名次>` 从 `1` 开始。
+
+## 可用占位符
+
+| 占位符                          | 返回内容       |
+|------------------------------|------------|
+| `%laurels_<榜单名>_<名次>%`       | 对应名次的玩家名   |
+| `%laurels_<榜单名>_<名次>_value%` | 对应名次的数值    |
+| `%laurels_<榜单名>_size%`       | 当前榜单快照中的人数 |
+
+假设已经配置 `power` 和 `best_time`：
+
+| 占位符                       | 示例结果    |
+|---------------------------|---------|
+| `%laurels_power_1%`       | `Steve` |
+| `%laurels_power_1_value%` | `3250`  |
+| `%laurels_best_time_3%`   | `Alex`  |
+| `%laurels_power_size%`    | `100`   |
+
+数值会以普通十进制文本返回，多余的末尾小数 `0` 会被省略。
+
+<Callout type="info">
+`size` 是当前榜单快照实际列出的条目数，最多等于该榜单的 `maximum-entries`，不一定等于数据库中记录过数值的玩家总数。
+</Callout>
+
+## 空名次
+
+如果榜单还没有对应名次，玩家名和值占位符会返回 `ranking.empty-text`：
+
+```yaml
+ranking:
+  empty-text: "-"
+```
+
+例如榜单只有 3 人时，`%laurels_power_10%` 默认返回 `-`。未知榜单或格式错误的 Laurels 占位符不会被当作有效查询。
+
+## 聊天查询
+
+玩家和控制台都可以执行：
+
+```text
+/laurels top <榜单名> [数量]
+```
+
+数量默认是 10。单次最多显示 100 名，并且不会超过该榜单的 `maximum-entries`。
+
+```text
+/laurels top power
+/laurels top power 25
+/laurels top best_time 10
+```
+
+该命令没有权限要求，显示格式可以在 `language.yml` 中修改。
+

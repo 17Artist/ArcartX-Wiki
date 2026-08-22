@@ -1,0 +1,96 @@
+---
+title: 说明与安装
+description: Laurels 的用途、运行条件与首次配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Laurels 是一款基于 PlaceholderAPI 的**玩家排行榜插件**。每个榜单可以读取一个数值占位符，并按从大到小或从小到大排列；生成的名次可以用于聊天、计分板、全息和其他支持 PAPI 的位置。
+
+<Callout type="warn">
+**Laurels 为 ArcartX 高级会员专属插件。** 使用时需要有效授权。
+</Callout>
+
+## 核心能力
+
+| 能力     | 说明                           |
+|--------|------------------------------|
+| 自定义榜单  | 每个榜单可以选择独立的 PAPI 数值、排序方向和容量  |
+| 稳定采集   | 玩家进服后读取一次数值，不会在游玩过程中反复调用前置插件 |
+| 多种展示方式 | 提供玩家名、分数、榜单人数占位符和聊天查询命令      |
+| 定时刷新   | 按配置从数据库生成最新名次，也可以由管理员立即刷新    |
+| 单服与群组服 | SQLite、MySQL                 |
+
+## 运行条件
+
+- Java 17+；
+- Spigot 或 Paper 1.18.2+；
+- PlaceholderAPI 2+；
+- 高级会员有效授权。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装前置与插件
+
+关闭服务器，将 PlaceholderAPI和 Laurels JAR 放入 `plugins/`，然后完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+打开首次生成的 `plugins/Laurels/license.yml`：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+填写高级会员授权后完整重启。授权通过前，Laurels 不会连接数据库、注册命令、注册占位符或启动刷新任务。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+确认 `plugins/Laurels/` 中已经生成：
+
+```text
+config.yml
+language.yml
+license.yml
+laurels.db
+libs/
+```
+
+`laurels.db` 只在默认 SQLite 模式下使用。
+
+</Step>
+
+<Step>
+
+### 配置第一个榜单
+
+在 `config.yml` 中填写一个能为玩家返回纯数字的完整 PAPI 占位符：
+
+```yaml
+boards:
+  power:
+    placeholder: "%player_power%"
+    order: "DESC"
+    maximum-entries: 100
+```
+
+</Step>
+
+</Steps>
+

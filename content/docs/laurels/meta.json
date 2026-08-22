@@ -1,0 +1,26 @@
+{
+    "title": "Laurels — 桂冠",
+    "description": "基于 PlaceholderAPI 的玩家排行榜",
+    "icon": "logo/laurels-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "占位符", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#F59E0B",
+    "entry": "laurels/1_start",
+    "tagline": "用 PlaceholderAPI 构建玩家排行榜",
+    "order": 13,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_ranking",
+        "3_placeholders",
+        "4_admin",
+        "---配置---",
+        "5_configuration"
+    ]
+}
