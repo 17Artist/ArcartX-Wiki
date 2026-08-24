@@ -8,7 +8,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 # 界面协议
 
 <Callout type="warn">
-动作参数按顺序读取。页码从 `1` 开始，每个动作都必须恰好提供一个参数。
+动作参数按顺序读取。页码从 `0` 开始，每个动作都必须恰好提供一个参数。
 </Callout>
 
 ## 客户端动作
@@ -21,8 +21,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 ### `page`
 
 ```aria
-Packet.send('page', targetPage)
+Packet.send('page', var.page + 1)
 ```
+
+`page` 直接使用从 `0` 开始的目标页码。服务端会把越界页码限制在 `0..maxPage` 范围内。
 
 ### `sel`
 
@@ -33,12 +35,14 @@ Packet.send('sel', appearanceId)
 外观 ID 长度为 1～64 个字符。
 选择成功后，服务端返回新的 `current`。客户端只需要提交外观 ID。
 
+服务端只接受 `page` 和 `sel`。`page` 参数最长 24 个字符，必须是有限、非负且位于 32 位有符号整数上限内的整数（兼容数值序列化产生的 `.0`）；`sel` 参数最长 64 个字符。空参数、额外参数、NUL 字符、负数、小数和越界值都会被拒绝。每个玩家已打开的界面会话在 10 秒内最多接受 30 个合法客户端包，该边界由插件固定，不提供配置入口。
+
 ## 服务端数据处理器
 
 | 处理器       | 数据                      | 用途                           |
 |-----------|-------------------------|------------------------------|
-| `page`    | `Number`                | 当前页码，从 `1` 开始                |
-| `maxPage` | `Number`                | 总页数，最小为 `1`                  |
+| `page`    | `Number`                | 当前页码，从 `0` 开始                |
+| `maxPage` | `Number`                | 最大有效页码，最小为 `0`               |
 | `current` | `String`                | 当前外观 ID；使用原版默认模型时为 `default` |
 | `view`    | `Array<AppearanceView>` | 当前页面的外观卡片                    |
 
@@ -77,4 +81,3 @@ Packet.send('sel', appearanceId)
 ```
 
 `unlocked` 才是卡片能否点击的判断依据。`isExpired` 用于区分“从未解锁”和“曾经拥有但已经到期”，`isDefault` 则用于突出显示全服默认项。
-

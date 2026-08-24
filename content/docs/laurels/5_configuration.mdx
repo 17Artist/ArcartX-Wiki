@@ -12,32 +12,21 @@ Laurels 的文件位于 `plugins/Laurels/`：
 ```text
 Laurels/
 ├─ config.yml
+├─ database.yml
 ├─ language.yml
 ├─ license.yml
 ├─ laurels.db
 └─ libs/
 ```
 
-## 完整配置
+## config.yml
 
 ```yaml
-database:
-  type: "sqlite"
-  sqlite-file: "laurels.db"
-  worker-threads: 4
-  mysql:
-    host: "127.0.0.1"
-    port: 3306
-    database: "arcartx"
-    username: "root"
-    password: "change-me"
-    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
-    pool-size: 4
-
 ranking:
   refresh-seconds: 60
   startup-refresh-spread-seconds: 10
   join-sample-delay-ticks: 20
+  join-samples-per-tick: 2
   empty-text: "-"
 
 boards:
@@ -71,7 +60,7 @@ boards:
 | `order`           | `DESC` 从大到小，`ASC` 从小到大      |
 | `maximum-entries` | 榜单快照最多列出的名次数，范围 `1`～`10000` |
 
-榜单名称建议只使用小写字母、数字、下划线和短横线，并以字母或数字开头。读取配置时名称会统一转为小写，因此不要创建只在大小写上不同的榜单。
+榜单名称只能使用小写字母、数字、下划线和短横线，并以字母或数字开头。
 
 `placeholder` 长度为 3～256 个字符，必须包含开头和结尾的 `%`。
 
@@ -82,38 +71,53 @@ boards:
 | `ranking.refresh-seconds`                | 从数据库生成新榜单的间隔          | `1`～`3600` 秒    |
 | `ranking.startup-refresh-spread-seconds` | 启动或重载后，第一次生成榜单的随机错峰范围 | `0`～`300` 秒     |
 | `ranking.join-sample-delay-ticks`        | 玩家进服后等待多久再读取数值        | `0`～`1200` tick |
+| `ranking.join-samples-per-tick`          | 每个 tick 最多采集多少名玩家     | `1`～`100`       |
 | `ranking.empty-text`                     | 名次不存在时返回的文本           | 最多 64 个字符，不能换行  |
+
+## database.yml
+
+数据库连接和后台线程设置保存在 `database.yml`，修改后需要完整重启服务器。
 
 ## SQLite
 
 ```yaml
-database:
-  type: "sqlite"
-  sqlite-file: "laurels.db"
-  worker-threads: 4
+type: "sqlite"
+sqlite-file: "laurels.db"
+worker-threads: 4
 ```
 
 ## MySQL
 
 ```yaml
-database:
-  type: "mysql"
-  worker-threads: 4
-  mysql:
-    host: "127.0.0.1"
-    port: 3306
-    database: "arcartx"
-    username: "arcartx"
-    password: "请填写密码"
-    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
-    pool-size: 4
+type: "mysql"
+sqlite-file: "laurels.db"
+worker-threads: 4
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "arcartx"
+  password: "请填写密码"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  pool-size: 4
 ```
 
-| 配置                         | 说明                | 范围          |
-|----------------------------|-------------------|-------------|
-| `database.worker-threads`  | 数据库与排行榜后台任务线程数    | `1`～`16`    |
-| `database.mysql.port`      | MySQL 端口          | `1`～`65535` |
-| `database.mysql.pool-size` | 当前节点的 MySQL 连接池大小 | `1`～`16`    |
+| 配置                | 说明                | 范围          |
+|-------------------|-------------------|-------------|
+| `worker-threads`  | 数据库与排行榜后台任务线程数    | `1`～`16`    |
+| `mysql.port`      | MySQL 端口          | `1`～`65535` |
+| `mysql.pool-size` | 当前节点的 MySQL 连接池大小 | `1`～`16`    |
 
 Laurels 的数据库操作量较少，通常保持默认 `4`，或按实际负载设置为 `2`～`4` 即可。
 
+## language.yml
+
+语言文件只保留 `/laurels top` 的三条榜单文案：
+
+```yaml
+top-header: "§6{board} §7前 {count} 名"
+top-entry: "§e#{rank} §f{player} §7- §b{value}"
+top-empty: "§7该榜单暂无数据"
+```
+
+`top-header` 可使用 `{board}`、`{count}`，`top-entry` 可使用 `{rank}`、`{player}`、`{value}`。其他命令提示由插件固定，不在语言文件中提供设置。

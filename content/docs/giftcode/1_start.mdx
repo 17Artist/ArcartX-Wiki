@@ -8,7 +8,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # 说明与安装
 
-GiftCode 是面向 ArcartX 服务器的**礼包兑换码插件**。管理员可以在游戏内编辑礼包、批量生成兑换码并查看领取情况；玩家通过 `/cdk` 兑换，奖励会以 SystemMail 邮件送达。
+GiftCode 是面向 ArcartX 服务器的**礼包兑换码插件**。管理员可在游戏内编辑礼包、批量生成兑换码并查看领取情况；玩家通过 `/cdk open` 兑换，奖励会以 SystemMail 邮件送达。
 
 <Callout type="warn">
 **GiftCode 为 ArcartX 高级会员专属插件。** 使用时需要有效授权，并依赖 ArcartX 与 SystemMail。
@@ -61,6 +61,7 @@ licenseKey: "你的许可证密钥"
 
 <Step>
 
+### 准备玩家界面
 
 服务端会自动释放 `plugins/GiftCode/ui/redeem.yml`，已有文件不会被覆盖。
 
@@ -74,7 +75,10 @@ licenseKey: "你的许可证密钥"
 
 ```text
 config.yml
-lang.yml
+database.yml
+redis.yml
+redemption.yml
+language.yml
 license.yml
 ui/redeem.yml
 exports/
@@ -100,7 +104,7 @@ giftcode.db
 /gca generate starter 100 30d
 ```
 
-生成完成后，命令会显示批次 ID 与导出文件路径。玩家可以执行 `/cdk` 打开兑换界面。
+生成完成后，命令会显示批次 ID 与导出文件路径。玩家可以执行 `/cdk open` 打开兑换界面。
 
 <Callout type="info">
 导出的 TXT 用于分发，不是兑换状态的数据来源。数据库保存实际兑换码与领取状态。删除 TXT 不会停用兑换码；需要恢复文件时可按批次重新导出。

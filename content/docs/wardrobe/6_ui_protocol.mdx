@@ -10,7 +10,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 默认界面文件位于 `plugins/Wardrobe/ui/wardrobe.yml`。
 
 <Callout type="warn">
-动作参数按顺序读取。页码从 `1` 开始，预设索引从 `0` 开始；`save` 和 `pay` 发送的是当前预览的完整时装 ID 集合。
+动作参数按顺序读取。页码和预设索引都从 `0` 开始；`maxPage` 是最后一个有效页码。`save` 和 `pay` 发送的是当前预览的完整时装 ID 集合。
 </Callout>
 
 ## 客户端动作
@@ -30,7 +30,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Packet.send('page', targetPage)
 ```
 
-参数需要是有限数字。服务端会先向 `0` 取整，再将它限制到 `1..maxPage`；切页后返回新的 `page`、`maxPage`、`current` 和 `view`。
+参数需要是有限数字。服务端会先向 `0` 取整，再将它限制到 `0..maxPage`；切页后返回新的 `page`、`maxPage`、`current` 和 `view`。
 
 ### `update`
 
@@ -45,7 +45,7 @@ Packet.send('update', showAll, searchText, selectedCategory, selectedQuality)
 | `category` | String  | 配置部位或 `showType`；空文本表示不限       |
 | `quality`  | String  | 品质完整名称；空文本表示不限                 |
 
-名称、ID、部位和品质匹配均不区分大小写。更新筛选后，页码会回到第 1 页。
+名称、ID、部位和品质匹配均不区分大小写。更新筛选后，页码会回到第 0 页。
 
 ### `preset`
 
@@ -69,7 +69,7 @@ Packet.send('unlock')
 Packet.send('save', val.model.getCostumeTags())
 ```
 
-发送当前预览中的**全部时装 ID**。没有 ID 表示保存空穿搭；服务端最多处理前 6 个 ID，部位唯一和套装互斥。
+发送当前预览中的**全部时装 ID**。没有 ID 表示保存空穿搭；最多发送 6 个 ID，超过数量或包含非法 ID 时整个动作会被拒绝。服务端校验部位唯一和套装互斥。
 
 如果预览中包含尚未拥有但允许购买的时装，服务端不会立即保存，而是发送 `pay` 确认弹窗。
 
@@ -82,21 +82,30 @@ Packet.send('pay', val.model.getCostumeTags())
 
 参数与 `save` 相同，仍是确认时的完整预览。服务端会重新检查时装、拥有状态、经济提供器和当前价格，再完成扣款与保存。
 
+## 输入边界
+
+- `page`、`preset` 固定发送 1 个有限数值；
+- `update` 固定发送 4 个字段，搜索文本最长 128 个字符，部位和品质最长 64 个字符；
+- `unlock` 不发送参数；
+- `save`、`pay` 最多发送 6 个时装 ID，每个 ID 长度为 1～128，只能包含时装配置允许的 ID 字符；
+- 参数数量、字段长度和操作频率由服务端固定保护，不在 `config.yml` 中提供调节项；
+- 界面关闭或玩家退出后，服务端会清除该玩家的界面操作状态。
+
 ## 数据处理器
 
-| 处理器               | 数据                       | 用途              |
-|-------------------|--------------------------|-----------------|
-| `presetCount`     | Number                   | 配置允许的最大预设数量     |
-| `page`            | Number                   | 当前页码，从 `1` 开始   |
-| `maxPage`         | Number                   | 总页数，最小为 `1`     |
-| `current`         | `Array<String>`          | 当前预设保存的时装 ID    |
-| `view`            | `Array<WardrobeView>`    | 当前页面的时装卡片       |
-| `collectionValue` | Number                   | 玩家当前有效时装的收藏值    |
-| `unlockedPreset`  | Number                   | 玩家已解锁的预设数量      |
-| `currentPreset`   | Number                   | 当前预设索引，从 `0` 开始 |
-| `model`           | `Array<WardrobeModel>`   | 当前预设的模型预览数据     |
-| `popInfo`         | String 或 `Array<String>` | 弹窗正文或分行信息       |
-| `popState`        | String                   | 弹窗类型            |
+| 处理器               | 数据                       | 用途               |
+|-------------------|--------------------------|------------------|
+| `presetCount`     | Number                   | 配置允许的最大预设数量      |
+| `page`            | Number                   | 当前页码，从 `0` 开始    |
+| `maxPage`         | Number                   | 最后一个有效页码，最小为 `0` |
+| `current`         | `Array<String>`          | 当前预设保存的时装 ID     |
+| `view`            | `Array<WardrobeView>`    | 当前页面的时装卡片        |
+| `collectionValue` | Number                   | 玩家当前有效时装的收藏值     |
+| `unlockedPreset`  | Number                   | 玩家已解锁的预设数量       |
+| `currentPreset`   | Number                   | 当前预设索引，从 `0` 开始  |
+| `model`           | `Array<WardrobeModel>`   | 当前预设的模型预览数据      |
+| `popInfo`         | String 或 `Array<String>` | 弹窗正文或分行信息        |
+| `popState`        | String                   | 弹窗类型             |
 
 界面打开前，服务端会先发送 `presetCount`；客户端确认界面已经打开后，再发送收藏值、预设、页面、卡片和模型数据。
 
@@ -183,4 +192,3 @@ Packet.send('pay', val.model.getCostumeTags())
 - 玩家数据尚未加载完成时，服务端会关闭本次界面；
 - 切换预设、保存、购买、解锁、时装过期或模型状态变化后，服务端可能重复发送完整数据，界面应按最新值覆盖；
 - 修改 `ui/wardrobe.yml` 后，执行 `/wardrobe reload` 即可重新加载界面。
-

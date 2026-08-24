@@ -180,14 +180,14 @@ addon:
     location: "world,120,72,-40"
 ```
 
-| 字段             | 说明                          |
-|----------------|-----------------------------|
-| `enabled`      | 是否启用该目标的路标，默认 `true`        |
-| `server-types` | 允许显示路标的 `server.type` 列表    |
-| `worlds`       | 允许显示路标的 Bukkit 世界名列表        |
-| `style`        | ArcartX 路标样式 ID；留空时使用主配置默认值 |
-| `title`        | 路标显示标题                      |
-| `location`     | 固定格式 `世界,x,y,z`             |
+| 字段             | 说明                                                            |
+|----------------|---------------------------------------------------------------|
+| `enabled`      | 是否启用该目标的路标，默认 `true`                                          |
+| `server-types` | 允许显示路标的 `config.yml` `waypoint.server-type` 列表                |
+| `worlds`       | 允许显示路标的 Bukkit 世界名列表                                          |
+| `style`        | ArcartX 路标样式 ID；留空时使用 `config.yml` 的 `waypoint.default-style` |
+| `title`        | 路标显示标题                                                        |
+| `location`     | 固定格式 `世界,x,y,z`                                               |
 
 `server-types` 或 `worlds` 为空时均不会显示路标。未填写 `location` 时，插件会尝试读取 Chemdah 原生 `addon.track.center`。
 
@@ -214,4 +214,3 @@ frontier-dialogue:
 ```
 
 NPC、条件、`goto`、`talk` 和 agent 等语法仍以 Chemdah 文档为准。ChemdahView 只负责显示当前对话帧，并把玩家选择交还原 Chemdah 会话。
-

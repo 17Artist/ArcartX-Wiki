@@ -22,8 +22,6 @@
         "---配置与接入---",
         "4_configuration",
         "5_integrations",
-        "6_api",
-        "---维护---",
-        "7_troubleshooting"
+        "6_api"
     ]
 }

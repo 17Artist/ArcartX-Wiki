@@ -1,6 +1,6 @@
 ---
 title: 配置文件
-description: 默认外观、分页、到期检查、安全限制与数据库配置
+description: 默认外观、分页、到期检查与数据库配置
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -12,7 +12,8 @@ Appearance 的配置位于 `plugins/Appearance/`：
 ```text
 Appearance/
 ├─ config.yml
-├─ lang.yml
+├─ database.yml
+├─ language.yml
 ├─ license.yml
 ├─ appearance.db
 ├─ models/
@@ -30,25 +31,24 @@ default-model: "default"
 
 page-size: 10
 expiration-check-seconds: 30
+```
 
-security:
-  max-packet-fields: 16
-  max-field-length: 256
-  packet-window-millis: 10000
-  max-packets-per-window: 30
+数据库连接位于独立的 `database.yml`：
 
-database:
-  type: "sqlite"
-  sqlite-file: "appearance.db"
-  mysql:
-    host: "127.0.0.1"
-    port: 3306
-    database: "arcartx"
-    username: "root"
-    password: "change-me"
-    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
-    pool-size: 6
-    connection-timeout-ms: 10000
+```yaml
+type: "sqlite"
+sqlite-file: "appearance.db"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "root"
+  password: "change-me"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  pool-size: 6
+  connection-timeout-ms: 10000
 ```
 
 ## 默认外观
@@ -71,31 +71,21 @@ database:
 
 到期检查会让正在使用失效外观的玩家及时回到默认模型。
 
-## 界面数据限制
-
-`security` 用于限制玩家端向外观界面发送的数据：
-
-| 配置                       | 说明           | 范围                |
-|--------------------------|--------------|-------------------|
-| `max-packet-fields`      | 单次数据最多包含的字段数 | `1`～`64`          |
-| `max-field-length`       | 单个文本字段最大长度   | `16`～`2048`       |
-| `packet-window-millis`   | 频率统计窗口       | `1000`～`60000` 毫秒 |
-| `max-packets-per-window` | 每个窗口允许的数据次数  | `5`～`300`         |
-
 ## 数据库
 
-| 配置                                     | 说明                        |
-|----------------------------------------|---------------------------|
-| `database.type`                        | `sqlite` 或 `mysql`        |
-| `database.sqlite-file`                 | SQLite 文件名`               |
-| `database.mysql.host`                  | MySQL 地址                  |
-| `database.mysql.port`                  | 端口，范围 `1`～`65535`         |
-| `database.mysql.database`              | 数据库名                      |
-| `database.mysql.username`              | 用户名                       |
-| `database.mysql.password`              | 密码                        |
-| `database.mysql.parameters`            | JDBC 连接参数，不要在开头写 `?`      |
-| `database.mysql.pool-size`             | 连接池大小，范围 `2`～`32`         |
-| `database.mysql.connection-timeout-ms` | 连接超时，范围 `2000`～`60000` 毫秒 |
+| 配置                            | 说明                        |
+|-------------------------------|---------------------------|
+| `type`                        | `sqlite` 或 `mysql`        |
+| `sqlite-file`                 | SQLite 文件名                |
+| `worker-threads`              | 数据库工作线程，范围 `1`～`16`       |
+| `mysql.host`                  | MySQL 地址                  |
+| `mysql.port`                  | 端口，范围 `1`～`65535`         |
+| `mysql.database`              | 数据库名                      |
+| `mysql.username`              | 用户名                       |
+| `mysql.password`              | 密码                        |
+| `mysql.parameters`            | JDBC 连接参数，不要在开头写 `?`      |
+| `mysql.pool-size`             | 连接池大小，范围 `2`～`32`         |
+| `mysql.connection-timeout-ms` | 连接超时，范围 `2000`～`60000` 毫秒 |
 
 Appearance 会创建两个数据表：
 
@@ -106,11 +96,13 @@ Appearance 会创建两个数据表：
 
 
 
-## 重载与备份
+## 重新读取配置
 
-执行 `/appearance reload` 重新读取：
+执行 `/appearance reload` 后会重新读取：
 
-- `config.yml` 中除数据库连接外的设置；
-- `lang.yml`；
+- `config.yml`；
+- `language.yml`；
 - `models/` 下的所有模型；
 - `ui/appearance.yml`。
+
+`database.yml` 只在完整启动时生效。修改数据库类型、连接或工作线程后需要重启服务器。

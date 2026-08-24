@@ -27,6 +27,17 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 追踪 HUD 没有客户端动作，服务端会在内容变化时主动同步。
 
+### 输入边界
+
+| UI   | 动作                  | 参数边界                                       |
+|------|---------------------|--------------------------------------------|
+| 任务面板 | `list`              | 2 项；分类最多 64 字符且允许空字符串，页码为 `0`～`999999`     |
+| 任务面板 | `select`            | 1 项；任务 ID 为 1～256 字符                       |
+| 任务面板 | `track` / `untrack` | 2 项；任务 ID、目标 ID 分别为 1～256 字符               |
+| 任务面板 | `cleartrack`        | 0 项                                        |
+| 对话框  | `reply`             | 2 项；36 字符标准 UUID frame，回复 token 为 1～128 字符 |
+| 对话框  | `close`             | 1 项；36 字符标准 UUID frame                     |
+
 ### 服务端数据处理器
 
 | UI     | 处理器                | 数据                | 用途        |
@@ -219,7 +230,7 @@ Packet.send('cleartrack')
 {
   "action": "list",
   "code": "CATEGORY_NOT_FOUND",
-  "msg": "任务分类不存在或已失效"
+  "msg": "任务分类不存在或已经失效"
 }
 ```
 
@@ -276,6 +287,3 @@ Packet.send('close', currentFrame)
 `replyToken` 只能使用服务端下发的 `replies[].token`。成功回复后，Chemdah 会继续发送新的 `dialogue_frame`，或通过 `dialogue_close` 结束界面。
 
 `dialogue_error` 包含 `code` 与 `msg`；过期帧或选项会返回 `STALE_FRAME`。收到 `dialogue_close` 后直接关闭界面，不要再次发送 `close`。
-
-
-

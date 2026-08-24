@@ -61,7 +61,7 @@ licenseId: 你的许可证ID
 licenseKey: "你的许可证密钥"
 ```
 
-保存后完整重启服务器。授权通过前，Wardrobe 不会连接数据库、注册命令或开放衣柜界面。
+保存后完整重启服务器。授权通过前，Wardrobe 不会连接数据库或开放衣柜功能。
 
 </Step>
 
@@ -73,6 +73,7 @@ licenseKey: "你的许可证密钥"
 
 ```text
 config.yml
+database.yml
 language.yml
 license.yml
 wardrobe.db
@@ -111,9 +112,3 @@ ui/
 </Step>
 
 </Steps>
-
-<Callout type="info">
-Wardrobe 不会自动迁移旧版 PlayerFashion、旧衣柜插件或其他表结构。正式启用前，请先备份旧数据，再按当前格式重新配置和授权时装。
-</Callout>
-
-接下来可以阅读[玩家使用](/docs/wardrobe/2_player)和[时装配置](/docs/wardrobe/5_fashions)。

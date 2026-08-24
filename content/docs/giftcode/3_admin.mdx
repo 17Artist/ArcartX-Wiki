@@ -8,7 +8,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # 礼包与兑换码
 
-管理主命令为 `/giftcodeadmin`，简写为 `/gca`。直接执行任意一个命令都会打开礼包编辑器。
+管理主命令为 `/giftcodeadmin`，简写为 `/gca`。直接执行主命令会显示帮助，使用 `/gca gui` 打开礼包编辑器。
 
 ## 权限
 
@@ -140,7 +140,7 @@ console|活动称号||lp user {player} permission set title.event true
 | `/gca stats <礼包ID>`                    | 查看生成、领取、待发送和失败统计 |
 | `/gca batches`                         | 查看最近十个生成批次       |
 | `/gca disable <兑换码>`                   | 立即停用一个兑换码        |
-| `/gca retry <领取记录ID>`                  | 重试进入死信状态的奖励邮件    |
+| `/gca retry <领取记录ID>`                  | 重新发送失败的奖励邮件      |
 | `/gca reload`                          | 重载语言与玩家兑换界面      |
 
 <Callout type="info">

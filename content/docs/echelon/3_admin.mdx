@@ -16,10 +16,10 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 |---------------------------------------|-------------------------|-------------------|
 | `/echelonadmin show <在线玩家>`           | `echelon.admin.show`    | 查看一名在线玩家的等级       |
 | `/eadmin addexp <玩家名或UUID> <经验> [来源]` | `echelon.admin.addexp`  | 为在线或离线玩家增加经验      |
-| `/eadmin reload`                      | `echelon.admin.reload`  | 重载非数据库类配置         |
+| `/eadmin reload`                      | `echelon.admin.reload`  | 重新读取等级、提示和联动设置    |
 | `/eadmin rewards`                     | `echelon.admin.rewards` | 打开等级礼包列表，仅游戏内可用   |
 | `/eadmin rewardcreate <等级>`           | `echelon.admin.rewards` | 创建礼包并打开编辑器，仅游戏内可用 |
-| `/eadmin outbox`                      | `echelon.admin.status`  | 查看等级礼包邮件发送情况      |
+| `/eadmin deliveries`                  | `echelon.admin.status`  | 查看等级礼包邮件发送情况      |
 
 OP 默认拥有这些权限。
 
@@ -94,6 +94,7 @@ OP 默认拥有这些权限。
 - 可清空的字段输入 `清空` 或 `clear`；
 - 邮件正文使用 `\n` 表示换行。
 
+编辑器会检查格式和长度，超出限制时会要求重新输入。
 ### 邮件占位符
 
 | 写法         | 发送时替换为  |
@@ -107,7 +108,7 @@ OP 默认拥有这些权限。
 
 ### 物品附件
 
-进入物品附件页后，点击玩家背包中的物品即可添加。。
+进入物品附件页后，点击玩家背包中的物品即可添加。原物品不会被扣除。
 
 ### 货币附件
 
@@ -121,7 +122,7 @@ OP 默认拥有这些权限。
 vault|1000|金币|
 ```
 
-货币 ID 必须在ArcartX注册，ArcartX内置 Vault和PlayerPoints两种常见货币ID以及如果使用Rondo则直接注册对应货币ID
+货币 ID 必须已经在 ArcartX 中注册。ArcartX 内置 Vault 和 PlayerPoints 两种常见货币来源；使用 Rondo 时也可以填写 Rondo 注册的货币 ID。
 
 ### 命令附件
 
@@ -157,7 +158,7 @@ console|发放称号||lp user {player} permission set title.level
 ## 查看发送情况
 
 ```text
-/eadmin outbox
+/eadmin deliveries
 ```
 
 命令会显示待发送、已发送和已停止重试的邮件数量。

@@ -14,6 +14,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 ## 基本规则
 
 - UI 文件目录：`plugins/SystemMail/ui/`；
+- 收件箱固定 ID：`SystemMail:inbox`；
+- HUD 固定 ID：`SystemMail:hud`；
 - 页码从 `0` 开始，`0` 是最新一页；
 
 ```aria
@@ -32,14 +34,14 @@ Packet.send('sel', mailId)
 
 主要服务端 handler：
 
-| handler                    | 内容         |
-|----------------------------|------------|
-| `systemmail_list`          | 邮件列表       |
-| `systemmail_detail`        | 邮件详情       |
-| `systemmail_attach_result` | 领取结果       |
-| `systemmail_delete_result` | 删除结果       |
-| `systemmail_new_mail`      | 新邮件 HUD 数据 |
-| `systemmail_error`         | 通用错误       |
+| handler         | 内容         |
+|-----------------|------------|
+| `list`          | 邮件列表       |
+| `detail`        | 邮件详情       |
+| `attach_result` | 领取结果       |
+| `delete_result` | 删除结果       |
+| `new_mail`      | 新邮件 HUD 数据 |
+| `error`         | 通用错误       |
 
 ## 邮件列表
 
@@ -53,9 +55,9 @@ Packet.send('getlist', page, filter, search)
 | 1  | `String` | `全部`、`未读` 或 `含附件`   |
 | 2  | `String` | 标题/发件人搜索；`''` 表示不搜索 |
 
-每页数量由 `mail.inbox-page-size` 决定，默认 20。
+每页数量由 `mail.yml -> limits.inbox-page-size` 决定，默认 20。
 
-成功回包使用 `systemmail_list`，内容为 `List<Map>`：
+成功回包使用 `list`，内容为 `List<Map>`：
 
 ```json
 [
@@ -95,7 +97,7 @@ Packet.send('getlist', page, filter, search)
 Packet.send('sel', mailId)
 ```
 
-成功回包使用 `systemmail_detail`：
+成功回包使用 `detail`：
 
 ```json
 {
@@ -147,7 +149,7 @@ UI 只应提供一个“领取全部”按钮。无附件邮件同时返回 `has
 Packet.send('getattach', mailId)
 ```
 
-结果使用 `systemmail_attach_result`：
+结果使用 `attach_result`：
 
 ```json
 {
@@ -181,7 +183,7 @@ Packet.send('getattach', mailId)
 Packet.send('delete', mailId)
 ```
 
-结果使用 `systemmail_delete_result`：
+结果使用 `delete_result`：
 
 ```json
 {
@@ -195,7 +197,7 @@ Packet.send('delete', mailId)
 
 ## 通用错误
 
-`systemmail_error` 回包：
+`error` 回包：
 
 ```json
 {
@@ -209,7 +211,7 @@ Packet.send('delete', mailId)
 - 向玩家显示 `msg`；
 - 使用 `code` 做逻辑分支；
 - `retry: true` 只表示可以让玩家手动重试，不表示客户端自动重放；
-- 文案来自服务端 `lang.yml` 的 `failure.*`。
+- 文案来自服务端 `language.yml` 的 `failure.*`。
 
 可能出现的通用 code：
 
@@ -244,7 +246,7 @@ SERVICE_UNAVAILABLE
 
 ## 新邮件 HUD
 
-新邮件使用handler `systemmail_new_mail`：
+新邮件使用 handler `new_mail`：
 
 ```json
 {
@@ -256,12 +258,4 @@ SERVICE_UNAVAILABLE
   "attach": 3
 }
 ```
-
-## 请求频率
-
-- `getlist` 最短间隔 250 ms；
-- `getattach` 最短间隔 750 ms；
-- 其余动作最短间隔 100 ms；
-- 同一玩家的相同查询仍在处理时返回 `QUERY_IN_PROGRESS`；
-- 普通回包超过 `security.max-ui-response-bytes` 时返回 `RESPONSE_TOO_LARGE`。
 

@@ -7,23 +7,32 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # 配置
 
-Echelon 的主配置位于 `plugins/Echelon/config.yml`，提示文字位于 `plugins/Echelon/language.yml`。
+Echelon 的配置如下：
+
+| 文件                 | 用途                                      |
+|--------------------|-----------------------------------------|
+| `database.yml`     | SQLite 或 MySQL 连接                       |
+| `level.yml`        | 等级上限、升级提示、经验和阶段称号                       |
+| `integrations.yml` | PlaceholderAPI、MythicMobs 和 Symphony 联动 |
+| `delivery.yml`     | SystemMail 等级礼包发送与失败重试                  |
+| `language.yml`     | 玩家和管理员提示文字                              |
 
 ## 数据库
 
+`database.yml`：
+
 ```yaml
-database:
-  type: "sqlite"
-  sqlite-file: "echelon.db"
-  worker-threads: 4
-  mysql:
-    host: "127.0.0.1"
-    port: 3306
-    database: "arcartx"
-    username: "root"
-    password: "change-me"
-    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
-    pool-size: 8
+type: "sqlite"
+sqlite-file: "echelon.db"
+worker-threads: 4
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "root"
+  password: "change-me"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  pool-size: 8
 ```
 
 ### 单服 SQLite
@@ -32,9 +41,11 @@ database:
 
 ### 群组服 MySQL
 
-把 `type` 改为 `mysql`，并让所有 Echelon 节点填写同一套 MySQL 地址、端口和数据库名称。。
+把 `type` 改为 `mysql`，并让所有 Echelon 子服填写同一套 MySQL 地址、端口和数据库名称。
 
 `parameters` 只填写 JDBC 参数本体，不要在开头添加 `?`。
+
+`sqlite-file` 只填写 Echelon 数据目录中的文件名。
 
 | 配置项               | 范围或建议                        |
 |-------------------|------------------------------|
@@ -44,10 +55,11 @@ database:
 
 ## 等级上限与提示
 
+`level.yml`：
+
 ```yaml
-level:
-  maximum-level: 100
-  notify-player: true
+maximum-level: 100
+notify-player: true
 ```
 
 - `maximum-level`：等级上限，允许 1–10000；
@@ -56,12 +68,11 @@ level:
 ## 固定经验
 
 ```yaml
-level:
-  experience:
-    exact:
-      "1": 100
-      "2": 125
-      "3": 150
+experience:
+  exact:
+    "1": 100
+    "2": 125
+    "3": 150
 ```
 
 键表示玩家的当前等级。`"1": 100` 表示 Lv.1 升到 Lv.2 需要 100 经验。满级不需要填写经验，例如上限为 100 时只需覆盖到 Lv.99。
@@ -69,15 +80,14 @@ level:
 ## 分段公式
 
 ```yaml
-level:
-  experience:
-    stages:
-      - min-level: 1
-        max-level: 10
-        formula: "100 + (level - 1) * 25"
-      - min-level: 11
-        max-level: 30
-        formula: "350 + (stage_level - 1) * 50"
+experience:
+  stages:
+    - min-level: 1
+      max-level: 10
+      formula: "100 + (level - 1) * 25"
+    - min-level: 11
+      max-level: 30
+      formula: "350 + (stage_level - 1) * 50"
 ```
 
 | 变量            | 含义                  |
@@ -103,14 +113,13 @@ level:
 ## 阶段称号
 
 ```yaml
-level:
-  titles:
-    - min-level: 1
-      max-level: 10
-      title: "初出茅庐"
-    - min-level: 11
-      max-level: 30
-      title: "渐入佳境"
+titles:
+  - min-level: 1
+    max-level: 10
+    title: "初出茅庐"
+  - min-level: 11
+    max-level: 30
+    title: "渐入佳境"
 ```
 
 称号范围不能重叠，单个称号最长 128 个字符。未覆盖的等级会显示“未命名阶段”，建议为全部等级设置称号。
@@ -143,4 +152,4 @@ level:
 
 - SQLite：完整停服后备份 `plugins/Echelon/echelon.db`；
 - MySQL：备份当前数据库中的全部 Echelon 表；
-- 同时保留 `config.yml`、`language.yml` 与 `license.yml`。
+- 同时保留 `database.yml`、`level.yml`、`integrations.yml`、`delivery.yml`、`language.yml` 与 `license.yml`。

@@ -21,7 +21,9 @@ Packet.send('redeem', var.code)
 |----------|----------------|------------|
 | `redeem` | `code: String` | 提交玩家输入的兑换码 |
 
-协议数组必须恰好包含一个字符串，不需要额外发送 `open`、`init`、`close`、版本号或请求 ID。
+数据数组必须恰好包含一个字符串，不需要额外发送 `open`、`init`、`close` 或请求 ID。
+
+`code` 最长 64 个字符。服务端会在实际兑换前统一移除空白、短横线与下划线、转换大小写。
 
 ## 服务端 → UI
 
@@ -45,7 +47,7 @@ Packet.send('redeem', var.code)
 
 ### `giftcode_error`
 
-数据格式错误、会话失效、频率限制或服务端异常使用 `giftcode_error`：
+数据格式错误、会话失效、权限不足、频率限制或服务端异常使用 `giftcode_error`：
 
 ```json
 {

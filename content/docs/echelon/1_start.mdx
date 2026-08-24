@@ -74,7 +74,10 @@ licenseKey: "你的许可证密钥"
 授权成功后，确认 `plugins/Echelon/` 中已经生成：
 
 ```text
-config.yml
+database.yml
+level.yml
+integrations.yml
+delivery.yml
 language.yml
 license.yml
 echelon.db
@@ -88,7 +91,7 @@ echelon.db
 
 ### 选择数据库
 
-单服保留默认 SQLite 即可。群组服需要把所有 Echelon 节点连接到同一个 MySQL 数据库。
+单服保留默认 SQLite 即可。群组服需要让所有 Echelon 子服连接同一个 MySQL 数据库。
 
 </Step>
 
@@ -107,4 +110,3 @@ echelon.db
 </Step>
 
 </Steps>
-

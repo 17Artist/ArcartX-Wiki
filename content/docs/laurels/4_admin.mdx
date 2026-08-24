@@ -14,7 +14,7 @@ Laurels 的主命令为 `/laurels`，玩家和控制台都可以执行。
 | 命令                        | 用途                  | 权限                      |
 |---------------------------|---------------------|-------------------------|
 | `/laurels top <榜单名> [数量]` | 在聊天中查看榜单            | 无                       |
-| `/laurels reload`         | 重载榜单、语言和刷新设置        | `laurels.admin.reload`  |
+| `/laurels reload`         | 重载榜单、显示文案和刷新设置      | `laurels.admin.reload`  |
 | `/laurels refresh`        | 立即从数据库重新生成排行榜       | `laurels.admin.refresh` |
 | `/laurels status`         | 查看榜单数量、最近刷新时间和当前条目数 | `laurels.admin.status`  |
 
@@ -48,14 +48,13 @@ Laurels 的主命令为 `/laurels`，玩家和控制台都可以执行。
 
 可以重载：
 
-- 榜单名称、数值占位符、排序方向和容量；
-- 排行榜刷新间隔；
-- 启动或重载后的首次刷新错峰范围；
-- 玩家登录采集延迟；
-- 空名次文本；
-- `language.yml` 消息。
+- 榜单名称、数值占位符、排序方向和容量
+- 排行榜刷新间隔
+- 启动或重载后的首次刷新错峰范围
+- 玩家登录采集延迟和每 tick 采集人数
+- 空名次文本
+- `language.yml`
 
 <Callout type="warn">
-`database` 段的任何修改都需要完整重启。
+`database.yml` 不会由该命令读取，修改数据库设置后需要完整重启服务器。
 </Callout>
-

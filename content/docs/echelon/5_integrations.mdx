@@ -7,14 +7,13 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # 插件联动
 
-所有可选联动都位于 `config.yml` 的 `integrations`。PlaceholderAPI 默认开启，其他联动默认关闭；没有安装对应插件时，Echelon 的基础等级功能仍可使用。
+PlaceholderAPI、MythicMobs 和 Symphony 位于 `integrations.yml`。SystemMail 的等级礼包发送位于 `delivery.yml`。PlaceholderAPI 默认开启，其他联动默认关闭；没有安装对应插件时，Echelon 的基础等级功能仍可使用。
 
 ## PlaceholderAPI
 
 ```yaml
-integrations:
-  placeholder-api:
-    enabled: true
+placeholder-api:
+  enabled: true
 ```
 
 | 占位符                                                     | 内容                 |
@@ -32,10 +31,9 @@ integrations:
 ## MythicMobs
 
 ```yaml
-integrations:
-  mythicmobs:
-    enabled: true
-    experience-path: "Echelon.Experience"
+mythicmobs:
+  enabled: true
+  experience-path: "Echelon.Experience"
 ```
 
 在 MythicMobs 怪物配置中写入经验：
@@ -55,16 +53,15 @@ TrainingDummy:
 ## Symphony
 
 ```yaml
-integrations:
-  symphony:
-    enabled: true
-    provider-priority: 100
-    display-name: "玩家等级"
+symphony:
+  enabled: true
+  provider-priority: 100
+  display-name: "玩家等级"
 ```
 
 启用后，Symphony 可以读取 Echelon 的等级、当前经验、升级所需经验和阶段称号。
 
-- Provider ID 固定为 `echelon:level`；
+- 等级来源 ID 固定为 `echelon:level`；
 - `display-name` 是 Symphony 中显示的名称；
 - `provider-priority` 用于多个等级来源同时存在时决定优先级。
 
@@ -73,25 +70,25 @@ integrations:
 先安装与 Echelon 配套的 SystemMail，再启用：
 
 ```yaml
-integrations:
-  system-mail:
-    enabled: true
-    poll-seconds: 5
-    batch-size: 32
-    lease-seconds: 30
-    max-attempts: 100
-    base-retry-seconds: 2
+enabled: true
+poll-seconds: 5
+batch-size: 32
+processing-timeout-seconds: 30
+max-attempts: 100
+base-retry-seconds: 2
 ```
 
-通常只需要修改 `enabled`。其余设置控制后台投递：
+以上内容填写在 `delivery.yml`。
 
-| 配置项                  | 用途               |
-|----------------------|------------------|
-| `poll-seconds`       | 检查待发送礼包的间隔       |
-| `batch-size`         | 每次最多处理的礼包数量      |
-| `lease-seconds`      | 一次发送任务的占用时间      |
-| `max-attempts`       | 自动重试次数上限         |
-| `base-retry-seconds` | 首次重试间隔，后续间隔会逐渐增加 |
+通常只需要修改 `enabled`。其余设置控制自动发送：
+
+| 配置项                          | 用途与范围                  |
+|------------------------------|------------------------|
+| `poll-seconds`               | 检查间隔，1–300 秒           |
+| `batch-size`                 | 每次最多处理 1–256 个礼包       |
+| `processing-timeout-seconds` | 一次发送最多等待 10–300 秒      |
+| `max-attempts`               | 自动尝试 1–10000 次         |
+| `base-retry-seconds`         | 首次等待 1–300 秒，后续间隔会逐渐增加 |
 
 玩家升级跨过已启用礼包等级时，每个符合条件的等级都会发送一封邮件。同一玩家的同一级礼包只会发送一次。
 

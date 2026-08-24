@@ -11,7 +11,7 @@
     "root": true,
     "color": "#3B82F6",
     "entry": "chemdahview/1_start",
-    "tagline": "任务面板、实施进度、追踪、对话",
+    "tagline": "任务面板、实时进度、追踪、对话",
     "order": 14,
     "defaultOpen": true,
     "pages": [

@@ -11,14 +11,16 @@ Appearance 的主命令为 `/appearance`，简写为 `/ape`。
 
 ## 命令
 
-| 命令                                    | 用途            | 权限                 |
-|---------------------------------------|---------------|--------------------|
-| `/appearance open`                    | 打开自己的外观界面     | `appearance.open`  |
-| `/appearance give <在线玩家> <外观ID> <时长>` | 解锁或续期外观       | `appearance.admin` |
-| `/appearance remove <在线玩家> <外观ID>`    | 移除玩家的外观       | `appearance.admin` |
-| `/appearance reload`                  | 重载配置、语言、模型与界面 | `appearance.admin` |
+| 命令                                    | 用途              | 权限                 |
+|---------------------------------------|-----------------|--------------------|
+| `/appearance open`                    | 打开自己的外观界面       | `appearance.open`  |
+| `/appearance give <在线玩家> <外观ID> <时长>` | 解锁或续期外观         | `appearance.admin` |
+| `/appearance remove <在线玩家> <外观ID>`    | 移除玩家的外观         | `appearance.admin` |
+| `/appearance reload`                  | 重新读取配置、语言、模型与界面 | `appearance.admin` |
 
 `give` 与 `remove` 只接受精确匹配的在线玩家名。默认外观对所有玩家开放，不能通过这两个命令授予或移除。
+
+`give`、`remove` 与 `reload` 仅限 OP，并同时需要 `appearance.admin` 权限。`open` 仅限在线玩家执行。
 
 ## 授权时长
 
@@ -58,9 +60,9 @@ forever
 | 权限                 | 建议授予对象 |
 |--------------------|--------|
 | `appearance.open`  | 普通玩家   |
-| `appearance.admin` | 管理员或后台 |
+| `appearance.admin` | OP 管理员 |
 
 
 <Callout type="warn">
-数据库配置只能通过完整重启切换。如果重载时发现 `database` 段发生变化，整次重载会取消，不会只应用其中一部分。
+`database.yml` 只能通过完整重启生效。
 </Callout>

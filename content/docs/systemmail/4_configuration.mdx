@@ -1,80 +1,78 @@
 ---
 title: 配置
-description: SystemMail config.yml 的完整配置项与生效方式
+description: SystemMail 分文件配置、默认值与生效方式
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 # 配置
 
-配置文件位于 `plugins/SystemMail/config.yml`。第一次安装时，多数单服只需要检查授权和 SQLite 文件路径；群组服则需要重点配置 `server-id`、MySQL 与 Redis。
+配置目录为 `plugins/SystemMail/`。SystemMail 按职责拆分配置，UI ID、服务端变量名和 handler
+名称由代码固定，不需要服主重复填写。
 
-## 服务器标识
+## config.yml
 
-| 配置项         |        默认值 | 说明                               | 生效 |
-|-------------|-----------:|----------------------------------|----|
-| `server-id` | `server-1` | 1–64 位字母、数字、`.`、`_`、`-`；每个子服必须唯一 | 重启 |
+| 配置项         |             默认值 | 说明                             | 生效 |
+|-------------|----------------:|--------------------------------|----|
+| `server-id` |      `server-1` | 1–64 位字母、数字、`.`、`_`、`-`；每个子服唯一 | 重启 |
+| `time-zone` | `Asia/Shanghai` | Java `ZoneId`；所有子服保持一致         | 重启 |
 
-## 数据库
+## database.yml
 
-| 配置项                         |              默认值 | 说明                   | 生效 |
-|-----------------------------|-----------------:|----------------------|----|
-| `database.type`             |         `sqlite` | `sqlite` 或 `mysql`   | 重启 |
-| `database.sqlite-file`      | `system-mail.db` | 相对于插件数据目录的 SQLite 文件 | 重启 |
-| `database.mysql.host`       |      `127.0.0.1` | MySQL 地址             | 重启 |
-| `database.mysql.port`       |           `3306` | 1–65535，限制           | 重启 |
-| `database.mysql.database`   |    `system_mail` | 数据库名                 | 重启 |
-| `database.mysql.username`   |           `root` | 用户名                  | 重启 |
-| `database.mysql.password`   |      `change-me` | 密码                   | 重启 |
-| `database.mysql.parameters` |  `太长了自己去看生成的配置吧` | JDBC 参数，不带开头的 `?`    | 重启 |
-| `database.mysql.pool-size`  |             `10` | 2–50，限制              | 重启 |
+| 配置项                |              默认值 | 说明                 | 生效 |
+|--------------------|-----------------:|--------------------|----|
+| `type`             |         `sqlite` | `sqlite` 或 `mysql` | 重启 |
+| `sqlite-file`      | `system-mail.db` | 相对插件目录的 SQLite 文件  | 重启 |
+| `worker-threads`   |              `4` | 后台邮件任务线程数，2–16     | 重启 |
+| `mysql.host`       |      `127.0.0.1` | MySQL 地址           | 重启 |
+| `mysql.port`       |           `3306` | 1–65535            | 重启 |
+| `mysql.database`   |    `system_mail` | 数据库名               | 重启 |
+| `mysql.username`   |           `root` | 用户名                | 重启 |
+| `mysql.password`   |      `change-me` | 密码，生产环境必须修改        | 重启 |
+| `mysql.parameters` |            见生成文件 | JDBC 参数，不带开头 `?`   | 重启 |
+| `mysql.pool-size`  |             `10` | 连接池上限，2–50         | 重启 |
 
-`database.type: mysql` 时必须启用 Redis；SQLite 模式不能启用 Redis。
+SQLite 模式不能启用 Redis；MySQL 模式必须启用 Redis。
 
-## Redis
+## redis.yml
 
-| 配置项                           |                  默认值 | 说明                              | 生效 |
-|-------------------------------|---------------------:|---------------------------------|----|
-| `redis.enabled`               |              `false` | 多服 MySQL 模式必须为 `true`           | 重启 |
-| `redis.host`                  |          `127.0.0.1` | Redis 地址                        | 重启 |
-| `redis.port`                  |               `6379` | 1–65535，限制                      | 重启 |
-| `redis.username`              |                 `""` | 空字符串表示不使用用户名                    | 重启 |
-| `redis.password`              |                 `""` | 空字符串表示不使用密码                     | 重启 |
-| `redis.database`              |                  `0` | 0–15，限制                         | 重启 |
-| `redis.channel`               | `arcartx:systemmail` | 1–128 位字母、数字、`:`、`.`、`_`、`-`    | 重启 |
-| `redis.database-poll-seconds` |                  `5` | 1–60 秒；Redis 断线时从 MySQL 补查提醒的周期 | 重启 |
+| 配置项          |           默认值 | 说明                 | 生效 |
+|--------------|--------------:|--------------------|----|
+| `enabled`    |       `false` | MySQL 多服必须为 `true` | 重启 |
+| `host`       |   `127.0.0.1` | Redis 地址           | 重启 |
+| `port`       |        `6379` | 1–65535            | 重启 |
+| `username`   |          `''` | 空字符串表示不使用用户名       | 重启 |
+| `password`   |          `''` | 空字符串表示不使用密码        | 重启 |
+| `database`   |           `0` | 0–15               | 重启 |
+| `key-prefix` | `systemmail:` | 多服保持一致，2–128 位安全字符 | 重启 |
 
-## 邮件限制
+通知频道固定为 `<key-prefix>notifications`。Redis 只负责快速通知，完整邮件与附件状态保存在数据库中。
 
-| 配置项                                         |             默认值 | 说明                           | 生效 |
-|---------------------------------------------|----------------:|------------------------------|----|
-| `mail.time-zone`                            | `Asia/Shanghai` | Java `ZoneId`；影响日期和界面时间文本    | 重载 |
-| `mail.max-title-length`                     |            `64` | 1–256，限制                     | 重载 |
-| `mail.max-content-length`                   |          `8192` | 1–32767，限制                   | 重载 |
-| `mail.max-item-slots`                       |            `27` | 0–54，限制                      | 重载 |
-| `mail.max-currencies`                       |            `16` | 0–64，限制                      | 重载 |
-| `mail.max-currency-per-provider`            |  `1000000000.0` | 单个货币 provider 的最大正数金额        | 重载 |
-| `mail.max-commands`                         |            `16` | 0–64，限制                      | 重载 |
-| `mail.max-recipients-per-request`           |         `10000` | 1–250000；单次请求的收件人数安全上限       | 重载 |
-| `mail.recipient-materialization-batch-rows` |          `5000` | 100–50000；每批数据库写入行预算，不限制群发总量 | 重载 |
-| `mail.max-admin-drafts`                     |           `500` | 1–5000，限制；全服共享草稿总数           | 重载 |
-| `mail.inbox-page-size`                      |            `20` | 1–100，限制                     | 重载 |
-| `mail.ui-claim-expiry-grace-minutes`        |            `20` | 0–120，限制；`0` 关闭当前详情的领取宽限     | 重载 |
-| `mail.trash-retention-days`                 |            `30` | 1–3650，限制                    | 重载 |
+## mail.yml
 
-`recipient-materialization-batch-rows` 决定每个事务处理多少名收件人。每名收件人占用“附件数 + 2”行预算，其中两行分别用于收件关系和通知事件。
+| 配置项                                           |            默认值 | 说明                         | 生效 |
+|-----------------------------------------------|---------------:|----------------------------|----|
+| `notification-poll-seconds`                   |            `5` | 数据库检查新邮件间隔，1–60 秒          | 重启 |
+| `limits.max-title-length`                     |           `64` | 1–256                      | 重载 |
+| `limits.max-content-length`                   |         `8192` | 1–32767                    | 重载 |
+| `limits.max-item-slots`                       |           `27` | 0–54                       | 重载 |
+| `limits.max-item-payload-bytes`               |      `1048576` | 单件物品序列化上限，4096–8388608     | 重载 |
+| `limits.max-mail-item-payload-bytes`          |       `786432` | 整封邮件物品序列化总上限，65536–4194304 | 重载 |
+| `limits.max-currencies`                       |           `16` | 0–64                       | 重载 |
+| `limits.max-currency-per-provider`            | `1000000000.0` | 单种货币最大正数金额                 | 重载 |
+| `limits.max-commands`                         |           `16` | 0–64                       | 重载 |
+| `limits.max-recipients-per-request`           |        `10000` | 单次发送收件人数，1–250000          | 重载 |
+| `limits.recipient-materialization-batch-rows` |         `5000` | 每批数据库写入行数，100–50000        | 重载 |
+| `limits.max-admin-drafts`                     |          `500` | 全服共享草稿上限，1–5000            | 重载 |
+| `limits.inbox-page-size`                      |           `20` | 每页邮件数，1–100                | 重载 |
+| `limits.ui-claim-expiry-grace-minutes`        |           `20` | 当前详情领取宽限，0–120 分钟          | 重载 |
+| `limits.trash-retention-days`                 |           `30` | 已删除邮件与结束记录保留天数，1–3650      | 重载 |
+| `commands.allowed-prefixes`                   |           `[]` | 空列表禁止命令附件；单项最长 128 且不能换行   | 重载 |
 
-例如一封邮件包含 27 个附件，默认预算为 5000 时，每批处理 `floor(5000 / 29) = 172` 名收件人；10000 名收件人会分约 59 批完成。批次中断后继续构建，整封邮件完成前不会出现在玩家收件箱、未读数或通知中。
+群发会按 `recipient-materialization-batch-rows` 分批写入，不会把“收件人数 × 附件数”作为
+总量上限。`max-recipients-per-request` 仍会阻止错误调用一次占用过多数据库资源。
 
-`max-recipients-per-request` 会阻止单次请求计划过多收件人。大型服务器可以按 MySQL 容量提高，应同时关注连接池、事务日志、`max_allowed_packet` 和通知积压。
-
-## 命令附件白名单
-
-| 配置项                         |  默认值 | 说明                            | 生效 |
-|-----------------------------|-----:|-------------------------------|----|
-| `commands.allowed-prefixes` | `[]` | 空列表禁止所有命令附件；单项最长 128 个字符且不能换行 | 重载 |
-
-推荐只加入实际需要的命令前缀：
+命令白名单示例：
 
 ```yaml
 commands:
@@ -83,58 +81,22 @@ commands:
     - "points give "
 ```
 
-匹配时会移除命令开头的 `/` 和空白，并忽略大小写。前缀末尾建议保留空格，避免 `give` 意外匹配 `givehack`。
 
-## ArcartX UI 与变量
+## language.yml
 
-| 配置项                                 |                       默认值 | 说明            | 生效 |
-|-------------------------------------|--------------------------:|---------------|----|
-| `notifications.unread-variable`     | `systemmail_unread_count` | 玩家未读数变量       | 重载 |
-| `notifications.page-count-variable` |   `systemmail_page_count` | 未筛选收件箱的总页数变量  | 重载 |
-| `notifications.inbox-ui-id`         |        `systemmail_inbox` | 收件箱注册 ID      | 重启 |
-| `notifications.hud-ui-id`           |          `systemmail_hud` | 新邮件 HUD 注册 ID | 重启 |
+`language.yml` 保存时间、附件名称和失败提示，可在线重载。
 
-这些 identifier 允许 1–128 位字母、数字、`.`、`_`、`:`、`-`。修改 UI ID 时还要同步修改对应 AXUI 资源，并完整重启。
-
-## 安全与性能
-
-通常不需要修改本节。遇到超大物品、异常回包或数据库查询压力时，再按实际情况调整。
-
-| 配置项                                    |       默认值 | 说明                            | 生效 |
-|----------------------------------------|----------:|-------------------------------|----|
-| `security.max-item-payload-bytes`      | `1048576` | 4096–8388608；单件物品序列化上限        | 重载 |
-| `security.max-mail-item-payload-bytes` |  `786432` | 65536–4194304；整封邮件物品序列化总量     | 重载 |
-| `security.max-ui-packet-fields`        |      `16` | 1–64；玩家请求的最大字段数               | 重载 |
-| `security.max-ui-field-length`         |  `131072` | 256–1048576；单字段最大字符数          | 重载 |
-| `security.max-ui-response-bytes`       | `1048576` | 65536–4194304；普通动态回包 UTF-8 预算 | 重载 |
-| `security.max-ui-pages`                |     `500` | 10–5000；可访问的最大页数              | 重载 |
-| `security.min-ui-search-length`        |       `1` | 1–16；非空搜索的最短字符数               | 重载 |
-| `security.max-ui-search-length`        |      `64` | 16–128；非空搜索的最长字符数             | 重载 |
-| `security.max-concurrent-ui-queries`   |      `32` | 1–256；还会受连接池和工作线程容量限制         | 重载 |
-| `security.ui-query-timeout-seconds`    |       `3` | 1–30 秒，限制                     | 重载 |
-| `security.slow-ui-query-warn-millis`   |     `500` | 100–10000 毫秒，限制               | 重载 |
-
-`min-ui-search-length` 不能大于 `max-ui-search-length`。邮件详情需要完整展示物品数据，不受普通 `max-ui-response-bytes` 裁剪；其体积由前两项限制。
 
 ## 重载与重启
-
-执行：
 
 ```text
 /sma reload
 ```
 
-可以重载配置、`lang.yml`、`ui/inbox.yml` 和 `ui/hud.yml`。
+该命令重新读取 `mail.yml`、`language.yml`、`ui/inbox.yml` 和 `ui/hud.yml`。如果`config.yml`、`database.yml`、`redis.yml` 或`notification-poll-seconds` 改变，本次重载会失败并继续使用原设置，完整重启后生效。
 
-以下项目修改后必须完整重启：
-
-- `server-id`；
-- 整个 `database`；
-- 整个 `redis`；
-- `notifications.inbox-ui-id`；
-- `notifications.hud-ui-id`。
-
+配置模板只在对应文件不存在时释放。重载只读取当前文件，不会改写内容或自动增加字段。
 
 <Callout type="warn">
-不要使用 Bukkit `/reload` 或 PlugMan 热卸载 SystemMail。数据库连接、Redis 订阅和共享运行库都应随服务器完整启动与关闭。
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 SystemMail。数据库、Redis 和共享运行库应随 服务器完整启动与关闭。
 </Callout>
