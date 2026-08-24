@@ -1,0 +1,109 @@
+---
+title: 本地词库
+description: 配置 words.yml 分类、归一化与匹配规则
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 本地词库
+
+Redact 的本地词库位于 `plugins/Redact/words.yml`。默认词库为空，需要根据服务器规则自行添加。
+
+## 配置格式
+
+`words` 下的键是业务分类，值是词条列表：
+
+```yaml
+words:
+  prohibited:
+    - "示例违禁词"
+  advertising:
+    - "示例广告词"
+  competitor:
+    - "示例同行宣传词"
+```
+
+可以直接增加自己的分类：
+
+```yaml
+words:
+  contact:
+    - "示例联系方式"
+  custom-rule:
+    - "自定义词条"
+```
+
+分类名会原样写入 `ModerationHit.category`，不需要修改 Kotlin 枚举。
+
+修改词库后需要完整重启 Redact。空字符串和归一化后为空的词条会被忽略；多个分类中出现相同的归一化词时，匹配器只保留一份定义。
+
+## 大小写与全角字符
+
+默认配置：
+
+```yaml
+matcher:
+  case-sensitive: false
+```
+
+关闭大小写敏感后，英文字母统一按小写匹配，并把全角 ASCII 转为半角。例如全角英文字母和普通英文字母可以命中同一词条。
+
+该规则不会执行复杂的语言学转换，也不会自动处理同音字、拼音或形近字。
+
+## 忽略分隔符
+
+```yaml
+matcher:
+  ignore-separators: true
+```
+
+启用后会忽略空白和 Unicode 标点，用于识别拆字内容，例如：
+
+```text
+服 务 器
+example . com
+```
+
+字母、数字和普通汉字不会因为此设置被删除。需要更严格或更宽松的业务规则时，应在进入 Redact 前由调用方自行预处理。
+
+## 命中位置
+
+`ModerationHit.startInclusive` 和 `endExclusive` 使用原始 Java 字符串的 UTF-16 下标：
+
+```kotlin
+val matched = content.substring(hit.startInclusive, hit.endExclusive)
+```
+
+即使匹配时忽略了空格或标点，返回范围仍指向原始文本，可以直接用于日志定位或净化。
+
+## 重叠词与净化
+
+详细检测会返回实际命中，数量受 `matcher.max-reported-hits` 限制。净化接口会合并重叠区间，避免同一段文本被重复替换。
+
+```kotlin
+val clean = RedactAPI.sanitize(message, "***")
+```
+
+默认替换文本来自：
+
+```yaml
+sanitization:
+  replacement: "喵喵喵"
+```
+
+## MySQL 学习词
+
+启用数据库后，词库由两部分组成：
+
+- 当前服务器的 `words.yml`；
+- MySQL 中由云审核学习并同步的词条。
+
+新学习词会先进入增量词库并立即参与检测，达到 `matcher.delta-rebuild-threshold` 后再合并到主词库。其他子服按 `database.yml` 中的 `sync-interval-seconds` 获取新增记录。
+
+<Callout type="info">
+YAML 词库不会自动上传到 MySQL。需要所有子服共享的人工词条，应在各节点保持相同的 `words.yml`，或由自己的管理流程写入共享词库。
+</Callout>
+
+百度有时只返回判定，不返回可定位的具体片段。Redact 会保存违规正文的 SHA-256 哈希；同一正文再次出现时可以直接判定，不必重复请求云端。
+
+这类记录只匹配完全相同的正文。它不会把某个长文本的局部片段当作独立词条，也无法提供具体命中位置。

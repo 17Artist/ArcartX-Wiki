@@ -1,0 +1,163 @@
+---
+title: 开发接口
+description: 通过 RedactAPI 检测、净化文本并读取审核结果
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 开发接口
+
+Redact 通过 Bukkit `ServicesManager` 注册 `RedactService`，并提供 `RedactAPI` 作为 Java/Kotlin 静态入口。
+
+## 获取服务
+
+```kotlin
+import priv.seventeen.artist.redact.api.RedactAPI
+
+if (!RedactAPI.isAvailable()) {
+    return
+}
+
+val service = RedactAPI.get()
+```
+
+`get()` 在服务不可用时会抛出 `IllegalStateException`。使用硬依赖的插件可以在自身启用后直接获取；使用软依赖时应先调用 `isAvailable()`。
+
+也可以直接通过 Bukkit 获取：
+
+```kotlin
+val registration = server.servicesManager
+    .getRegistration(RedactService::class.java)
+
+val service = registration?.provider ?: return
+```
+
+## API 方法
+
+| `RedactAPI` 方法                                | 返回值                                   | 用途                   |
+|-----------------------------------------------|---------------------------------------|----------------------|
+| `isAvailable()`                               | `boolean`                             | Redact 服务是否已经注册      |
+| `get()`                                       | `RedactService`                       | 获取底层服务               |
+| `checkLocal(content)`                         | `ModerationResult`                    | 返回本地词库与已确认云审核内容的详细结果 |
+| `contains(content)`                           | `boolean`                             | 本地首命中快速检测            |
+| `check(content, enableCloud)`                 | `CompletableFuture<ModerationResult>` | 按需执行云审核并返回详细结果       |
+| `contains(content, enableCloud)`              | `CompletableFuture<Boolean>`          | 按需执行云审核并返回是否应拦截      |
+| `sanitize(content)`                           | `String`                              | 使用配置中的替换文本进行本地净化     |
+| `sanitize(content, replacement)`              | `String`                              | 使用调用参数进行本地净化         |
+| `sanitize(content, enableCloud)`              | `CompletableFuture<String>`           | 按需云审核并使用配置中的替换文本     |
+| `sanitize(content, enableCloud, replacement)` | `CompletableFuture<String>`           | 按需云审核并使用调用参数替换       |
+
+`contains` 遇到首个本地命中就会返回，不创建完整命中列表。只需要“允许或拒绝”时优先使用它。
+
+`enableCloud=true` 只表示调用方允许使用云审核，不能绕过服务端设置。`baidu.yml` 中的 `enabled` 为 `false` 时，异步方法会直接返回纯本地结果。
+
+## 本地检测示例
+
+```kotlin
+if (RedactAPI.contains(message)) {
+    event.isCancelled = true
+    return
+}
+
+val result = RedactAPI.checkLocal(message)
+result.hits.forEach { hit ->
+    logger.info(
+        "category=${hit.category}, " +
+            "range=${hit.startInclusive}..${hit.endExclusive}"
+    )
+}
+```
+
+净化文本：
+
+```kotlin
+val configured = RedactAPI.sanitize(message)
+val custom = RedactAPI.sanitize(message, "***")
+```
+
+## 云审核示例
+
+```kotlin
+RedactAPI.check(message, true).thenAccept { result ->
+    if (result.isViolation) {
+        logger.info(
+            "Blocked: ${result.verdict}, externalId=${result.externalId}"
+        )
+    }
+}
+```
+
+Java：
+
+```java
+if (RedactAPI.contains(message)) {
+    event.setCancelled(true);
+    return;
+}
+
+RedactAPI.check(message, true).thenAccept(result -> {
+    if (result.isViolation()) {
+        logger.info(
+            "Blocked: " + result.getVerdict()
+                + " " + result.getExternalId()
+        );
+    }
+});
+```
+
+## `ModerationResult`
+
+| 属性            | 类型                    | 说明                                      |
+|---------------|-----------------------|-----------------------------------------|
+| `verdict`     | `ModerationVerdict`   | `PASS`、`REJECT`、`REVIEW` 或 `ERROR`      |
+| `isViolation` | `Boolean`             | 调用方是否应拦截；发生 `ERROR` 时受 fail-closed 设置影响 |
+| `hits`        | `List<ModerationHit>` | 命中明细                                    |
+| `isCloudUsed` | `Boolean`             | 是否实际发起了百度请求                             |
+| `isTruncated` | `Boolean`             | 命中数量是否达到返回上限                            |
+| `message`     | `String`              | 诊断说明，不应作为稳定机器协议解析                       |
+| `externalId`  | `String`              | 百度 `log_id`；多个分片以逗号连接，没有时为空             |
+
+### 判定含义
+
+| 判定       | `isViolation` | 说明                       |
+|----------|---------------|--------------------------|
+| `PASS`   | `false`       | 没有发现需要拦截的内容              |
+| `REJECT` | `true`        | 确认违规                     |
+| `REVIEW` | `true`        | 需要复审，默认同样按违规处理           |
+| `ERROR`  | 取决于配置         | 云审核已启用，但服务尚未就绪、请求失败或请求过多 |
+
+调用方应优先依据 `isViolation` 决定是否拦截，再使用 `verdict`、`message` 和 `externalId` 记录诊断。
+
+## `ModerationHit`
+
+| 属性               | 类型                 | 说明                      |
+|------------------|--------------------|-------------------------|
+| `term`           | `String`           | 命中片段；云模型没有具体片段时为空       |
+| `startInclusive` | `Int`              | 原文 Java UTF-16 起始下标，包含  |
+| `endExclusive`   | `Int`              | 原文 Java UTF-16 结束下标，不包含 |
+| `source`         | `ModerationSource` | 命中来源                    |
+| `category`       | `String`           | YAML 分类或百度分类路径          |
+| `confidence`     | `Double`           | 百度置信度；没有返回时为 `NaN`      |
+
+`ModerationSource`：
+
+| 值                   | 来源                  |
+|---------------------|---------------------|
+| `LOCAL_DICTIONARY`  | YAML 或已同步的 MySQL 词库 |
+| `CLOUD_EXACT_CACHE` | 已确认的云审核内容           |
+| `BAIDU_CLOUD`       | 本次百度审核响应            |
+
+已确认的云审核内容没有具体词语，会返回一条覆盖全文、`term` 为空的命中。净化 API 会把全文替换一次。
+
+## 线程约定
+
+- 普通聊天短文本可以直接使用同步本地 API；
+- 书本、正文和批量文本应复制字符串后交给业务异步线程；
+- 云 API 不阻塞调用线程，但本地提前命中时 future 可能已经完成；
+- future 的回调线程不固定；
+- 回调中访问 Bukkit 世界、实体、玩家背包或大多数插件 API 前，需要切回合法主线程或区域线程；
+- 不要在 Bukkit 主线程对 future 调用 `join()` 或 `get()`。
+
+<Callout type="warn">
+异步审核完成后，原事件可能已经结束。需要“审核通过后才提交”的业务，应先暂存输入，再在 future 完成后执行保存或发送，而不是事后尝试撤销已经发生的操作。
+</Callout>

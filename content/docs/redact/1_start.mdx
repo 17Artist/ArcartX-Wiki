@@ -1,0 +1,54 @@
+---
+title: 说明
+description: Redact 内容审核 API 的用途、能力与使用边界
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 说明
+
+Redact 是面向 Minecraft 服务端的**内容审核 API**。它使用本地词库快速检测、定位和替换敏感内容，也可以按需接入百度内容审核，并通过 MySQL 在多个子服之间共享云端学习结果。
+
+- 开源地址：[17Artist/Redact](https://github.com/17Artist/Redact)
+- 开源协议：[Apache License 2.0](https://github.com/17Artist/Redact/blob/main/LICENSE)
+- Maven 仓库：[ArcartX Maven Public](https://repo.arcartx.com/repository/maven-public/)
+- Maven 坐标：`priv.seventeen.artist:redact:1.0.0`
+
+## 核心能力
+
+| 能力    | 说明                                    |
+|-------|---------------------------------------|
+| 本地检测  | 使用 Aho–Corasick 自动机扫描词库，支持布尔检测与完整命中信息 |
+| 规避识别  | 可忽略英文大小写、全角 ASCII、空白和 Unicode 标点      |
+| 文本净化  | 按原文位置替换命中内容，支持自定义替换文本                 |
+| 结构化结果 | 返回判定、命中来源、分类、UTF-16 位置与云端标识           |
+| 云端审核  | 本地未命中时，可以异步请求百度内容审核                   |
+| 多服共享  | 通过 MySQL 同步云端学习词和已确认的云审核内容            |
+
+## 使用边界
+
+Redact 只提供审核服务，不会自动监听或拦截
+
+调用方需要在自己的业务入口中取得 `RedactService`，再决定取消事件、拒绝保存、记录日志或使用净化后的文本。
+
+<Callout type="warn">
+审核结果不能代替业务权限、频率限制、日志审计和人工申诉机制。启用云审核时，还需要根据服务器的隐私政策告知玩家文本会发送给第三方服务。
+</Callout>
+
+## 检测路径
+
+一次允许云审核的请求会按以下顺序处理：
+
+1. 检查 YAML 与已同步的 MySQL 词库；
+2. 检查是否命中已确认的云审核内容；
+3. 本地未命中且服务端允许云审核时，异步请求百度；
+4. 云端命中后更新当前节点缓存，并尝试写入 MySQL；
+5. 其他子服按同步周期读取新记录。
+
+调用方只想使用本地词库时，可以不启用百度审核，也可以完全关闭数据库。
+
+## 运行基线
+
+- Java 17；
+- Spigot/Paper API 1.20.4；
+- Kotlin 1.8.22。

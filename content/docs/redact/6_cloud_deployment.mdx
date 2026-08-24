@@ -1,0 +1,143 @@
+---
+title: 云审核与多服部署
+description: 配置百度审核、MySQL 同步、降级策略和运行边界
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 云审核与多服部署
+
+Redact 始终先执行本地检测。只有同时满足以下条件，才会请求百度：
+
+1. 本地词库没有命中；
+2. 没有命中已确认的云审核内容；
+3. 调用方传入 `enableCloud=true`；
+4. `baidu.yml` 中的 `enabled` 为 `true`；
+5. MySQL 与云审核运行条件可用。
+
+## 启用百度审核
+
+先在 `database.yml` 中启用并填写 MySQL：
+
+```yaml
+enabled: true
+
+mysql:
+  host: "127.0.0.1"
+  database: "arcartx"
+  username: "arcartx"
+  password: "请填写密码"
+```
+
+再在 `baidu.yml` 中启用云审核：
+
+```yaml
+enabled: true
+api-key: "请填写 API Key"
+secret-key: "请填写 Secret Key"
+```
+
+百度凭据，也可以使用环境变量：
+
+```text
+REDACT_BAIDU_API_KEY
+REDACT_BAIDU_SECRET_KEY
+```
+
+环境变量优先于 YAML。
+
+<Callout type="warn">
+启用百度审核时，`database.yml` 中的 `enabled` 必须为 `true`，以便保存并同步云审核结果。
+</Callout>
+
+## 降级与 fail-closed
+
+```yaml
+fail-closed: true
+```
+
+百度已经启用后，如果云审核服务尚未就绪、请求失败或请求过多，Redact 返回 `ERROR`：
+
+- `fail-closed: true`：`isViolation=true`，净化 API 返回单个替换文本；
+- `fail-closed: false`：`isViolation=false`，由上层业务记录或安排重试。
+
+服务端没有启用百度时，允许云审核的 API 会退化为本地检测，不会返回这类 `ERROR`，也不会应用 fail-closed。
+
+选择策略时需要考虑业务性质：公开聊天通常更关注即时拦截，玩家投稿、邮件或长文本则更适合暂存后重试或复审。
+
+## 长文本与分片
+
+百度单次文本审核上限为 20,000 UTF-8 字节。Redact 默认按 19,000 字节分片，为请求留出余量：
+
+```yaml
+max-request-bytes: 19000
+max-chunks: 16
+chunk-overlap-codepoints: 64
+```
+
+相邻分片会保留重叠上下文，但超过重叠长度的跨片内容仍可能无法由单个云端分片识别。超过 `max-chunks` 能承载的文本会按错误策略处理。
+
+## MySQL 数据
+
+Redact 使用两张固定表：
+
+| 表                   | 内容                       |
+|---------------------|--------------------------|
+| `redact_dictionary` | 云审核学习到的共享词条、分类、来源与创建节点   |
+| `redact_cloud_hits` | 违规正文哈希、判定、云端标识、来源节点与出现次数 |
+
+词条哈希和正文哈希使用唯一键去重。多个子服同时写入相同命中时，不需要额外的进程间锁。
+
+API 查询只读取内存中的词库和缓存，不会为每条玩家消息同步访问 MySQL。
+
+## 多子服配置
+
+所有节点应：
+
+- 连接同一个 MySQL 数据库；
+- 使用不同的 `server-id`；
+- 保持相同的 `matcher.case-sensitive`；
+- 保持相同的 `matcher.ignore-separators`；
+- 根据数据库规模设置合理的连接池与同步周期；
+- 让系统时间保持同步。
+
+新学习词和已确认的云审核内容按 `database.yml` 中的 `sync-interval-seconds` 增量同步。当前节点的 YAML 词库仍是本地文件，不会自动上传到数据库。
+
+## 写入失败
+
+云命中写入 MySQL 失败时，会进入有界内存补写队列：
+
+```yaml
+queue-capacity: 256
+retry-interval-seconds: 10
+```
+
+该队列不是持久化消息队列。服务器退出前仍未写入的数据会丢失；需要零丢失审计时，上层业务应根据 `externalId` 建立自己的持久化记录和补偿流程。
+
+## 性能与容量建议
+
+- 只判断是否违规时使用 `contains`，避免创建命中列表；
+- 只有需要分类和位置时才使用 `check`；
+- 不要把 `matcher.max-reported-hits` 设置得接近无界；
+- 大词库应按真实词条长度、共同前缀和 JVM 堆容量测试；
+- 长文本和批量审核应在业务异步线程执行；
+- 云端吞吐同时受工作线程、队列容量、百度账户限流和 MySQL 可用性影响；
+- `matcher.exact-cache-size` 越大，保留的已确认云审核内容越多，占用内存也越高。
+
+## 排查顺序
+
+### 本地词条没有命中
+
+确认 `words.yml` 层级正确，修改后已经完整重启；再检查大小写和分隔符配置是否符合预期。
+
+### 调用 `enableCloud=true` 但没有云请求
+
+检查 `baidu.yml` 中的 `enabled`、API Key、Secret Key，以及 `database.yml` 是否启用。调用参数不会覆盖服务端开关。
+
+### 云审核持续返回 `ERROR`
+
+检查 HTTP 与数据库日志、连接超时、请求超时、队列容量和百度账户状态。根据业务需要确认 `fail-closed` 是否应保持开启。
+
+### 子服没有收到学习词
+
+确认各节点连接同一个数据库，归一化配置一致，并等待至少一个 `database.yml` 的 `sync-interval-seconds` 周期。

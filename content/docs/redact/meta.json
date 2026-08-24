@@ -1,0 +1,28 @@
+{
+    "title": "Redact — 纂",
+    "description": "为 Minecraft 服务端提供本地词库与云端内容审核 API",
+    "icon": "logo/redact-logo.png",
+    "tags": [
+        { "label": "开源", "color": "#22C55E" },
+        { "label": "免费", "color": "#2DD4BF" },
+        { "label": "API", "color": "#8B5CF6" },
+        { "label": "安全", "color": "#EF4444" }
+    ],
+    "root": true,
+    "color": "#00B8F0",
+    "entry": "redact/1_start",
+    "tagline": "高性能内容审核 API",
+    "order": 15,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_installation",
+        "---配置与词库---",
+        "3_configuration",
+        "4_dictionary",
+        "---开发接口---",
+        "5_api",
+        "6_cloud_deployment"
+    ]
+}

@@ -1,0 +1,142 @@
+---
+title: 安装与依赖
+description: 安装 Redact 服务端插件并
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 安装与依赖
+
+Redact 需要作为服务端插件运行，并通过 Bukkit `ServicesManager` 向其他插件提供 `RedactService`。
+
+## 安装服务端插件
+
+<Steps>
+
+<Step>
+
+### 下载插件
+
+从ArcartX社区下载，放入服务端 `plugins/`。
+
+</Step>
+
+<Step>
+
+### 首次启动
+
+使用 Java 17 完整启动服务器。Redact 会生成：
+
+```text
+plugins/Redact/
+├─ config.yml
+├─ database.yml
+├─ baidu.yml
+└─ words.yml
+```
+
+默认 `words.yml` 不包含实际词条，需要由服主自行维护。
+
+</Step>
+
+<Step>
+
+### 选择运行模式
+
+仅使用单服本地词库时，则关闭数据库和百度审核。
+
+`database.yml`：
+
+```yaml
+enabled: false
+```
+
+`baidu.yml`：
+
+```yaml
+enabled: false
+```
+
+需要百度审核时，请先在 `database.yml` 中填写 MySQL，再配置 `baidu.yml`。
+
+</Step>
+
+<Step>
+
+### 重启并检查服务
+
+修改任一配置文件或词库后完整重启。控制台出现“API 已就绪”后，消费插件才能发现 Redact 服务。
+
+</Step>
+
+</Steps>
+
+<Callout type="warn">
+Redact 没有 reload 命令。配置、归一化规则和词库都需要通过完整重启重新加载。
+</Callout>
+
+## 添加 Maven 依赖
+
+仓库：
+
+```kotlin
+repositories {
+    maven("https://repo.arcartx.com/repository/maven-public/")
+}
+```
+
+依赖坐标：
+
+```kotlin
+dependencies {
+    compileOnly("priv.seventeen.artist:redact:1.0.0")
+}
+```
+
+Redact 应由服务端单独安装，因此消费插件通常使用 `compileOnly`，不要把 Redact 整体打进自己的 JAR。
+
+## 声明插件依赖
+
+Redact 是必要前置时，使用硬依赖：
+
+```yaml
+depend:
+  - Redact
+```
+
+如果审核能力是可选功能，可以使用：
+
+```yaml
+softdepend:
+  - Redact
+```
+
+Blink 插件可以在构建配置中声明：
+
+```kotlin
+blink {
+    depend.set(listOf("Redact"))
+}
+```
+
+使用软依赖时，调用前必须检查：
+
+```kotlin
+if (!RedactAPI.isAvailable()) {
+    return
+}
+```
+
+不要在 Redact 启用前缓存服务实例，也不要在 Redact 停用后继续调用旧实例。
+
+## 本地模式
+
+关闭数据库和百度后，Redact 仍然可以使用：
+
+- `contains(content)`；
+- `checkLocal(content)`；
+- `sanitize(content)`；
+- `words.yml` 中的全部本地词条。
+
+本地模式不会创建 MySQL 表，也不会跨服务器同步学习结果。

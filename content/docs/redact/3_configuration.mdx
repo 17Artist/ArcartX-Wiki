@@ -1,0 +1,142 @@
+---
+title: 配置文件
+description: 配置本地匹配、MySQL、百度审核与在线学习
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置文件
+
+Redact 的配置位于 `plugins/Redact/`，按用途拆分为四个文件：
+
+| 文件             | 用途               |
+|----------------|------------------|
+| `config.yml`   | 子服标识、文本净化和本地匹配规则 |
+| `database.yml` | MySQL 连接与多服同步    |
+| `baidu.yml`    | 百度内容审核、请求队列和在线学习 |
+| `words.yml`    | 本地词库及分类          |
+
+`words.yml` 的写法见[本地词库](/docs/redact/4_dictionary)。
+
+## 基础与匹配配置
+
+`config.yml` 的默认内容如下：
+
+```yaml
+server-id: "server-1"
+
+sanitization:
+  replacement: "喵喵喵"
+
+matcher:
+  case-sensitive: false
+  ignore-separators: true
+  max-reported-hits: 10000
+  delta-rebuild-threshold: 512
+  exact-cache-size: 250000
+```
+
+| 配置                                |        默认值 | 说明                                |
+|-----------------------------------|-----------:|-----------------------------------|
+| `server-id`                       | `server-1` | 当前子服标识，长度为 1～64 个字符               |
+| `sanitization.replacement`        |      `喵喵喵` | 净化 API 没有指定替换文本时使用的内容             |
+| `matcher.case-sensitive`          |    `false` | 是否区分英文大小写；关闭时也会把全角 ASCII 转为半角     |
+| `matcher.ignore-separators`       |     `true` | 是否忽略空白和 Unicode 标点                |
+| `matcher.max-reported-hits`       |    `10000` | 详细结果最多返回的命中数，范围 `1`～`1000000`     |
+| `matcher.delta-rebuild-threshold` |      `512` | 增量学习词达到多少后合并重建主词库，范围 `1`～`100000` |
+| `matcher.exact-cache-size`        |   `250000` | 内存中保留的已确认云审核内容上限，范围 `1`～`5000000` |
+
+群组服中的每个节点应使用不同的 `server-id`。连接同一数据库的节点应保持相同的 `case-sensitive` 和 `ignore-separators`，否则同一内容在不同节点上的归一化结果可能不一致。
+
+<Callout type="info">
+`max-reported-hits` 只限制 `check` 返回的详细命中列表。布尔检测和文本净化不受这个数量限制。
+</Callout>
+
+## MySQL
+
+`database.yml` 的默认内容如下：
+
+```yaml
+enabled: true
+sync-interval-seconds: 30
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "arcartx"
+  password: "arcartx"
+  parameters: "useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC"
+  pool-size: 4
+  connection-timeout-ms: 5000
+```
+
+| 配置                            |         默认值 | 说明                       |
+|-------------------------------|------------:|--------------------------|
+| `enabled`                     |      `true` | 是否启用共享词库和云审核结果持久化        |
+| `sync-interval-seconds`       |        `30` | 子服增量同步周期，最小 `5` 秒        |
+| `mysql.host`                  | `127.0.0.1` | MySQL 地址                 |
+| `mysql.port`                  |      `3306` | 端口，范围 `1`～`65535`        |
+| `mysql.database`              |   `arcartx` | 数据库名                     |
+| `mysql.username`              |   `arcartx` | 数据库账号                    |
+| `mysql.password`              |   `arcartx` | 数据库密码                    |
+| `mysql.parameters`            |       见上方示例 | JDBC 参数，不要添加开头的 `?`      |
+| `mysql.pool-size`             |         `4` | Hikari 连接池上限，范围 `1`～`32` |
+| `mysql.connection-timeout-ms` |      `5000` | 获取连接的超时，最小 `250` 毫秒      |
+
+仅使用单服 YAML 词库时，可以在 `database.yml` 中设置 `enabled: false`。启用百度审核时，数据库必须同时启用。
+
+## 百度内容审核
+
+`baidu.yml` 的默认内容如下：
+
+```yaml
+enabled: false
+api-key: ""
+secret-key: ""
+strategy-id: 0
+connect-timeout-ms: 3000
+request-timeout-ms: 8000
+max-request-bytes: 19000
+max-chunks: 16
+chunk-overlap-codepoints: 64
+worker-threads: 4
+queue-capacity: 256
+fail-closed: true
+retry-interval-seconds: 10
+
+learning:
+  min-term-codepoints: 2
+  max-term-codepoints: 512
+```
+
+| 配置                             |     默认值 | 说明                                |
+|--------------------------------|--------:|-----------------------------------|
+| `enabled`                      | `false` | 是否允许 Redact 请求百度审核                |
+| `api-key`                      |       空 | 百度应用 API Key                      |
+| `secret-key`                   |       空 | 百度应用 Secret Key                   |
+| `strategy-id`                  |     `0` | 审核策略 ID；`0` 使用百度控制台默认策略           |
+| `connect-timeout-ms`           |  `3000` | HTTP 连接超时，最小 `250` 毫秒             |
+| `request-timeout-ms`           |  `8000` | 单请求超时，最小 `500` 毫秒                 |
+| `max-request-bytes`            | `19000` | 单分片 UTF-8 字节上限，范围 `1024`～`20000`  |
+| `max-chunks`                   |    `16` | 单次审核最多分片数，范围 `1`～`1024`           |
+| `chunk-overlap-codepoints`     |    `64` | 相邻分片重叠的 Unicode 码点数，范围 `0`～`4096` |
+| `worker-threads`               |     `4` | HTTP、JDBC 和后台任务线程数，范围 `1`～`32`    |
+| `queue-capacity`               |   `256` | 云审核任务和内存补写队列容量，范围 `1`～`100000`    |
+| `fail-closed`                  |  `true` | 云审核服务异常时是否按违规处理                   |
+| `retry-interval-seconds`       |    `10` | 审核记录写入失败后的重试周期，最小 `5` 秒           |
+| `learning.min-term-codepoints` |     `2` | 允许写入共享词库的最短云命中片段                  |
+| `learning.max-term-codepoints` |   `512` | 允许写入共享词库的最长云命中片段                  |
+
+凭据也可以通过环境变量提供，环境变量优先于 YAML：
+
+```text
+REDACT_BAIDU_API_KEY
+REDACT_BAIDU_SECRET_KEY
+```
+
+<Callout type="warn">
+`baidu.yml` 中的 `enabled` 为 `false` 时，即使调用方传入 `enableCloud=true`，也只会执行本地检测，此时不会应用 `fail-closed`。
+</Callout>
+
+超出学习长度范围或归一化后为空的片段不会写入共享词库，但云端确认违规的完整内容仍可记录并在之后直接识别。
