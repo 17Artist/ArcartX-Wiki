@@ -8,7 +8,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # 说明与安装
 
-ChemdahView 是 Chemdah 的 ArcartX 界面附属插件，为玩家提供任务面板、多目标追踪 HUD、任务路标、奖励预览和对话界面。
+ChemdahView 是 Chemdah 的 ArcartX 界面附属插件，为玩家提供任务面板、多目标追踪 HUD、任务路标、奖励预览、附近 NPC 交互 HUD 和对话界面。
 
 <Callout type="warn">
 **ChemdahView 是付费插件。** 使用时需要填写购买该插件后取得的授权ID和密钥。
@@ -18,12 +18,13 @@ ChemdahView 只负责展示与交互。任务接取、目标进度、完成记�
 
 ## 核心能力
 
-| 能力     | 说明                                |
-|--------|-----------------------------------|
-| 任务面板   | 按分类浏览进行中与已完成任务，查看目标进度和奖励预览        |
-| 追踪 HUD | 同时追踪多个任务目标，并在任务变化时自动刷新            |
-| 任务路标   | 按服务器类型和世界限制显示 ArcartX 路标          |
-| 对话界面   | 为 Chemdah 提供 ID 为 `arcartx` 的对话主题 |
+| 能力        | 说明                                  |
+|-----------|-------------------------------------|
+| 任务面板      | 按分类浏览进行中与已完成任务，查看目标进度和奖励预览          |
+| 追踪 HUD    | 同时追踪多个任务目标，并在任务变化时自动刷新              |
+| 任务路标      | 按服务器类型和世界限制显示 ArcartX 路标            |
+| 附近 NPC 交互 | 用快捷栏槽位选择附近可对话 NPC，按交互键进入 Chemdah 对话 |
+| 对话界面      | 为 Chemdah 提供 ID 为 `arcartx` 的对话主题   |
 
 ## 运行条件
 
@@ -31,6 +32,7 @@ ChemdahView 只负责展示与交互。任务接取、目标进度、完成记�
 - Spigot 或 Paper 1.18.2+；
 - ArcartX 2.5.36+；
 - Chemdah 1.1.35+；
+- Adyeshach 2.1.11 或兼容版本；
 - ChemdahView 有效授权。
 
 ## 安装步骤
@@ -41,7 +43,7 @@ ChemdahView 只负责展示与交互。任务接取、目标进度、完成记�
 
 ### 安装插件
 
-将 ChemdahView JAR 放入服务端 `plugins/`，确认 ArcartX、Chemdah已经安装，然后完整启动一次服务器。
+将 ChemdahView JAR 放入服务端 `plugins/`，确认 ArcartX、Chemdah 和 Adyeshach 已经安装，然后完整启动一次服务器。
 
 </Step>
 
@@ -74,7 +76,8 @@ ChemdahView/
 └─ ui/
    ├─ quests.yml
    ├─ tracker.yml
-   └─ conversation.yml
+   ├─ conversation.yml
+   └─ interaction.yml
 ```
 
 </Step>

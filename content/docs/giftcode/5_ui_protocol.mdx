@@ -27,9 +27,9 @@ Packet.send('redeem', var.code)
 
 ## 服务端 → UI
 
-### `giftcode_result`
+### `result`
 
-正常业务结果使用 `giftcode_result`：
+正常业务结果使用 `result`：
 
 ```json
 {
@@ -45,9 +45,9 @@ Packet.send('redeem', var.code)
 
 兑换码无效、过期、已被领取或达到总上限，也会通过该 handler 返回，并把 `success` 设为 `false`。
 
-### `giftcode_error`
+### `error`
 
-数据格式错误、会话失效、权限不足、频率限制或服务端异常使用 `giftcode_error`：
+数据格式错误、会话失效、权限不足、频率限制或服务端异常使用 `error`：
 
 ```json
 {
@@ -56,4 +56,3 @@ Packet.send('redeem', var.code)
 ```
 
 收到后恢复提交按钮，并向玩家显示 `msg`。
-

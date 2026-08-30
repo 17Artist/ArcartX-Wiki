@@ -60,6 +60,12 @@ ChemdahView 追踪的是具体的“任务 ID + 目标 ID”，不是整项大�
 
 使用 `arcartx` 主题的 Chemdah 对话会打开 ChemdahView 对话框。
 
+## 附近 NPC 交互
+
+进入服主配置的范围后，具备可用 Chemdah 对话的 Adyeshach NPC 会出现在独立 HUD 中。鼠标滚动循环选择 NPC；
+当前选中 NPC 会仅对白名单玩家显示白色发光。按键进入对话；服务端内置默认键为 `G`
+开始对话时客户端会朝实际发起 NPC转向。跨对话能在原 NPC 附近找到目标对话绑定 NPC 时，也会朝该 NPC 转向；找不到时跳过转向。
+
 
 ## 常见问题
 
@@ -75,3 +81,7 @@ Chemdah 必须记录任务完成状态。完成历史只会出现在“已完成
 
 奖励预览与奖励发放是两件事。需要 Chemdah agent 中配置真实奖励。
 
+### 附近 NPC 没有出现在 HUD
+
+确认 NPC 属于 Adyeshach、Chemdah 对话使用 `adyeshach` 触发器绑定该 NPC，并检查玩家与
+NPC 的水平距离、高度差、可见性和对话 condition。

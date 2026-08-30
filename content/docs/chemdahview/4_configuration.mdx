@@ -14,25 +14,50 @@ tracking:
 quests:
   page-size: 12
 
+conversation-interaction:
+  default-key: "G"
+  nearby-horizontal-range: 6.0
+  nearby-y-tolerance: 2.0
+  transition-horizontal-range: 12.0
+  transition-y-tolerance: 1.0
+  turn-strength: 1.0
+  camera-follow-strength: 0.12
+  max-visible-npcs: 8
+
 waypoint:
   server-type: "open-world"
   enabled: true
   default-style: "default"
 ```
 
-| 配置                       |          默认值 | 说明                                 |
-|--------------------------|-------------:|------------------------------------|
-| `tracking.max-tracked`   |          `3` | 每名玩家最多追踪的目标数，范围 `1`～`16`           |
-| `quests.page-size`       |         `12` | 每页最多下发的任务摘要，范围 `1`～`50`            |
-| `waypoint.server-type`   | `open-world` | 当前子服的类型，用于任务路标白名单                  |
-| `waypoint.enabled`       |       `true` | 是否允许 ChemdahView 创建任务路标            |
-| `waypoint.default-style` |    `default` | 目标未指定 `style` 时使用的 ArcartX 路标样式 ID |
+| 配置                                                     |          默认值 | 说明                                 |
+|--------------------------------------------------------|-------------:|------------------------------------|
+| `tracking.max-tracked`                                 |          `3` | 每名玩家最多追踪的目标数，范围 `1`～`16`           |
+| `quests.page-size`                                     |         `12` | 每页最多下发的任务摘要，范围 `1`～`50`            |
+| `conversation-interaction.default-key`                 |          `G` | “交互NPC”的 ArcartX 客户端默认按键 ID        |
+| `conversation-interaction.nearby-horizontal-range`     |        `6.0` | 附近 NPC HUD 的水平搜索半径，范围 `1`～`32`     |
+| `conversation-interaction.nearby-y-tolerance`          |        `2.0` | 玩家与候选 NPC 的最大高度差，范围 `0`～`16`       |
+| `conversation-interaction.transition-horizontal-range` |       `12.0` | 跨对话反查目标 NPC 的水平半径，范围 `1`～`64`      |
+| `conversation-interaction.transition-y-tolerance`      |        `1.0` | 目标 NPC 相对原 NPC 的最大高度差，范围 `0`～`16`  |
+| `conversation-interaction.turn-strength`               |        `1.0` | 玩家转向目标角度的插值比例，范围 `0`～`1`           |
+| `conversation-interaction.camera-follow-strength`      |       `0.12` | ArcartX 镜头跟随强度，范围 `0`～`1`          |
+| `conversation-interaction.max-visible-npcs`            |          `8` | HUD 同时显示的 NPC 上限，范围 `1`～`16`       |
+| `waypoint.server-type`                                 | `open-world` | 当前子服的类型，用于任务路标白名单                  |
+| `waypoint.enabled`                                     |       `true` | 是否允许 ChemdahView 创建任务路标            |
+| `waypoint.default-style`                               |    `default` | 目标未指定 `style` 时使用的 ArcartX 路标样式 ID |
 
 界面通讯页码从 `0` 开始，玩家看到的页码通常从 `1` 开始。
 
 `waypoint.server-type` 不是 Bukkit 世界名。多子服环境可以分别使用 `lobby`、`open-world`、
 `dungeon` 等稳定标识，再由任务目标的 `worlds` 决定允许显示路标的世界。默认样式需要在
 当前 ArcartX 配置中存在。
+
+附近 NPC 查询只索引被 Chemdah 对话引用的 Adyeshach 实体。玩家移动时查询分块空间索引（类似ax的区域索引），
+NPC 位置使用低频差异校正；UI 只在候选或选择变化时同步，非轮询刷新。
+
+`conversation-interaction.default-key` 大小写不敏感，重载后会重新注册并同步给在线客户端。
+可用值参见
+[客户端按键 ID 表](/docs/arcartx_v2/5_key/4_key_name)。
 
 ## 语言文件
 
@@ -45,4 +70,3 @@ waypoint:
 
 语言文本支持 `&` 颜色代码。任务标题、任务说明和目标文字不在此文件中，应修改 Chemdah
 任务配置。
-

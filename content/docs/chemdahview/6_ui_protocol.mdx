@@ -1,6 +1,6 @@
 ---
 title: 界面协议
-description: 自定义任务面板、追踪 HUD 与对话框时使用的动作和数据结构
+description: 自定义任务面板、追踪 HUD、附近 NPC HUD 与对话框时使用的动作和数据结构
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -25,7 +25,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 | 对话框  | `reply`      | `frame`, `token`    | 选择当前帧的回复    |
 | 对话框  | `close`      | `frame`             | 主动结束当前对话    |
 
-追踪 HUD 没有客户端动作，服务端会在内容变化时主动同步。
+追踪 HUD 与附近 NPC HUD 都没有客户端动作，服务端会在内容或选中项变化时主动同步。附近
 
 ### 输入边界
 
@@ -40,18 +40,20 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ### 服务端数据处理器
 
-| UI     | 处理器                | 数据                | 用途        |
-|--------|--------------------|-------------------|-----------|
-| 任务面板   | `tracking_sync`    | `TrackingCount`   | 当前追踪数与上限  |
-| 任务面板   | `quest_categories` | `QuestCategories` | 分类与单页容量   |
-| 任务面板   | `quest_sync`       | `QuestPage`       | 当前页任务摘要   |
-| 任务面板   | `quest_detail`     | `QuestView`       | 选中任务详情    |
-| 任务面板   | `tracking_result`  | `TrackingResult`  | 追踪动作结果    |
-| 任务面板   | `quest_error`      | `UiError`         | 被拒绝的面板操作  |
-| 追踪 HUD | `tracker_sync`     | `TrackerSnapshot` | 完整追踪目标快照  |
-| 对话框    | `dialogue_frame`   | `DialogueFrame`   | 当前对话内容与回复 |
-| 对话框    | `dialogue_close`   | 空对象               | 服务端结束对话   |
-| 对话框    | `dialogue_error`   | `DialogueError`   | 对话帧或回复失效  |
+| UI         | 处理器                  | 数据                     | 用途             |
+|------------|----------------------|------------------------|----------------|
+| 任务面板       | `tracking_sync`      | `TrackingCount`        | 当前追踪数与上限       |
+| 任务面板       | `quest_categories`   | `QuestCategories`      | 分类与单页容量        |
+| 任务面板       | `quest_sync`         | `QuestPage`            | 当前页任务摘要        |
+| 任务面板       | `quest_detail`       | `QuestView`            | 选中任务详情         |
+| 任务面板       | `tracking_result`    | `TrackingResult`       | 追踪动作结果         |
+| 任务面板       | `quest_error`        | `UiError`              | 被拒绝的面板操作       |
+| 追踪 HUD     | `tracker_sync`       | `TrackerSnapshot`      | 完整追踪目标快照       |
+| 对话框        | `dialogue_frame`     | `DialogueFrame`        | 当前对话内容与回复      |
+| 对话框        | `dialogue_close`     | 空对象                    | 服务端结束对话        |
+| 对话框        | `dialogue_error`     | `DialogueError`        | 对话帧或回复失效       |
+| 附近 NPC HUD | `interaction_sync`   | `InteractionSnapshot`  | 候选列表发生变化时的完整快照 |
+| 附近 NPC HUD | `interaction_select` | `InteractionSelection` | 候选初始化或快捷栏槽位变化时 |
 
 ## 任务面板
 
@@ -260,6 +262,41 @@ HUD 只处理 `tracker_sync`：
 ```
 
 `tasks` 中每项都使用与任务详情相同的 `TaskView`。每次回包都是完整快照，客户端应直接覆盖旧数据，不要定时发送查询包。
+
+## 附近 NPC 交互 HUD
+
+服务端通过 `interaction_sync` 发送完整候选快照：
+
+```json
+{
+  "entries": [
+    {
+      "id": "2ef7b9b0-2c07-4c94-b4c7-a637ef5a1e89",
+      "name": "§b边境档案员"
+    },
+    {
+      "id": "501ec7e1-f320-4d75-a0f3-fc5310c7b61b",
+      "name": "§b巡林联络员"
+    }
+  ]
+}
+```
+
+| 字段               | 类型                        | 说明                                 |
+|------------------|---------------------------|------------------------------------|
+| `entries`        | `Array<InteractionEntry>` | 当前可交互 NPC 的完整有序列表                  |
+| `entries[].id`   | String                    | Adyeshach 实体 UUID，用于动态控件稳定命名和匹配选中项 |
+| `entries[].name` | String                    | NPC 显示名                            |
+
+
+服务端通过 `interaction_select` 发送当前选中项：
+
+```json
+{
+  "selected": "19f43df7-5388-430f-bd3d-1604488bf624"
+}
+```
+
 
 ## 对话框
 
