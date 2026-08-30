@@ -27,6 +27,7 @@ ranking:
   startup-refresh-spread-seconds: 10
   join-sample-delay-ticks: 20
   join-samples-per-tick: 2
+  removed-board-retention-days: 30
   empty-text: "-"
 
 boards:
@@ -64,6 +65,8 @@ boards:
 
 `placeholder` 长度为 3～256 个字符，必须包含开头和结尾的 `%`。
 
+所有榜单的 `maximum-entries` 合计不能超过 `100000`，避免一次刷新占用过多内存。
+
 ## 刷新设置
 
 | 配置                                       | 说明                    | 范围              |
@@ -71,8 +74,10 @@ boards:
 | `ranking.refresh-seconds`                | 从数据库生成新榜单的间隔          | `1`～`3600` 秒    |
 | `ranking.startup-refresh-spread-seconds` | 启动或重载后，第一次生成榜单的随机错峰范围 | `0`～`300` 秒     |
 | `ranking.join-sample-delay-ticks`        | 玩家进服后等待多久再读取数值        | `0`～`1200` tick |
-| `ranking.join-samples-per-tick`          | 每个 tick 最多采集多少名玩家     | `1`～`100`       |
+| `ranking.join-samples-per-tick`          | 每个 tick 最多读取多少个榜单占位符  | `1`～`32`        |
+| `ranking.removed-board-retention-days`   | 已从配置删除的榜单保留多少天        | `1`～`3650` 天    |
 | `ranking.empty-text`                     | 名次不存在时返回的文本           | 最多 64 个字符，不能换行  |
+
 
 ## database.yml
 
