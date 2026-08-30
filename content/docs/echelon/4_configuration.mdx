@@ -68,7 +68,7 @@ multi-server:
 ```
 
 - `maximum-level`：等级上限，允许 1–10000；
-- `notify-player`：是否向升级玩家发送聊天消息。设为 `false` 时只关闭这条消息，升级事件、等级礼包和数据保存仍会正常执行。
+- `notify-player`：是否向升级玩家发送聊天消息。
 - `history.completed-event-retention-days`：已经正常触发的升级记录保留天数，允许 1–3650；未触发的升级不会被清理；
 - `history.cleanup-interval-hours`：检查过期升级记录的间隔，允许 1–168 小时；
 - `multi-server.online-sync-seconds`：使用共享 MySQL 时，在线玩家读取其他子服等级变化的间隔，允许 1–300 秒；SQLite 模式不会使用该设置。

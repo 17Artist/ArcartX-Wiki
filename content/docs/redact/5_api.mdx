@@ -119,14 +119,16 @@ RedactAPI.check(message, true).thenAccept(result -> {
 
 ### 判定含义
 
-| 判定       | `isViolation` | 说明                       |
-|----------|---------------|--------------------------|
-| `PASS`   | `false`       | 没有发现需要拦截的内容              |
-| `REJECT` | `true`        | 确认违规                     |
-| `REVIEW` | `true`        | 需要复审，默认同样按违规处理           |
-| `ERROR`  | 取决于配置         | 云审核已启用，但服务尚未就绪、请求失败或请求过多 |
+| 判定       | `isViolation` | 说明                              |
+|----------|---------------|---------------------------------|
+| `PASS`   | `false`       | 没有发现需要拦截的内容                     |
+| `REJECT` | `true`        | 确认违规                            |
+| `REVIEW` | `true`        | 需要复审，默认同样按违规处理                  |
+| `ERROR`  | 取决于配置         | 云审核已启用，但服务尚未就绪、请求失败、结果未能保存或请求过多 |
 
 调用方应优先依据 `isViolation` 决定是否拦截，再使用 `verdict`、`message` 和 `externalId` 记录诊断。
+
+云端返回 `REJECT` 或 `REVIEW` 后，Redact 会先把共享词和云命中记录提交到 MySQL。只有提交成功才返回对应判定并更新本机缓存；保存失败时返回 `ERROR`。
 
 ## `ModerationHit`
 
@@ -153,7 +155,8 @@ RedactAPI.check(message, true).thenAccept(result -> {
 
 - 普通聊天短文本可以直接使用同步本地 API；
 - 书本、正文和批量文本应复制字符串后交给业务异步线程；
-- 云 API 不阻塞调用线程，但本地提前命中时 future 可能已经完成；
+- 云 API 会在调用线程先执行本地检测，再把实际 HTTP 请求放入后台队列；一次循环审核大量文本时，也应从业务异步线程发起；
+- 本地提前命中时 future 可能已经完成；
 - future 的回调线程不固定；
 - 回调中访问 Bukkit 世界、实体、玩家背包或大多数插件 API 前，需要切回合法主线程或区域线程；
 - 不要在 Bukkit 主线程对 future 调用 `join()` 或 `get()`。
