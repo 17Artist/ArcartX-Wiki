@@ -45,15 +45,14 @@ priv.seventeen.artist.arcartx.echelon.api.event
 ```kotlin
 import priv.seventeen.artist.arcartx.echelon.api.EchelonAPI
 
-if (!EchelonAPI.isReady()) return
-val service = EchelonAPI.service()
+val service = EchelonAPI.service() ?: return
 ```
 
 Java：
 
 ```java
-if (!EchelonAPI.isReady()) return;
 EchelonService service = EchelonAPI.service();
+if (service == null) return;
 ```
 
 也可以通过 Bukkit `ServicesManager` 获取 `EchelonService`。
@@ -67,7 +66,7 @@ EchelonService service = EchelonAPI.service();
 | `addExperience(UUID, long, String)`    | 增加经验，经验必须大于 `0`                   |
 | `setProgress(UUID, int, long, String)` | 设置等级和当前等级内经验                      |
 
-除 `cached` 外，其余方法都返回 `CompletionStage`。回调线程不固定，不要直接在回调中修改世界、实体、玩家背包或界面。
+除 `cached` 外，其余方法都返回 `CompletionStage`。如果服务在操作开始前已不可用，结果为 `null`，且不修改玩家数据。短时间内提交量超过插件的处理能力时，结果会以异常结束，防止干爆线程；调用方应处理异常，并按自己的业务规则决定是否稍后重试。同一批经验能够合并时，建议先合计后再调用。回调线程不固定，不要直接在回调中修改世界、实体、玩家背包或界面。
 
 ```kotlin
 service.addExperience(player.uniqueId, 50, "quest:daily")
@@ -75,7 +74,7 @@ service.addExperience(player.uniqueId, 50, "quest:daily")
         Bukkit.getScheduler().runTask(myPlugin, Runnable {
             if (error != null) {
                 myPlugin.logger.warning("增加经验失败：${error.message}")
-            } else {
+            } else if (result != null) {
                 player.sendMessage("当前等级：Lv.${result.after.level}")
             }
         })
@@ -85,6 +84,8 @@ service.addExperience(player.uniqueId, 50, "quest:daily")
 最后一个参数是经验来源，建议使用 `quest:daily`、`activity:summer` 这类稳定名称。内容最长保留 128 个字符，空内容会记录为 `api:unknown`。
 
 `setProgress` 的经验表示目标等级内的经验。数值达到该等级升级要求时会限制在该级允许的最大值；目标为满级时，当前级经验固定为 `0`。
+
+如果 `setProgress` 将玩家设到更低等级，这名玩家尚未触发的旧升级事件会取消，避免其之后登录时收到已经失效的升级通知。
 
 ## LevelSnapshot
 
@@ -126,13 +127,13 @@ class LevelListener : Listener {
 }
 ```
 
-| 属性                  | 内容            |
-|---------------------|---------------|
-| `eventId`           | 升级事件的唯一编号     |
-| `player`            | 当前在线玩家        |
-| `before`、`after`    | 升级前后的等级快照     |
-| `source`            | 本次经验变化的来源     |
-| `originallyOffline` | 升级是否发生在玩家离线期间 |
+| 属性                             | 内容                       |
+|--------------------------------|--------------------------|
+| `eventId`                      | 升级事件的唯一编号                |
+| `player`                       | 当前在线玩家                   |
+| `before`、`after`               | 升级前后的等级快照                |
+| `source`                       | 本次经验变化的来源                |
+| `originServerSawPlayerOffline` | 产生升级的服务器当时是否没有该玩家的本地在线会话 |
 
 `PlayerLevelUpEvent` 的行为：
 
@@ -140,9 +141,9 @@ class LevelListener : Listener {
 - 一次增加经验即使跨越多个等级，也只触发一次；
 - `source` 是经验接口传入的来源；
 - 离线升级会保留到玩家下次登录；
-- `originallyOffline` 表示升级是否发生在离线期间。
+- 玩家登录前被 `setProgress` 设到更低等级时，已经失效的旧升级事件不触发；
+- `originServerSawPlayerOffline` 只表示产生升级的服务器当时是否把玩家视为离线。多服共用 MySQL 时，玩家可能正在其他子服在线，因此它不代表整个服务器组中的在线状态。
 
 <Callout type="warn">
 服务器在事件处理完成前意外停止时，同一个 `eventId` 可能再次出现。监听器如果会发放物品、货币、权限或执行命令，必须按 `eventId` 避免重复处理。
 </Callout>
-

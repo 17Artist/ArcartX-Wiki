@@ -12,7 +12,7 @@ Echelon 的配置如下：
 | 文件                 | 用途                                      |
 |--------------------|-----------------------------------------|
 | `database.yml`     | SQLite 或 MySQL 连接                       |
-| `level.yml`        | 等级上限、升级提示、经验和阶段称号                       |
+| `level.yml`        | 等级上限、升级提示、经验、阶段称号和升级记录保留时间              |
 | `integrations.yml` | PlaceholderAPI、MythicMobs 和 Symphony 联动 |
 | `delivery.yml`     | SystemMail 等级礼包发送与失败重试                  |
 | `language.yml`     | 玩家和管理员提示文字                              |
@@ -31,7 +31,7 @@ mysql:
   database: "arcartx"
   username: "root"
   password: "change-me"
-  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&connectTimeout=5000&socketTimeout=30000&tcpKeepAlive=true"
   pool-size: 8
 ```
 
@@ -41,7 +41,7 @@ mysql:
 
 ### 群组服 MySQL
 
-把 `type` 改为 `mysql`，并让所有 Echelon 子服填写同一套 MySQL 地址、端口和数据库名称。
+把 `type` 改为 `mysql`，并让所有 Echelon 子服填写同一套 MySQL 地址、端口和数据库名称。其他子服写入的等级变化会在 `level.yml` 的 `multi-server.online-sync-seconds` 设置时间内更新到玩家当前所在服务器。
 
 `parameters` 只填写 JDBC 参数本体，不要在开头添加 `?`。
 
@@ -60,10 +60,18 @@ mysql:
 ```yaml
 maximum-level: 100
 notify-player: true
+history:
+  completed-event-retention-days: 30
+  cleanup-interval-hours: 1
+multi-server:
+  online-sync-seconds: 5
 ```
 
 - `maximum-level`：等级上限，允许 1–10000；
 - `notify-player`：是否向升级玩家发送聊天消息。设为 `false` 时只关闭这条消息，升级事件、等级礼包和数据保存仍会正常执行。
+- `history.completed-event-retention-days`：已经正常触发的升级记录保留天数，允许 1–3650；未触发的升级不会被清理；
+- `history.cleanup-interval-hours`：检查过期升级记录的间隔，允许 1–168 小时；
+- `multi-server.online-sync-seconds`：使用共享 MySQL 时，在线玩家读取其他子服等级变化的间隔，允许 1–300 秒；SQLite 模式不会使用该设置。
 
 ## 固定经验
 
@@ -146,10 +154,5 @@ titles:
 
 该命令会重新读取等级、称号、提示文字和插件联动。新配置有误时，Echelon 会继续使用重载前的有效设置，并在控制台说明原因。
 
-修改数据库类型、文件名、地址、账号、连接参数、线程数或连接池大小后，必须完整重启服务器。
+修改数据库类型、文件名、地址、账号、连接参数、线程数或连接池大小后，必须完整重启服务器。在线同步间隔可以通过重载更新。
 
-## 备份
-
-- SQLite：完整停服后备份 `plugins/Echelon/echelon.db`；
-- MySQL：备份当前数据库中的全部 Echelon 表；
-- 同时保留 `database.yml`、`level.yml`、`integrations.yml`、`delivery.yml`、`language.yml` 与 `license.yml`。
