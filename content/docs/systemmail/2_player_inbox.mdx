@@ -10,10 +10,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 玩家使用以下任一命令打开收件箱：
 
 ```text
-/systemmail open
-/smail open
-/mail open
-/sm open
+/systemmail
+/smail
+/mail
+/sm
 ```
 
 ## 查找邮件
@@ -57,4 +57,4 @@ SystemMail 会先检查本次需要的全部背包空槽。空间不足时，整
 没有待领取附件的邮件可以直接删除。只要仍有未领取、处理中或等待管理员确认的附件，服务端就会拒绝删除，避免奖励丢失。
 
 删除后的记录会保留一段时间供系统清理，天数由
-`mail.yml -> limits.trash-retention-days` 控制。
+`mail.yml -> retention.trashed-days` 控制。

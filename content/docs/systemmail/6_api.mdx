@@ -41,7 +41,7 @@ if (registration == null) return;
 SystemMailService mailService = registration.getProvider();
 ```
 
-
+`MailId` 与 `AttachmentId` 是公开数据类。Java 可直接使用
 
 ## 服务方法
 
@@ -57,6 +57,31 @@ SystemMailService mailService = registration.getProvider();
 | `delete(playerId, mailId)`   | `DeleteResult`    | 删除没有受保护附件的邮件 |
 
 表中的业务结果均包在 `CompletionStage<T>` 中。
+
+## 异步发送与线程边界
+
+`send` 和 `sendDurable` 返回后，收件人计划、收件关系、附件状态与通知事件会由
+SystemMail 工作线程分批写入数据库。大型群发的完成耗时表示后台持久化完成所需时间
+
+调用方不得在 Bukkit 主线程对返回值调用 `join()`、`get()` 等阻塞等待
+方法，应使用 `thenAccept`、`whenComplete` 等回调继续处理结果。否则调用方会主动把整个
+异步发送耗时变成主线程停顿。
+
+## 运行时空结果
+
+SystemMail 只会在启动验证和业务初始化完成后注册公开服务。如果已经取得的服务实例后来
+遇到运行时业务门关闭，调用会静默返回中性结果，不写数据库、不发包也不发放奖励：查询
+返回 `null`、空列表或 `0`，删除返回 `NOT_FOUND`，领取返回空的
+`NOTHING_CLAIMABLE`。
+
+`send` 与 `sendDurable` 的中性结果是保留空回执：`mailId` 为全零 UUID、
+`recipientCount=0`、`duplicate=true`。它不代表投递成功；调用方必须保留自己的待投递
+记录，稍后使用原 `idempotencyKey` 重试：
+
+```kotlin
+fun DeliveryReceipt.isNoOp(): Boolean =
+    mailId.value == UUID(0L, 0L) && recipientCount == 0 && duplicate
+```
 
 ## 发送邮件
 
@@ -88,6 +113,7 @@ SystemMailApi.service().send(request).whenComplete { receipt, error ->
         logger.log(Level.SEVERE, "发送每日登录邮件失败", error)
         return@whenComplete
     }
+    if (receipt.isNoOp()) return@whenComplete
     logger.info(
         "mail=${receipt.mailId}, recipients=${receipt.recipientCount}, duplicate=${receipt.duplicate}"
     )
@@ -120,6 +146,7 @@ SystemMailApi.service().send(request).whenComplete((receipt, error) -> {
         getLogger().log(Level.SEVERE, "发送订单邮件失败", error);
         return;
     }
+    if (receipt.getRecipientCount() == 0 && receipt.getDuplicate()) return;
     getLogger().info("Created mail " + receipt.getMailId());
 });
 ```
@@ -161,7 +188,7 @@ API 中 `SystemMailRequest.content` 和 `MailView.content` 始终是包含换行
 ```kotlin
 // intent 必须来自调用方已经落库的待发送记录。
 SystemMailApi.service().sendDurable(intent.toSystemMailRequest()).whenComplete { receipt, error ->
-    if (error == null) {
+    if (error == null && !receipt.isNoOp()) {
         pendingStore.markCompleted(intent.id, receipt.mailId.value)
     } else {
         pendingStore.scheduleRetry(intent.id, error)
@@ -243,6 +270,9 @@ service.delete(playerId, mailId)
 `hasAvailableAttachments=true` 只匹配至少还有一个 `AVAILABLE` 附件的邮件。
 
 领取 API 玩家物品空槽不足时，`ClaimResult.message` 为 `INVENTORY_FULL`，货币和命令也不会先执行。
+
+`delete` 成功后，该玩家再使用原 `mailId` 调用 `getMail` 或 `markRead` 会得到 `null`。
+还有未领取、处理中或待管理员确认附件时返回 `PROTECTED_ATTACHMENTS`，不会删除邮件。
 
 <Callout type="warn">
 公开 API 严格使用邮件原始过期时间。`mail.yml -> limits.ui-claim-expiry-grace-minutes` 只保护玩家当前 UI 会话，不适用于 `SystemMailService.claim`。

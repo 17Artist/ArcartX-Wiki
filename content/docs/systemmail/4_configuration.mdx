@@ -66,11 +66,13 @@ SQLite 模式不能启用 Redis；MySQL 模式必须启用 Redis。
 | `limits.max-admin-drafts`                     |          `500` | 全服共享草稿上限，1–5000            | 重载 |
 | `limits.inbox-page-size`                      |           `20` | 每页邮件数，1–100                | 重载 |
 | `limits.ui-claim-expiry-grace-minutes`        |           `20` | 当前详情领取宽限，0–120 分钟          | 重载 |
-| `limits.trash-retention-days`                 |           `30` | 已删除邮件与结束记录保留天数，1–3650      | 重载 |
+| `retention.trashed-days`                      |           `30` | 已删除邮件关系和结束附件操作保留天数，1–3650  | 重载 |
+| `retention.audit-days`                        |          `180` | 审计记录保留天数，30–3650           | 重载 |
+| `retention.draft-attempt-days`                |           `90` | 已结束发送尝试保留天数，7–3650         | 重载 |
+| `retention.notification-hours`                |           `48` | 通知、回执和失活游标保留小时，24–720      | 重载 |
+| `maintenance.batch-rows`                      |         `5000` | 每类记录每轮清理行数，100–10000       | 重载 |
 | `commands.allowed-prefixes`                   |           `[]` | 空列表禁止命令附件；单项最长 128 且不能换行   | 重载 |
 
-群发会按 `recipient-materialization-batch-rows` 分批写入，不会把“收件人数 × 附件数”作为
-总量上限。`max-recipients-per-request` 仍会阻止错误调用一次占用过多数据库资源。
 
 命令白名单示例：
 
