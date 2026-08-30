@@ -80,14 +80,19 @@ delivery:
 
 默认会生成类似 `AX-7G8M-K2QP-V9RX` 的兑换码。
 
-| 配置项                        | 说明                       |
-|----------------------------|--------------------------|
-| `prefix`                   | 0–8 位 ASCII 字母或数字        |
-| `alphabet`                 | 至少 16 个不重复的 ASCII 字母或数字  |
-| `group-length`             | 每组 3–8 位                 |
-| `group-count`              | 2–6 组                    |
-| `max-generate-per-command` | 单次生成上限，允许 1–100000       |
-| `delivery`                 | 奖励邮件的检查间隔、单次数量、处理超时与重试设置 |
+| 配置项                                   | 说明                                   |
+|---------------------------------------|--------------------------------------|
+| `prefix`                              | 0–8 位 ASCII 字母或数字                    |
+| `alphabet`                            | 至少 16 个不重复的 ASCII 字母或数字              |
+| `group-length`                        | 每组 3–8 位                             |
+| `group-count`                         | 2–6 组                                |
+| `max-generate-per-command`            | 单次生成上限，允许 1–100000                   |
+| `delivery.check-interval-seconds`     | 后台检查待发送奖励的间隔                         |
+| `delivery.batch-size`                 | 每个节点同时提交给 SystemMail 的数量上限，也限制每轮补发数量 |
+| `delivery.processing-timeout-seconds` | 节点中断后允许其他节点继续处理的等待时间                 |
+| `delivery.max-attempts`               | 自动发送的最大尝试次数                          |
+| `delivery.retry-delay-seconds`        | 首次重试的基础间隔，连续失败时会逐步延长                 |
+
 
 更改兑换码格式只影响之后生成的兑换码，不会替换数据库中已有的码。
 

@@ -12,13 +12,13 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ## 权限
 
-| 权限                        | 用途          |
-|---------------------------|-------------|
-| `giftcode.admin.edit`     | 创建和编辑礼包     |
-| `giftcode.admin.generate` | 生成、导出和停用兑换码 |
-| `giftcode.admin.stats`    | 查看礼包统计与生成批次 |
-| `giftcode.admin.retry`    | 重试失败的奖励邮件   |
-| `giftcode.admin.reload`   | 重载语言与玩家兑换界面 |
+| 权限                        | 用途           |
+|---------------------------|--------------|
+| `giftcode.admin.edit`     | 创建和编辑礼包      |
+| `giftcode.admin.generate` | 生成、导出和停用兑换码  |
+| `giftcode.admin.stats`    | 查看礼包统计与生成批次  |
+| `giftcode.admin.retry`    | 查看并重试失败的奖励邮件 |
+| `giftcode.admin.reload`   | 重载语言与玩家兑换界面  |
 
 OP 拥有全部管理权限。
 
@@ -81,7 +81,7 @@ OP 拥有全部管理权限。
 
 ### 物品附件
 
-进入物品附件页后，点击玩家背包中的物品即可添加。单个礼包最多保存 54 个物品附件。
+进入物品附件页后，点击玩家背包中的物品即可添加。单个礼包最多保存 27 个物品附件。
 
 ### 货币附件
 
@@ -95,7 +95,9 @@ OP 拥有全部管理权限。
 vault|1000|金币|
 ```
 
-货币 ID 必须在ArcartX注册，ArcartX内置 Vault和PlayerPoints两种常见货币ID以及如果使用Rondo则直接注册对应货币ID
+货币 ID 必须是当前服务器已经注册的可用服务，例如 ArcartX 的 Vault、PlayerPoints，或由 Rondo 注册的对应货币 ID。
+
+单个礼包最多添加 16 个货币附件，同一种货币 ID 不能重复添加。
 
 ### 命令附件
 
@@ -110,7 +112,7 @@ player|显示名称|图标路径|命令
 console|活动称号||lp user {player} permission set title.event true
 ```
 
-单个礼包最多添加 32 个命令附件。命令是否能够执行，还会受到 SystemMail 的命令白名单限制。
+单个礼包最多添加 16 个命令附件。命令是否能够执行，还会受到 SystemMail 的命令白名单限制。
 
 ## 生成与导出
 
@@ -139,6 +141,7 @@ console|活动称号||lp user {player} permission set title.event true
 | `/gca export <批次ID>`                   | 重新导出指定批次         |
 | `/gca stats <礼包ID>`                    | 查看生成、领取、待发送和失败统计 |
 | `/gca batches`                         | 查看最近十个生成批次       |
+| `/gca failures`                        | 查看最近二十条发送失败记录    |
 | `/gca disable <兑换码>`                   | 立即停用一个兑换码        |
 | `/gca retry <领取记录ID>`                  | 重新发送失败的奖励邮件      |
 | `/gca reload`                          | 重载语言与玩家兑换界面      |
