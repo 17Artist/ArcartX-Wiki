@@ -401,17 +401,26 @@ export interface ProjectCardData {
 export function ProjectDirectory({ projects }: { projects: ProjectCardData[] }) {
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // 收集所有出现过的标签（去重，每个记一个代表色）
+  // 收集所有出现过的标签（去重，每个记一个代表色和项目数量）
   const allTags = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { color: string; count: number }>();
     for (const p of projects) {
       for (const t of p.tags ?? []) {
-        if (!map.has(t.label)) map.set(t.label, t.color ?? p.color ?? '#46d2ff');
+        const current = map.get(t.label);
+        if (current) current.count += 1;
+        else map.set(t.label, { color: t.color ?? p.color ?? '#46d2ff', count: 1 });
       }
     }
-    return Array.from(map, ([label, color]) => ({ label, color }));
+    return Array.from(map, ([label, value]) => ({ label, ...value }));
   }, [projects]);
+
+  const primaryLabels = ['免费', '付费', '高级会员专属', '开源', '部分开源', '闭源'];
+  const primaryTags = primaryLabels
+    .map((label) => allTags.find((tag) => tag.label === label))
+    .filter((tag): tag is (typeof allTags)[number] => Boolean(tag));
+  const moreTags = allTags.filter((tag) => !primaryLabels.includes(tag.label));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -426,49 +435,127 @@ export function ProjectDirectory({ projects }: { projects: ProjectCardData[] }) 
     });
   }, [projects, query, activeTag]);
 
+  const hasFilters = query.trim().length > 0 || activeTag !== null;
+
+  const toggleTag = (label: string) => {
+    setActiveTag((current) => (current === label ? null : label));
+  };
+
+  const resetFilters = () => {
+    setQuery('');
+    setActiveTag(null);
+    setMoreOpen(false);
+  };
+
   return (
     <div>
       {/* 搜索 + 标签筛选 */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full md:max-w-xs">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle cx="11" cy="11" r="7" strokeWidth={2} />
-            <path d="M21 21l-4.3-4.3" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索项目…"
-            maxLength={40}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-[#46d2ff]/50"
-          />
+      <div className="mb-7 rounded-2xl border border-white/10 bg-white/[0.035] p-3 backdrop-blur-xl sm:px-4 sm:py-3">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <label className="relative block w-full sm:max-w-md">
+            <span className="sr-only">搜索项目</span>
+            <svg
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              aria-hidden
+            >
+              <circle cx="11" cy="11" r="7" strokeWidth={2} />
+              <path d="M21 21l-4.3-4.3" strokeWidth={2} strokeLinecap="round" />
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索项目名称或用途…"
+              maxLength={40}
+              className="h-11 w-full rounded-xl border border-white/10 bg-[#080d1b]/50 pl-10 pr-4 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-[#46d2ff]/60 focus:ring-2 focus:ring-[#46d2ff]/15 sm:h-10"
+            />
+          </label>
+
+          <div className="flex min-h-10 flex-1 items-center justify-between gap-3 sm:min-h-9 sm:justify-end">
+            <p className="text-xs text-white/50" aria-live="polite">
+              显示 <span className="font-semibold tabular-nums text-white/80">{filtered.length}</span> / {projects.length} 个项目
+            </p>
+            {hasFilters ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="min-h-10 rounded-lg px-3 text-xs font-medium text-[#7ee7ff] transition-colors hover:bg-[#46d2ff]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#46d2ff]/50 sm:min-h-9"
+              >
+                清除筛选
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {allTags.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            <FilterChip label="全部" active={activeTag === null} onClick={() => setActiveTag(null)} />
-            {allTags.map((t) => (
-              <FilterChip
-                key={t.label}
-                label={t.label}
-                color={t.color}
-                active={activeTag === t.label}
-                onClick={() => setActiveTag((cur) => (cur === t.label ? null : t.label))}
-              />
-            ))}
+          <div className="mt-2.5 border-t border-white/10 pt-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterChip label="全部" active={activeTag === null} onClick={() => setActiveTag(null)} />
+              {primaryTags.map((tag) => (
+                <FilterChip
+                  key={tag.label}
+                  label={tag.label}
+                  color={tag.color}
+                  count={tag.count}
+                  active={activeTag === tag.label}
+                  onClick={() => toggleTag(tag.label)}
+                />
+              ))}
+
+              {moreTags.length > 0 ? (
+                <button
+                  type="button"
+                  aria-expanded={moreOpen}
+                  onClick={() => setMoreOpen((current) => !current)}
+                  className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#46d2ff]/50 sm:min-h-9 ${
+                    activeTag && moreTags.some((tag) => tag.label === activeTag)
+                      ? 'border-[#46d2ff]/50 bg-[#46d2ff]/10 text-[#7ee7ff]'
+                      : 'border-white/15 text-white/65 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  {activeTag && moreTags.some((tag) => tag.label === activeTag)
+                    ? `筛选：${activeTag}`
+                    : `更多筛选 · ${moreTags.length}`}
+                  <svg
+                    className={`size-3.5 transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    aria-hidden
+                  >
+                    <path d="m6 9 6 6 6-6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+
+            {moreOpen && moreTags.length > 0 ? (
+              <div className="mt-2.5 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/10 p-3">
+                {moreTags.map((tag) => (
+                  <FilterChip
+                    key={tag.label}
+                    label={tag.label}
+                    color={tag.color}
+                    count={tag.count}
+                    active={activeTag === tag.label}
+                    onClick={() => {
+                      toggleTag(tag.label);
+                      setMoreOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
 
       {/* 网格 */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => (
             <CompactProjectCard key={p.slug} p={p} />
           ))}
@@ -485,11 +572,13 @@ export function ProjectDirectory({ projects }: { projects: ProjectCardData[] }) 
 function FilterChip({
   label,
   color,
+  count,
   active,
   onClick,
 }: {
   label: string;
   color?: string;
+  count?: number;
   active: boolean;
   onClick: () => void;
 }) {
@@ -498,24 +587,30 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+      aria-pressed={active}
+      className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#46d2ff]/50 sm:min-h-9 ${
         active
           ? 'text-[#04121d]'
-          : 'border-white/15 text-white/60 hover:border-white/30 hover:text-white'
+          : 'border-white/15 text-white/65 hover:border-white/30 hover:text-white'
       }`}
       style={active ? { background: c, borderColor: c } : undefined}
     >
       {label}
+      {count !== undefined ? (
+        <span className={active ? 'text-[#04121d]/65' : 'text-white/35'}>{count}</span>
+      ) : null}
     </button>
   );
 }
 
 function CompactProjectCard({ p }: { p: ProjectCardData }) {
   const accent = p.color ?? '#46d2ff';
+  const allTags = p.tags ?? [];
+
   return (
-    <a
+    <Link
       href={p.href}
-      className="group relative flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.06]"
+      className="group relative flex min-h-[132px] flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-4 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       style={{ ['--accent' as string]: accent } as React.CSSProperties}
     >
       {/* 顶部霓虹光带 */}
@@ -524,67 +619,67 @@ function CompactProjectCard({ p }: { p: ProjectCardData }) {
         style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
         aria-hidden
       />
-      {/* hover 霓虹边 + 外发光 */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{ boxShadow: `inset 0 0 0 1px ${accent}55, 0 16px 40px -22px ${accent}99` }}
+        className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 0 1px ${accent}40, 0 14px 34px -24px ${accent}88` }}
         aria-hidden
       />
 
-      <div className="relative flex items-start justify-between">
+      <div className="relative flex items-start gap-3">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] transition-transform duration-200 group-hover:scale-105 [&_img]:size-7"
           style={{ color: accent, boxShadow: `0 0 18px -8px ${accent}` }}
         >
           {p.icon ?? <DefaultProjectIcon />}
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-white/55">
+
+        <div className="min-w-0 flex-1 pt-0.5">
+          <h3 className="line-clamp-1 text-base font-semibold leading-snug text-white">{p.title}</h3>
+          {p.tagline ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/50">{p.tagline}</p>
+          ) : null}
+        </div>
+
+        <span className="shrink-0 pt-1 text-[10px] font-medium tabular-nums text-white/45">
           {p.pageCount} 篇
         </span>
       </div>
 
-      <div className="relative">
-        <h3 className="text-base font-semibold leading-snug text-white">{p.title}</h3>
-        {p.tagline ? (
-          <p className="mt-0.5 line-clamp-1 text-xs text-white/50">{p.tagline}</p>
-        ) : null}
+      <div className="relative mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+        {allTags.length > 0 ? (
+          allTags.map((tag) => (
+            <ProjectTagBadge key={tag.label} tag={tag} accent={accent} />
+          ))
+        ) : (
+          <span className="text-xs text-white/45">项目文档</span>
+        )}
       </div>
+    </Link>
+  );
+}
 
-      {p.tags && p.tags.length > 0 ? (
-        <div className="relative mt-auto flex flex-wrap gap-1.5 pt-1">
-          {p.tags.map((t) => {
-            const c = t.color ?? accent;
-            return (
-              <span
-                key={t.label}
-                className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-tight"
-                style={{ color: c, borderColor: `${c}55`, background: `${c}1f` }}
-              >
-                {t.label}
-              </span>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="relative mt-auto flex items-center gap-1 pt-1 text-xs font-medium text-white/55 transition-colors group-hover:text-[var(--accent)]">
-          进入项目
-          <svg
-            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </div>
-      )}
-    </a>
+function ProjectTagBadge({
+  tag,
+  accent,
+}: {
+  tag: NonNullable<ProjectCardData['tags']>[number];
+  accent: string;
+}) {
+  const color = tag.color ?? accent;
+
+  return (
+    <span
+      className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-tight"
+      style={{ color, borderColor: `${color}55`, background: `${color}1f` }}
+    >
+      {tag.label}
+    </span>
   );
 }
 
 function DefaultProjectIcon() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -252,7 +252,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ 第二幕：项目目录（脱离 snap、可滚动浏览几十个项目） ============ */}
-      <section className="relative min-h-[100svh] px-6 pt-24 pb-20 snap-section sm:px-8 lg:px-12">
+      <section id="projects" className="relative min-h-[100svh] scroll-mt-16 px-6 pt-24 pb-20 snap-section sm:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-7xl">
           <Reveal variant="slide-right">
             <div className="mb-10 text-center md:mb-12">
