@@ -1,0 +1,176 @@
+---
+title: 界面协议
+description: 自定义 SystemShop 玩家界面时可用的动作与数据处理器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+玩家界面位于 `plugins/SystemShop/ui/system_shop.yml`
+
+## 客户端动作
+
+| 动作         | 参数                                      | 用途        |
+|------------|-----------------------------------------|-----------|
+| `catalog`  | `groupId, page`                         | 请求指定分组和页码 |
+| `product`  | `productId`                             | 查看商品详情    |
+| `favorite` | `productId, favorite`                   | 收藏或取消收藏   |
+| `wallet`   | 无                                       | 刷新优惠券卡包   |
+| `quote`    | `productId, quantity, couponInstanceId` | 获取最新价格    |
+| `purchase` | `quoteId`                               | 提交购买      |
+
+```aria
+Packet.send('catalog', 'items', 0)
+Packet.send('product', 'starter_crate')
+Packet.send('favorite', 'starter_crate', true)
+Packet.send('wallet')
+Packet.send('quote', 'starter_crate', 2, '')
+Packet.send('purchase', var.quoteId)
+```
+
+- `page` 从 `0` 开始；
+- `groupId` 为空表示全部商品，`favorites` 表示收藏视图；
+- `quantity` 必须是正整数；
+- 不使用优惠券时，`couponInstanceId` 传空字符串；
+
+## 包处理器
+
+| 处理器               | 用途                |
+|-------------------|-------------------|
+| `catalog`         | 当前分组、分页、分组列表和商品卡片 |
+| `product`         | 单个商品详情、奖励与实时限购情况  |
+| `favorite_result` | 最新收藏状态            |
+| `wallet`          | 当前可用优惠券           |
+| `quote`           | 原价、优惠与实付金额        |
+| `purchase_result` | 购买结果              |
+| `error`           | 可直接显示的错误提示        |
+
+## `catalog`
+
+```json
+{
+  "selectedGroupId": "items",
+  "selectedGroupDisplay": "道具",
+  "page": 0,
+  "pageSize": 9,
+  "totalPages": 3,
+  "totalItems": 23,
+  "groups": [],
+  "products": []
+}
+```
+
+分组对象：
+
+| 字段         | 类型      | 说明          |
+|------------|---------|-------------|
+| `id`       | String  | 点击时回传的分组 ID |
+| `display`  | String  | 分组名称        |
+| `icon`     | String  | 图标资源路径      |
+| `count`    | Number  | 分组商品数量      |
+| `selected` | Boolean | 是否为当前分组     |
+
+商品卡片：
+
+| 字段                  | 类型      | 说明           |
+|---------------------|---------|--------------|
+| `id`                | String  | 商品 ID        |
+| `display`           | String  | 商品名称         |
+| `lore`              | Array   | 商品说明         |
+| `summary`           | String  | 商品说明首行       |
+| `icon`              | String  | 物品 JSON      |
+| `priceText`         | String  | 已包含货币名称的价格文字 |
+| `favorite`          | Boolean | 是否已收藏        |
+| `limitPeriodText`   | String  | 限购周期摘要       |
+| `personalLimitText` | String  | 个人限购摘要       |
+| `globalLimitText`   | String  | 全服限购摘要       |
+
+目录只返回当前页，不执行玩家购买条件，也不查询实时限购计数。空分组固定返回第 0 页、总页数 1 和空商品列表。
+
+## `product`
+
+商品详情除卡片字段外，还包含：
+
+| 字段                      | 类型      | 说明          |
+|-------------------------|---------|-------------|
+| `maxQuantity`           | Number  | 当前可选择的最大数量  |
+| `canBuy`                | Boolean | 当前是否可购买     |
+| `buyText`               | String  | 购买按钮文字或条件提示 |
+| `personalLimitText`     | String  | 个人额度进度      |
+| `personalLimitHint`     | String  | 已用与处理中数量    |
+| `personalLimitProgress` | Number  | 个人额度百分比     |
+| `globalLimitText`       | String  | 全服额度进度      |
+| `globalLimitHint`       | String  | 已用与处理中数量    |
+| `globalLimitProgress`   | Number  | 全服额度百分比     |
+| `rewards`               | Array   | 玩家可见的奖励列表   |
+
+每项奖励包含 `controlId`、`type`、`display`、`description`、`icon` 与 `itemContent`。`type` 为 `ITEM` 时使用 Slot 展示 `itemContent`；货币和命令奖励使用 `icon`。
+
+
+## 收藏与优惠券
+
+`favorite_result`：
+
+```json
+{
+  "productId": "starter_crate",
+  "favorite": true
+}
+```
+
+`wallet`：
+
+```json
+{
+  "coupons": [
+    {
+      "instanceId": "c9a3d475-eb96-4a2a-859a-98e7e93fb7d8",
+      "display": "新玩家八折券",
+      "description": "只优惠一个商品单位",
+      "discountText": "8 折",
+      "expiresText": "剩余 6 天"
+    }
+  ]
+}
+```
+
+界面只负责展示并回传券实例 ID，不自行判断券类型、适用分组或支付方式。
+
+## 报价与购买
+
+`quote`：
+
+```json
+{
+  "quoteId": "2e020f1f-03af-43ef-9cf9-a0449d7943cb",
+  "originalText": "原价 200.00 金币",
+  "discountText": "优惠 -20.00 金币",
+  "payableText": "实付 180.00 金币"
+}
+```
+
+金额文字已经包含货币名称，客户端不应再次拼接。选择、数量或优惠券变化后，应丢弃旧 `quoteId`，等待与当前选择对应的新报价。
+
+`purchase_result`：
+
+```json
+{
+  "success": true,
+  "title": "购买成功",
+  "message": "商品已发放"
+}
+```
+
+`success` 决定成功或未完成状态，`title` 与 `message` 可以直接显示。购买结束后服务端会主动刷新目录、商品和优惠券卡包。
+
+## 错误提示
+
+```json
+{
+  "message": "优惠券不存在、不可用或已过期"
+}
+```
+
+`error` 用于参数错误、操作过快、界面已关闭或服务端异常。界面只显示 `message` 。
+

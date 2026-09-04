@@ -1,0 +1,121 @@
+---
+title: Aria 条件
+description: 根据玩家、商品、优惠券和时间控制购买资格
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Aria 条件
+
+SystemShop 可以使用 Aria 判断玩家能否购买商品，以及能否在当前商品上使用某张优惠券。
+
+## 配置位置
+
+商品条件：
+
+```yaml
+products:
+  starter_crate:
+    purchase-condition: |-
+      return val.player.getLevel() >= 10
+    condition-failure-display: "§c需要达到 10 级"
+```
+
+优惠券条件：
+
+```yaml
+coupons:
+  vip_50:
+    eligibility-condition: |-
+      return val.player.hasPermission('systemshop.group.vip')
+    condition-failure-display: "§c需要 VIP 权限组"
+```
+
+省略条件或留空表示不增加脚本限制。条件会在启动和 `/ss reload` 时检查；语法错误会阻止新目录生效，原目录继续运行。
+
+## 可用对象
+
+### `val.player`
+
+代表当前玩家，常用方法由 ArcartX 提供，具体请查看ArcartX文档：
+
+| 方法                            | 返回内容    |
+|-------------------------------|---------|
+| `getLevel()`                  | 玩家等级    |
+| `hasPermission(permission)`   | 是否拥有权限  |
+| `getPlaceholder(placeholder)` | 玩家占位符结果 |
+
+```aria
+return val.player.getLevel() >= 30
+    && val.player.hasPermission('systemshop.buy.vip')
+```
+
+### `val.product`
+
+代表当前商品：
+
+| 方法                            | 返回内容                                 |
+|-------------------------------|--------------------------------------|
+| `getId()`                     | 商品 ID                                |
+| `getGroupId()`                | 商品分组 ID                              |
+| `getDisplayName()`            | 商品名称                                 |
+| `getEnabled()`                | 是否启用                                 |
+| `getPaymentProvider()`        | 支付方式 ID                              |
+| `getUnitPrice()`              | 单价                                   |
+| `getMaxQuantityPerPurchase()` | 单次最大数量                               |
+| `hasPersonalLimit()`          | 是否设置个人限购                             |
+| `getPersonalLimit()`          | 个人上限；未设置时为 `none`                    |
+| `hasGlobalLimit()`            | 是否设置全服限购                             |
+| `getGlobalLimit()`            | 全服上限；未设置时为 `none`                    |
+| `getLimitPeriod()`            | `NEVER`、`DAILY`、`WEEKLY` 或 `MONTHLY` |
+
+```aria
+return val.product.getGroupId() == 'weapons'
+```
+
+### `val.coupon`
+
+只在优惠券条件中存在，代表优惠券模板：
+
+| 方法                                     | 返回内容                   |
+|----------------------------------------|------------------------|
+| `getId()`                              | 模板 ID                  |
+| `getDisplay()`                         | 优惠券名称                  |
+| `getMode()`                            | `FIXED` 或 `MULTIPLIER` |
+| `getValue()`                           | 抵扣金额或折扣倍率              |
+| `hasGroupRestriction()`                | 是否限制商品分组               |
+| `appliesToGroup(groupId)`              | 是否适用于指定分组              |
+| `hasPaymentProviderRestriction()`      | 是否限制支付方式               |
+| `appliesToPaymentProvider(providerId)` | 是否适用于指定支付方式            |
+| `getDefaultDurationMillis()`           | 默认有效时长；未设置时为 `none`    |
+| `getAbsoluteExpiresAtEpochMillis()`    | 绝对截止时间；未设置时为 `none`    |
+
+```aria
+return val.coupon.appliesToGroup(val.product.getGroupId())
+    && val.coupon.appliesToPaymentProvider(val.product.getPaymentProvider())
+```
+
+### 数量与时间
+
+| 值                    | 说明               |
+|----------------------|------------------|
+| `val.quantity`       | 本次购买数量           |
+| `val.nowEpochMillis` | 服务端生成的当前 Unix 毫秒 |
+
+```aria
+return val.quantity <= 4
+    && val.nowEpochMillis < 1798761600000
+```
+
+## 返回与失败
+
+条件必须明确返回 Boolean：
+
+```aria
+return true
+```
+
+返回其他类型、访问不存在的方法、抛出异常或超过执行限制时，都会按“不满足条件”处理。玩家会看到 `condition-failure-display` 或语言文件中的默认提示。
+
+
+执行限制位于 `config.yml -> aria`，修改后需要完整重启。

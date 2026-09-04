@@ -1,0 +1,183 @@
+---
+title: 基础配置
+description: 授权、节点、数据库、Redis、语言与维护设置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 基础配置
+
+SystemShop 的配置位于 `plugins/SystemShop/`。商品与优惠券单独存放在 `catalog/`，具体写法见[商品目录](/docs/systemshop/5_catalog)。
+
+## 生效方式
+
+| 文件                   | 生效方式         |
+|----------------------|--------------|
+| `license.yml`        | 完整重启         |
+| `database.yml`       | 完整重启         |
+| `redis.yml`          | 完整重启         |
+| `config.yml`         | 完整重启         |
+| `language.yml`       | `/ss reload` |
+| `catalog/**/*.yml`   | `/ss reload` |
+| `ui/system_shop.yml` | `/ss reload` |
+
+
+## license.yml
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+授权信息只应保存在部署服务器中。修改后需要完整重启，`/ss reload` 不会重新读取授权。
+
+## config.yml
+
+```yaml
+server-id: "server-1"
+time-zone: "Asia/Shanghai"
+catalog-page-size: 9
+
+limits:
+  max-purchase-quantity: 64
+  max-reward-entries: 64
+  max-command-executions: 256
+
+aria:
+  max-execution-millis: 20
+  max-instructions: 50000
+  max-call-depth: 64
+
+maintenance:
+  interval-hours: 6
+  order-retention-days: 180
+  coupon-retention-days: 180
+  periodic-limit-retention-days: 120
+  removed-product-retention-days: 365
+  audit-retention-days: 180
+  inactive-server-retention-days: 7
+  batch-size: 1000
+```
+
+| 配置                                           |             默认值 | 说明                                            |
+|----------------------------------------------|----------------:|-----------------------------------------------|
+| `server-id`                                  |      `server-1` | 当前子服名称，1～64 位字母、数字、`.`、`_` 或 `-`；**多服必须各不相同** |
+| `time-zone`                                  | `Asia/Shanghai` | Java `ZoneId`；决定日、周、月限购周期，多服保持一致              |
+| `catalog-page-size`                          |             `9` | 每页商品数，范围 3～48                                 |
+| `limits.max-purchase-quantity`               |            `64` | 单次购买数量总上限，范围 1～10000                          |
+| `limits.max-reward-entries`                  |            `64` | 单个商品的奖励项上限，范围 1～1000                          |
+| `limits.max-command-executions`              |           `256` | 单次购买最多执行的奖励命令数，范围 1～10000                     |
+| `aria.max-execution-millis`                  |            `20` | 单次条件执行时间上限，范围 1～1000 毫秒                       |
+| `aria.max-instructions`                      |         `50000` | 单次条件指令数上限，范围 100～10000000                     |
+| `aria.max-call-depth`                        |            `64` | 单次条件调用深度，范围 8～512                             |
+| `maintenance.interval-hours`                 |             `6` | 历史数据检查间隔，范围 1～168 小时                          |
+| `maintenance.order-retention-days`           |           `180` | 已完成和已取消订单的保留天数，范围 30～3650                     |
+| `maintenance.coupon-retention-days`          |           `180` | 已结束优惠券的保留天数，范围 30～3650                        |
+| `maintenance.periodic-limit-retention-days`  |           `120` | 旧限购周期记录的保留天数，范围 31～3650                       |
+| `maintenance.removed-product-retention-days` |           `365` | 已下架商品的收藏与永久限购记录保留天数，范围 90～3650                |
+| `maintenance.audit-retention-days`           |           `180` | 管理记录保留天数，范围 30～3650                           |
+| `maintenance.inactive-server-retention-days` |             `7` | 已停用子服状态保留天数，范围 1～365                          |
+| `maintenance.batch-size`                     |          `1000` | 每轮每类数据最多处理的行数，范围 100～5000                     |
+
+处理中和需要人工核对的订单不按保留天数自动删除。
+
+## database.yml
+
+单服默认使用 SQLite：
+
+```yaml
+type: "sqlite"
+sqlite-file: "systemshop.db"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "system_shop"
+  username: "root"
+  password: "change-me"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  pool-size: 6
+```
+
+| 配置                 |             默认值 | 说明                   |
+|--------------------|----------------:|----------------------|
+| `type`             |        `sqlite` | `sqlite` 或 `mysql`   |
+| `sqlite-file`      | `systemshop.db` | 插件目录内的 SQLite 文件相对路径 |
+| `worker-threads`   |             `4` | 数据库后台线程数，范围 1～32     |
+| `mysql.host`       |     `127.0.0.1` | MySQL 地址             |
+| `mysql.port`       |          `3306` | MySQL 端口             |
+| `mysql.database`   |   `system_shop` | 数据库名                 |
+| `mysql.username`   |          `root` | 数据库账号                |
+| `mysql.password`   |     `change-me` | 数据库密码                |
+| `mysql.parameters` |             见示例 | JDBC 参数，不要添加开头的 `?`  |
+| `mysql.pool-size`  |             `6` | MySQL 连接池大小，范围 1～32  |
+
+SQLite 文件必须位于 `plugins/SystemShop/` 内。多个子服必须使用 MySQL，并连接同一个数据库。
+
+## redis.yml
+
+```yaml
+enabled: false
+host: "127.0.0.1"
+port: 6379
+username: ""
+password: ""
+database: 0
+ssl: false
+timeout-millis: 3000
+key-prefix: "arcartx:systemshop"
+```
+
+| 配置               |                  默认值 | 说明                           |
+|------------------|---------------------:|------------------------------|
+| `enabled`        |              `false` | MySQL 多服模式必须开启；SQLite 模式必须关闭 |
+| `host`           |          `127.0.0.1` | Redis 地址                     |
+| `port`           |               `6379` | Redis 端口                     |
+| `username`       |                    空 | ACL 用户名，空值表示不使用              |
+| `password`       |                    空 | Redis 密码                     |
+| `database`       |                  `0` | Redis 数据库编号，范围 0～15          |
+| `ssl`            |              `false` | 是否使用 SSL                     |
+| `timeout-millis` |               `3000` | 连接与读写超时，范围 100～60000 毫秒      |
+| `key-prefix`     | `arcartx:systemshop` | 多服使用相同前缀                     |
+
+
+## language.yml
+
+语言文件分为三组：
+
+| 前缀            | 用途                  |
+|---------------|---------------------|
+| `condition.*` | 商品或优惠券没有单独填写失败提示时使用 |
+| `ui.*`        | 商城按钮、金额、限购和输入提示     |
+| `service.*`   | 报价、购买和订单处理提示        |
+
+带变量的文案须保留原变量，例如 `{amount}`、`{maximum}`、`{value}`、`{used}`、`{reserved}`。缺少必要键时重载会失败，原文案继续使用。
+
+## 单服与多服
+
+单服使用：
+
+```yaml
+# database.yml
+type: sqlite
+
+# redis.yml
+enabled: false
+```
+
+群组服使用：
+
+```yaml
+# database.yml
+type: mysql
+
+# redis.yml
+enabled: true
+```
+
+所有子服应共享 MySQL、Redis 前缀、商品目录、时区与运行限制，只有 `server-id` 需要各不相同。商城配置尚未同步一致时，报价和购买会暂停，避免不同子服以不同内容结算。
+
+<Callout type="warn">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 SystemShop。数据库、Redis 和共享运行库应随服务器完整启动与关闭。
+</Callout>

@@ -1,0 +1,32 @@
+{
+    "title": "SystemShop — 系统商城",
+    "description": "商品、优惠券、限购与多服结算",
+    "icon": "logo/systemshop-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "付费", "color": "#FF4500" },
+        { "label": "经济", "color": "#EAB308" },
+        { "label": "UI", "color": "#8B5CF6" },
+        { "label": "API", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#F59E0B",
+    "entry": "systemshop/1_start",
+    "tagline": "商品、优惠券、限购与可靠结算",
+    "order": 17,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置商城---",
+        "4_configuration",
+        "5_catalog",
+        "6_aria",
+        "---界面与开发---",
+        "7_ui_protocol",
+        "8_api",
+        "9_operations"
+    ]
+}

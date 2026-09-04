@@ -1,0 +1,235 @@
+---
+title: 商品目录
+description: 配置商品分组、奖励、限购和优惠券模板
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 商品目录
+
+SystemShop 从以下位置读取商城内容：
+
+```text
+catalog/
+├─ groups.yml
+├─ products/
+│  └─ examples.yml
+└─ coupons/
+   └─ examples.yml
+```
+
+`products/` 与 `coupons/` 会递归读取所有 `.yml`，可以按业务拆分文件。同类 ID 在整个目录内必须唯一。
+
+## 通用 ID
+
+分组、商品、优惠券和命令组 ID 使用：
+
+```regex
+[a-z0-9][a-z0-9_.-]{0,63}
+```
+
+`favorites` 是商城保留的收藏视图，不能定义成普通分组，也不能写进优惠券适用分组。
+
+## 商品分组
+
+`catalog/groups.yml`：
+
+```yaml
+groups:
+  items:
+    display: "道具"
+    description:
+      - "§7日常探索与便利道具"
+    order: 10
+    icon: "shop/textures/group_items.png"
+```
+
+| 字段            | 必填 |  默认值 | 说明      |
+|---------------|----|-----:|---------|
+| `display`     | 是  |    — | 分组名称    |
+| `description` | 否  | `[]` | 多行说明    |
+| `order`       | 否  |  `0` | 数值越小越靠前 |
+| `icon`        | 否  |    空 | UI 资源路径 |
+
+## 商品示例
+
+每个商品文件的顶层必须是 `products`：
+
+```yaml
+products:
+  starter_crate:
+    group: items
+    enabled: true
+    payment:
+      provider: Vault
+      unit-price: "128.00"
+    max-quantity-per-purchase: 8
+    limits:
+      personal: 16
+      global: 10000
+      period: DAILY
+    purchase-condition: |-
+      return val.player.getLevel() >= 10
+    condition-failure-display: "§c需要达到 10 级"
+    display:
+      name: "§b启程补给箱"
+      lore:
+        - "§7包含物品、代币与开箱播报"
+      icon: "shop/product/product_starter_crate.png"
+    rewards:
+      items:
+        - id: CHEST
+          display: "箱子"
+          amount: 1
+          description:
+            - "一个平平无奇的箱子"
+      currencies:
+        - provider: PlayerPoints
+          amount: "25"
+          description: "一种神奇货币"
+          icon: "shop/reward/reward_points.png"
+      command-groups:
+        - id: announce
+          display: "全服开箱播报"
+          description:
+            - "购买后向全服发送一次提示"
+          icon: "shop/reward/reward_announce.png"
+          commands:
+            - 'tellraw @a {"text":"<player> 获得了启程补给箱","color":"aqua"}'
+
+```
+
+### 基础字段
+
+| 配置                          | 必填 | 默认值    | 说明                   |
+|-----------------------------|----|--------|----------------------|
+| `group`                     | 是  | —      | 已定义的分组 ID            |
+| `enabled`                   | 否  | `true` | 关闭后不再展示或出售           |
+| `payment.provider`          | 是  | —      | ArcartX  中的 经济提供者 ID |
+| `payment.unit-price`        | 是  | —      | 非负十进制单价              |
+| `max-quantity-per-purchase` | 否  | 全局上限   | 单次最大购买数量             |
+| `purchase-condition`        | 否  | 无      | Aria 购买条件            |
+| `condition-failure-display` | 否  | 默认语言   | 条件不满足时显示给玩家的提示       |
+
+金额统一保留两位小数并四舍五入。玩家看到的价格会附带 ArcartX 经济提供者API 提供的货币名称。
+
+### 商品图标
+
+`display.mode` 支持：
+
+- `reward-item`：商品只有一个物品奖励时，直接使用该物品作为图标；
+- `paper`：使用 Paper 图标，并应用 `display.name`、`display.lore` 与可选的 `display.icon`。
+
+省略 `mode` 时，单物品商品默认使用 `reward-item`，混合奖励、多物品、纯货币或纯命令商品默认使用 `paper`。
+
+## 物品奖励
+
+```yaml
+rewards:
+  items:
+    - id: IRON_INGOT
+      display: "精炼铁锭"
+      amount: 16
+      description: "每份发放 16 个原版铁锭"
+
+    - provider: Overture
+      id: refined_iron
+      display: "精炼铁锭"
+      amount: 1
+```
+
+- 省略 `provider` 时，`id` 使用原版 Material ID；
+- 填写 `provider` 时，通过对应的 ArcartX支持的物品提供者 生成物品；
+- `amount` 默认 1，范围 1～64；
+- `display` 只用于奖励列表，不会修改实际物品；
+- 最终数量为 `amount × 购买数量`。
+
+原版物品 ID 不存在、为 `AIR` 或不是可持有物品时，重载会失败。
+
+## 货币奖励
+
+```yaml
+rewards:
+  currencies:
+    - provider: PlayerPoints
+      amount: "25"
+      description: "用于兑换材料和外观"
+      icon: "shop/reward/reward_points.png"
+```
+
+`provider` 必须是 ArcartX 已注册的经济提供者，`amount` 必须为正数。最终金额为 `amount × 购买数量`。
+
+## 命令奖励
+
+```yaml
+rewards:
+  command-groups:
+    - id: announce
+      display: "全服购买播报"
+      description: "向全服发送一次提示"
+      icon: "shop/reward/reward_announce.png"
+      commands:
+        - "points give <player> 10"
+        - "say <player> completed a purchase"
+```
+
+- `id` 是稳定标识，同一商品内不能重复；
+- `display` 是玩家看到的名称；
+- 命令不要添加开头的 `/`，由控制台执行；
+- 只会替换大小写完全相同的 `<player>`；
+- 购买 N 件时，整个命令组按顺序执行 N 次。
+
+
+## 限购
+
+```yaml
+limits:
+  personal: 16
+  global: 10000
+  period: DAILY
+```
+
+`personal` 和 `global` 可以单独使用，也可以同时使用；数值必须为正整数。`period` 可填写 `NEVER`、`DAILY`、`WEEKLY` 或 `MONTHLY`，默认为 `NEVER`。
+
+两种上限都省略时，商品不限购。取消或完成退款后，相应占用会释放；购买成功后才会计入已使用数量。
+
+## 优惠券模板
+
+每个优惠券文件的顶层必须是 `coupons`：
+
+```yaml
+coupons:
+  new_player_20:
+    display: "§b新玩家八折券"
+    description:
+      - "§7只优惠一个商品单位"
+    mode: MULTIPLIER
+    value: "0.80"
+    applicable-groups:
+      - items
+    applicable-payment-providers:
+      - vault
+    eligibility-condition: |-
+      return val.player.getLevel() < 30
+    condition-failure-display: "§c仅限 30 级以下玩家"
+    expiry:
+      valid-for: PT168H
+```
+
+| 配置                             | 必填  | 默认值  | 说明                                     |
+|--------------------------------|-----|------|----------------------------------------|
+| `display`                      | 是   | —    | 优惠券名称                                  |
+| `description`                  | 否   | `[]` | 卡包说明                                   |
+| `mode`                         | 是   | —    | `FIXED` 或 `MULTIPLIER`                 |
+| `value`                        | 是   | —    | 固定抵扣金额或折扣倍率                            |
+| `applicable-groups`            | 否   | `[]` | 空列表表示适用全部普通分组                          |
+| `applicable-payment-providers` | 否   | `[]` | 空列表表示适用全部支付方式                          |
+| `eligibility-condition`        | 否   | 无    | Aria 用券条件                              |
+| `condition-failure-display`    | 否   | 默认语言 | 条件不满足时的提示                              |
+| `expiry.valid-for`             | 二选一 | —    | Java Duration，例如 `PT168H`              |
+| `expiry.expires-at`            | 二选一 | —    | Java Instant，例如 `2026-12-31T15:59:59Z` |
+
+优惠券必须至少设置一种有限到期规则。两种到期规则同时存在时取较早时间；命令或 API 另行指定的有效期也不能突破模板的绝对截止时间。
+
+
+活动结束时，建议先设置 `enabled: false` 并暂时保留原商品配置。直接删除或修改奖励，可能使尚待处理的旧订单无法安全继续发放。

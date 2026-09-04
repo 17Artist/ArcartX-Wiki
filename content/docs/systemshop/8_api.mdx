@@ -1,0 +1,198 @@
+---
+title: 开发接口
+description: 通过 SystemShop API 管理优惠券、收藏、报价和购买
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 开发接口
+
+SystemShop 为其他 Bukkit/Blink 插件提供异步 Java/Kotlin API。公共包为：
+
+```text
+priv.seventeen.artist.arcartx.systemshop.api
+```
+
+消费插件应使用 `compileOnly` 引入 SystemShop JAR，并声明依赖：
+
+```yaml
+depend:
+  - SystemShop
+```
+
+不要把 SystemShop、Aria 或 Asteroid 打进消费插件。
+
+## 获取服务
+
+```kotlin
+import priv.seventeen.artist.arcartx.systemshop.api.SystemShopApi
+
+val shop = SystemShopApi.get()
+```
+
+也可以通过 Bukkit 获取：
+
+```java
+SystemShopService shop = Bukkit.getServicesManager()
+    .load(SystemShopService.class);
+```
+
+`SystemShopApi.get()` 在服务尚未就绪或已经停用时抛出 `IllegalStateException`。只应在 SystemShop 启用后获取，并在其停用后停止调用旧实例。
+
+## 接口方法
+
+```kotlin
+interface SystemShopService {
+    fun grantCoupon(request: CouponGrantRequest): CompletionStage<List<CouponInstance>>
+    fun revokeCoupon(request: CouponRevokeRequest): CompletionStage<Boolean>
+    fun getValidCoupons(playerId: UUID): CompletionStage<List<CouponInstance>>
+    fun getFavorites(playerId: UUID): CompletionStage<Set<String>>
+    fun setFavorite(playerId: UUID, productId: String, favorite: Boolean): CompletionStage<Boolean>
+    fun quotePurchase(
+        player: Player,
+        productId: String,
+        quantity: Int,
+        couponInstanceId: UUID? = null
+    ): CompletionStage<Quote>
+    fun purchase(player: Player, quoteId: UUID, requestId: String): CompletionStage<OrderRecord>
+    fun getOrder(orderId: UUID): CompletionStage<OrderRecord?>
+}
+```
+
+高风险的订单重试、人工确认与退款不开放为公共 API，只能通过管理员命令操作。
+
+## 发放优惠券
+
+```kotlin
+shop.grantCoupon(
+    CouponGrantRequest(
+        ownerId = playerId,
+        couponId = "new_player_20",
+        quantity = 2,
+        validFor = Duration.ofDays(7),
+        requestId = "summer-event:$playerId"
+    )
+)
+```
+
+`CouponGrantRequest`：
+
+| 属性          | 类型        | 说明                |
+|-------------|-----------|-------------------|
+| `ownerId`   | UUID      | 持有人               |
+| `couponId`  | String    | 优惠券模板 ID          |
+| `quantity`  | Int       | 数量，默认 1，范围 1～1000 |
+| `validFor`  | Duration? | 覆盖模板默认有效时长        |
+| `expiresAt` | Instant?  | 额外的绝对截止时间         |
+| `requestId` | String    | 调用来源备注，默认随机 UUID  |
+
+发券请求的 `requestId` 只用于记录来源，不能阻止重复发券。调用方需要自行保证同一业务请求不会重复执行。
+
+撤销优惠券：
+
+```kotlin
+shop.revokeCoupon(
+    CouponRevokeRequest(
+        instanceId = couponInstanceId,
+        reason = "Campaign cancelled",
+        requestId = "campaign-cancel:$couponInstanceId"
+    )
+)
+```
+
+返回 `true` 表示状态发生变化；`false` 表示实例不存在或当前状态不能撤销。
+
+## 查询优惠券与收藏
+
+```kotlin
+shop.getValidCoupons(playerId)
+shop.getFavorites(playerId)
+shop.setFavorite(playerId, "starter_crate", true)
+```
+
+`getValidCoupons` 只返回当前可用且未过期的券实例。`setFavorite` 的 Boolean 表示数据库记录是否发生变化；返回 `false` 时，目标收藏状态也可能已经符合请求。
+
+优惠券实例状态：
+
+| 状态          | 说明      |
+|-------------|---------|
+| `AVAILABLE` | 可使用     |
+| `RESERVED`  | 正在订单中使用 |
+| `CONSUMED`  | 已消费     |
+| `EXPIRED`   | 已过期     |
+| `REVOKED`   | 已撤销     |
+
+## 报价与购买
+
+```kotlin
+val requestId = "my-plugin:${player.uniqueId}:${businessOrderId}"
+
+shop.quotePurchase(player, "starter_crate", 2, couponInstanceId)
+    .thenCompose { quote ->
+        shop.purchase(player, quote.quoteId, requestId)
+    }
+    .whenComplete { order, failure ->
+        if (failure != null) {
+            logger.warning("购买请求失败: ${failure.message}")
+            return@whenComplete
+        }
+
+        when (order.state) {
+            OrderState.COMPLETED -> showSuccess()
+            OrderState.CANCELLED -> showFailure(order.failureMessage)
+            OrderState.QUARANTINED -> askAdminToCheck(order.orderId)
+            else -> showPending()
+        }
+    }
+```
+
+报价会检查商品、数量、条件和优惠券，并返回单价、原价、优惠与实付。它不会扣款、发奖或占用额度。提交购买时会重新检查当前配置、限购、背包和支付服务。
+
+`requestId` 是同一玩家范围内的防重复标识，最长 128 个字符：
+
+- 同一玩家、同一 `requestId` 与同一报价重复提交时，返回原订单；
+- 同一玩家重复使用 `requestId`，但报价不同，调用会失败；
+- 网络重试或切服回调必须继续使用原 `requestId`，不要为同一次购买生成新值。
+
+`purchase` 正常返回不代表订单一定成功，必须检查 `OrderRecord.state`。
+
+## 返回数据
+
+`Quote` 主要字段：
+
+| 属性                 | 类型         | 说明            |
+|--------------------|------------|---------------|
+| `quoteId`          | UUID       | 提交购买时使用的报价 ID |
+| `playerId`         | UUID       | 玩家            |
+| `productId`        | String     | 商品 ID         |
+| `quantity`         | Int        | 数量            |
+| `couponInstanceId` | UUID?      | 使用的优惠券        |
+| `unitPrice`        | BigDecimal | 单价            |
+| `originalPrice`    | BigDecimal | 原价            |
+| `discount`         | BigDecimal | 优惠金额          |
+| `payable`          | BigDecimal | 实付金额          |
+| `paymentProvider`  | String     | 支付方式 ID       |
+| `createdAt`        | Instant    | 创建时间          |
+
+`OrderRecord` 除上述购买信息外，还包含 `orderId`、`requestId`、`quoteId`、`state`、可选失败信息与创建/更新时间。
+
+| 订单状态          | 说明           |
+|---------------|--------------|
+| `PREPARED`    | 已建立订单，尚未确认扣款 |
+| `CHARGED`     | 已确认扣款        |
+| `FULFILLING`  | 正在发放奖励       |
+| `COMPLETED`   | 已完成          |
+| `CANCELLED`   | 已取消或退款完成     |
+| `QUARANTINED` | 结果需要管理员核对    |
+
+## 线程约定
+
+- 所有接口都返回 `CompletionStage`；
+- 不要在 Bukkit 主线程调用 `get()`、`join()` 等待结果；
+- 回调线程不固定；
+- 回调中访问世界、实体、玩家背包或 UI 前，需要切换到服务端允许的玩家线程；
+- 为跨网络或跨插件调用设置合理超时，超时后先查询原订单，不要直接用新的 `requestId` 重买。
+
+<Callout type="warn">
+不要依赖实现类包名或异常文本做业务分支；购买结果以 `OrderRecord.state` 为准。
+</Callout>

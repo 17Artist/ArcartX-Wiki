@@ -1,0 +1,97 @@
+---
+title: 管理命令
+description: SystemShop 命令、权限、优惠券与订单处理
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 管理命令
+
+商城命令可使用 `/ss`、`/sshop` 或 `/systemshop`。OP 可以使用全部功能，普通玩家只需 `systemshop.use`。
+
+## 权限
+
+| 权限                        | 用途           |
+|---------------------------|--------------|
+| `systemshop.use`          | 使用商城并为自己打开界面 |
+| `systemshop.admin.open`   | 为其他在线玩家打开商城  |
+| `systemshop.admin.reload` | 重载目录、语言和商城界面 |
+| `systemshop.admin.coupon` | 发放、撤销和查询优惠券  |
+| `systemshop.admin.order`  | 查询、重试和处理订单   |
+
+## 打开商城
+
+```text
+/ss open
+/ss open <在线玩家>
+```
+
+玩家省略目标时为自己打开。控制台必须填写在线玩家；为其他玩家打开需要权限 `systemshop.admin.open`。
+
+## 重载商城
+
+```text
+/ss reload
+```
+
+该命令重新读取：
+
+- `language.yml`；
+- `catalog/groups.yml`；
+- `catalog/products/**/*.yml`；
+- `catalog/coupons/**/*.yml`；
+- 商品与优惠券的 Aria 条件；
+- `ui/system_shop.yml`。
+
+新目录全部检查通过后才会生效。失败时原来的商城继续运行。`license.yml`、`database.yml`、`redis.yml` 与 `config.yml` 修改后必须完整重启。
+
+## 发放优惠券
+
+```text
+/ss coupon give <玩家名或 UUID> <优惠券 ID> [数量] [有效期]
+```
+
+数量默认为 1，范围为 1～1000。有效期支持 `30m`、`12h`、`7d`、`2w`、`60s` 或 `PT24H`；填写有效期时必须先填写数量。
+
+```text
+/ss coupon give Steve new_player_20
+/ss coupon give Steve new_player_20 3 7d
+```
+
+命令可向离线玩家发券。重复执行会继续创建新券，不会合并或覆盖已有券。
+
+## 查询与撤销优惠券
+
+```text
+/ss coupon list <玩家名或 UUID>
+/ss coupon revoke <优惠券实例 UUID>
+```
+
+`list` 会列出玩家当前可用的优惠券。`revoke` 需要填写玩家实际持有的券实例 UUID，而不是模板 ID；正在订单中使用或已经消费的券无法被撤销。
+
+## 查询订单
+
+```text
+/ss order inspect <订单 UUID>
+```
+
+命令会显示玩家、商品、数量、状态、实付金额，以及扣款和各项奖励的处理状态。注意 -> 处理异常订单前，还应核对支付流水、玩家资产和相关插件日志。
+
+## 继续发放奖励
+
+```text
+/ss order retry <订单 UUID>
+```
+
+该命令只处理能够确认尚未执行的奖励，不会再次扣款。且玩家必须在线，商品与原订单奖励必须保持一致，背包也需要有足够空间。
+
+## 确认完成或退款
+
+```text
+/ss order resolve <订单 UUID> complete
+/ss order resolve <订单 UUID> refund
+```
+
+- `complete`：仅在已从外部记录确认扣款和全部奖励都完成后使用；不会再次发放；
+- `refund`：玩家必须在线，通过原支付方式退回实付金额，并释放相应限购和优惠券。
+
