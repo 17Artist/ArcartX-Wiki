@@ -5,19 +5,20 @@
     "pages": [
         "arcartx_v2",
         "ui_editor",
+        "blink",
         "aria",
         "rondo",
-        "symphony",
         "overture",
-        "chronos",
-        "blink",
+        "symphony",
+        "redact",
         "systemmail",
         "giftcode",
         "echelon",
         "wardrobe",
         "appearance",
         "laurels",
+        "chronos",
         "chemdahview",
-        "redact"
+        "systemshop"
     ]
 }

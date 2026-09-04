@@ -12,7 +12,7 @@
     "color": "#06B6D4",
     "entry": "echelon/1_start",
     "tagline": "等级、经验、阶段称号与升级礼包",
-    "order": 10,
+    "order": 11,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

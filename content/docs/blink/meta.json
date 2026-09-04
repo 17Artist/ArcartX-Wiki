@@ -10,7 +10,7 @@
     ],
     "entry": "blink",
     "tagline": "轻量级Kotlin Spigot/Paper 插件开发框架",
-    "order": 2,
+    "order": 3,
     "defaultOpen": true,
     "pages": [
         "index",

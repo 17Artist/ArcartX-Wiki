@@ -12,7 +12,7 @@
     "color": "#00B8F0",
     "entry": "redact/1_start",
     "tagline": "高性能内容审核 API",
-    "order": 15,
+    "order": 8,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

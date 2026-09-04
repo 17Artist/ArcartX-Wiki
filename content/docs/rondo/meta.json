@@ -11,7 +11,7 @@
     "color": "#FBBF24",
     "entry": "rondo/1_start",
     "tagline": "自定义多经济系统",
-    "order": 7,
+    "order": 5,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

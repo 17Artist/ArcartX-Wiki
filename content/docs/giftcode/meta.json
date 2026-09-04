@@ -12,7 +12,7 @@
     "color": "#2563EB",
     "entry": "giftcode/1_start",
     "tagline": "创建并投放礼包码",
-    "order": 9,
+    "order": 10,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

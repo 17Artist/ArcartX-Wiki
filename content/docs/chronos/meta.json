@@ -10,7 +10,7 @@
     ],
     "entry": "chronos/1_start",
     "tagline": "状态机驱动的引擎，赋予战斗生命",
-    "order": 4,
+    "order": 15,
     "defaultOpen": true,
     "pages": [
         "1_start",

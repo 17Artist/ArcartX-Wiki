@@ -12,7 +12,7 @@
     "color": "#2563EB",
     "entry": "appearance/1_start",
     "tagline": "解锁并切换玩家模型外观",
-    "order": 12,
+    "order": 13,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

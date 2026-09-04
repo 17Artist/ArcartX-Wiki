@@ -12,7 +12,7 @@
     "color": "#0EA5E9",
     "entry": "wardrobe/1_start",
     "tagline": "管理玩家时装与穿搭预设",
-    "order": 11,
+    "order": 12,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

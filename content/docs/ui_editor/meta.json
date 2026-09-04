@@ -11,7 +11,7 @@
     "color": "#8B5CF6",
     "entry": "ui_editor",
     "tagline": "可视化打造属于你的 ArcartX 界面",
-    "order": 5,
+    "order": 2,
     "defaultOpen": false,
     "pages": [
         "index",

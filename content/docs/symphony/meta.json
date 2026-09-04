@@ -12,7 +12,7 @@
     "color": "#8B5CF6",
     "entry": "symphony/01_start",
     "tagline": "数据驱动的属性、战斗与装备系统",
-    "order": 6,
+    "order": 7,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

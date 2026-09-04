@@ -13,7 +13,7 @@
     "color": "#22D3EE",
     "entry": "systemmail/1_start",
     "tagline": "投递系统邮件与附件",
-    "order": 8,
+    "order": 9,
     "defaultOpen": true,
     "pages": [
         "---开始使用---",

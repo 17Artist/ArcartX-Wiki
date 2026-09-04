@@ -20,7 +20,7 @@
     "color": "#E11D48",
     "entry": "aria",
     "tagline": "Shimmer继任者，更快、更全面的脚本引擎",
-    "order": 3,
+    "order": 4,
     "defaultOpen": true,
     "pages": [
         "index",
