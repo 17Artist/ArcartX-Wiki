@@ -8,6 +8,193 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 - 以下函数的目标对象为**生物实体**（`LivingEntity`）。玩家也是生物实体，因此这些函数对玩家目标同样有效。
 
+## `getName(){:aria}`
+- 获取实体名称
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    实体对象.getName()
+    ```
+</Callout>
+
+## `getUniqueId(){:aria}`
+- 获取实体 UUID 的字符串形式
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    实体对象.getUniqueId()
+    ```
+</Callout>
+
+## `getEntityType(){:aria}`
+- 获取实体类型名称，例如 `PLAYER` 或 `ZOMBIE`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    实体对象.getEntityType()
+    ```
+</Callout>
+
+## `getWorldName(){:aria}`
+- 获取实体所在世界的名称
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    实体对象.getWorldName()
+    ```
+</Callout>
+
+## `getVelocityX(){:aria}`
+- 获取实体当前速度向量的 X 分量
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getVelocityX()
+    ```
+</Callout>
+
+## `getVelocityY(){:aria}`
+- 获取实体当前速度向量的 Y 分量
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getVelocityY()
+    ```
+</Callout>
+
+## `getVelocityZ(){:aria}`
+- 获取实体当前速度向量的 Z 分量
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：双精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getVelocityZ()
+    ```
+</Callout>
+
+## `getFireTicks(){:aria}`
+- 获取实体剩余燃烧时间，单位为游戏刻
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    实体对象.getFireTicks()
+    ```
+</Callout>
+
+## `getFreezeTicks(){:aria}`
+- 获取实体当前冰冻时间，单位为游戏刻
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    实体对象.getFreezeTicks()
+    ```
+</Callout>
+
+## `getFallDistance(){:aria}`
+- 获取实体当前累计下落距离，单位为方块
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    实体对象.getFallDistance()
+    ```
+</Callout>
+
+## `getTicksLived(){:aria}`
+- 获取实体已存在的游戏刻数
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    实体对象.getTicksLived()
+    ```
+</Callout>
+
+## `isDead(){:aria}`
+- 判断实体是否已经死亡
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isDead()
+    ```
+</Callout>
+
+## `isValid(){:aria}`
+- 判断服务器当前是否认为该实体有效
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isValid()
+    ```
+</Callout>
+
+## `isInvulnerable(){:aria}`
+- 判断实体是否处于无敌状态
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isInvulnerable()
+    ```
+</Callout>
+
+## `isSilent(){:aria}`
+- 判断实体是否处于静音状态
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.isSilent()
+    ```
+</Callout>
+
+## `hasAI(){:aria}`
+- 判断实体是否启用了 AI
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.hasAI()
+    ```
+</Callout>
+
+## `hasGravity(){:aria}`
+- 判断实体是否受到重力影响
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    实体对象.hasGravity()
+    ```
+</Callout>
+
 ## `isInWater(){:aria}`
 - 判断实体是否在水中
 <Callout type="info">

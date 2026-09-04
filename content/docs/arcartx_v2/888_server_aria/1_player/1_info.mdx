@@ -8,6 +8,182 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 - 以下函数的目标对象为**玩家**（`Player`），仅在目标为玩家时可用。
 
+## `getLevel(){:aria}`
+- 获取玩家当前经验等级
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getLevel()
+    ```
+</Callout>
+
+## `getExp(){:aria}`
+- 获取玩家当前等级的经验进度，范围为 `0.0` 到 `1.0`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getExp()
+    ```
+</Callout>
+
+## `getExpToLevel(){:aria}`
+- 获取玩家升到下一级所需的经验值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getExpToLevel()
+    ```
+</Callout>
+
+## `getTotalExperience(){:aria}`
+- 获取玩家累计经验值
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getTotalExperience()
+    ```
+</Callout>
+
+## `getGameMode(){:aria}`
+- 获取玩家当前游戏模式名称，例如 `SURVIVAL` 或 `CREATIVE`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    玩家对象.getGameMode()
+    ```
+</Callout>
+
+## `getLocale(){:aria}`
+- 获取玩家客户端上报的语言代码，例如 `zh_cn`
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：字符串类型
+    - **调用示例**
+    ```aria
+    玩家对象.getLocale()
+    ```
+</Callout>
+
+## `getPing(){:aria}`
+- 获取玩家当前网络延迟，单位为毫秒
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：整数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getPing()
+    ```
+</Callout>
+
+## `getSaturation(){:aria}`
+- 获取玩家当前饱和度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getSaturation()
+    ```
+</Callout>
+
+## `getExhaustion(){:aria}`
+- 获取玩家当前消耗度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getExhaustion()
+    ```
+</Callout>
+
+## `getWalkSpeed(){:aria}`
+- 获取玩家当前行走速度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getWalkSpeed()
+    ```
+</Callout>
+
+## `getFlySpeed(){:aria}`
+- 获取玩家当前飞行速度
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：单精度浮点数类型
+    - **调用示例**
+    ```aria
+    玩家对象.getFlySpeed()
+    ```
+</Callout>
+
+## `hasPermission(permission){:aria}`
+- 判断玩家是否拥有指定权限
+<Callout type="info">
+    - **参数**：`permission` — 字符串类型，权限节点；参数缺失、多余或为空时返回 `false`
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.hasPermission("arcartx.admin")
+    ```
+</Callout>
+
+## `isOp(){:aria}`
+- 判断玩家是否为服务器管理员
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isOp()
+    ```
+</Callout>
+
+## `isOnline(){:aria}`
+- 判断玩家当前是否在线
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isOnline()
+    ```
+</Callout>
+
+## `isBlocking(){:aria}`
+- 判断玩家是否正在使用物品格挡
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isBlocking()
+    ```
+</Callout>
+
+## `isFlightAllowed(){:aria}`
+- 判断玩家当前是否被允许飞行；该状态不代表玩家正在飞行
+<Callout type="info">
+    - **参数**：无
+    - **返回值**：布尔类型
+    - **调用示例**
+    ```aria
+    玩家对象.isFlightAllowed()
+    ```
+</Callout>
+
 ## `isAfterJump(){:aria}`
 - 判断玩家是否处于「刚跳跃」的状态（起跳后的短暂时间窗口内）
 <Callout type="info">
