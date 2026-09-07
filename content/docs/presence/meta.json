@@ -1,0 +1,26 @@
+{
+    "title": "Presence — 存在",
+    "description": "在线时长、阶段礼包与系统邮箱发放",
+    "icon": "logo/presence-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#3B82F6",
+    "entry": "presence/1_start",
+    "tagline": "在线时长、阶段礼包邮箱发放",
+    "order": 18,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与界面---",
+        "4_configuration",
+        "5_ui_protocol"
+    ]
+}

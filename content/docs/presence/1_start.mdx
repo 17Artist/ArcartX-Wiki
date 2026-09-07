@@ -1,0 +1,100 @@
+---
+title: 说明与安装
+description: Presence 的用途、依赖与首次配置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Presence 为服务器提供**分阶段在线奖励**。玩家达到设定在线时长后，可在奖励面板领取物品、货币与命令奖励；奖励统一通过 SystemMail 发往系统邮箱。
+
+<Callout type="warn">
+**Presence 为 ArcartX 高级会员专属插件。** 使用时需要有效授权，并依赖 ArcartX 与 SystemMail。
+</Callout>
+
+## 核心能力
+
+| 能力    | 说明                                         |
+|-------|--------------------------------------------|
+| 分阶段奖励 | 按每天累计在线时长解锁多份奖励                            |
+| 游戏内编辑 | 设置阶段时间、显示内容、邮件与奖励附件                        |
+| 玩家界面  | 提供奖励面板与下一阶段倒计时 HUD（动态倒计时纯客户端计算，服务端仅同步阶段信息） |
+| 邮件发放  | 通过 SystemMail 投递，临时失败时自动继续尝试               |
+
+## 安装条件
+
+- Java 17；
+- Paper 或 Spigot 1.18+；
+- ArcartX 2.5.36+；
+- SystemMail 1.0.0；
+- ArcartX 高级会员有效授权；
+
+如果尚未部署邮件系统，请先完成 [SystemMail 安装](/docs/systemmail/1_start)。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+停止服务端，将 Presence JAR 放入 `plugins/`，并确认 ArcartX 与 SystemMail 已经安装。
+
+</Step>
+
+<Step>
+
+### 生成授权文件
+
+启动一次服务端，等待 `plugins/Presence/license.yml` 生成，然后正常停止服务端。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+修改 `license.yml` 后完整重启：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+授权通过后，Presence 才会生成运行配置与两份 UI 文件。
+
+</Step>
+
+
+<Step>
+
+### 完成首次配置
+
+根据部署方式设置 `config.yml` 与 `database.yml`，重启后执行：
+
+```text
+/presence open
+/presence gui
+```
+
+前者用于检查玩家界面，后者用于调整奖励阶段。
+
+</Step>
+
+</Steps>
+
+## 默认奖励
+
+首次启用会创建三份默认阶段：
+
+| 在线时长  | 默认奖励   |
+|-------|--------|
+| 15 分钟 | 铁锭 × 1 |
+| 30 分钟 | 金锭 × 1 |
+| 60 分钟 | 钻石 × 1 |
+
+三份阶段默认启用。正式开放前，建议使用游戏内编辑器替换名称、邮件内容与奖励。
+

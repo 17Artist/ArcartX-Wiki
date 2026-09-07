@@ -1,0 +1,142 @@
+---
+title: 配置
+description: Presence 授权、在线记录、奖励投递与数据库设置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 配置
+
+Presence 的配置位于 `plugins/Presence/`。首次授权成功后会生成 `config.yml`、`database.yml` 与 `ui/`。
+
+## 生效方式
+
+| 文件或内容                         | 生效方式                                |
+|-------------------------------|-------------------------------------|
+| `license.yml`                 | 完整重启                                |
+| `config.yml`                  | 完整重启                                |
+| `database.yml`                | 完整重启                                |
+| 数据库中的奖励阶段                     | 保存后立即生效，或执行 `/presence reload` 重新读取 |
+| `ui/hud.yml`、`ui/rewards.yml` | `/presence reload`                  |
+
+## license.yml
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+修改后需要完整重启，`/presence reload` 不会重新验证授权。
+
+## 服务标识与时区
+
+```yaml
+server-id: "presence-1"
+timezone: "Asia/Shanghai"
+```
+
+| 配置          | 说明                                   |
+|-------------|--------------------------------------|
+| `server-id` | 当前子服的唯一标识，最长 64 位，可使用字母、数字、点、下划线和短横线 |
+| `timezone`  | 时区名称，决定每日在线时长和可领奖励的重置时间              |
+
+多服共用 MySQL 时，每台服务器必须使用不同的 `server-id`，并保持 `timezone` 和系统时间一致。
+
+## 在线时长保存
+
+```yaml
+progress:
+  checkpoint-seconds: 60
+```
+
+`checkpoint-seconds` 是在线时长的定期保存间隔，范围为 15～3600 秒。玩家退出和服务端正常关闭时也会保存当前时长。
+
+## 记录保留
+
+```yaml
+history:
+  cleanup-interval-hours: 6
+  progress-retention-days: 30
+  reward-retention-days: 30
+  log-retention-days: 30
+```
+
+| 配置                        |        范围 | 说明             |
+|---------------------------|----------:|----------------|
+| `cleanup-interval-hours`  |  1～168 小时 | 检查过期记录的间隔      |
+| `progress-retention-days` |   7～365 天 | 历史在线时长的保留时间    |
+| `reward-retention-days`   | 30～3650 天 | 已发放领取记录的保留时间   |
+| `log-retention-days`      | 30～3650 天 | 管理与领取操作记录的保留时间 |
+
+当天的在线时长与领取记录不清理。仍在等待投递或已经暂停的奖励也不按保留时间删除。
+
+## 奖励投递
+
+```yaml
+delivery:
+  check-interval-seconds: 5
+  batch-size: 32
+  processing-timeout-seconds: 30
+  max-attempts: 100
+  retry-delay-seconds: 2
+```
+
+| 配置                           |       范围 | 说明                      |
+|------------------------------|---------:|-------------------------|
+| `check-interval-seconds`     |  1～300 秒 | 检查待投递奖励的间隔              |
+| `batch-size`                 |    1～256 | 每轮处理的奖励数量               |
+| `processing-timeout-seconds` | 10～300 秒 | 当前节点中断后，允许其他节点继续处理的等待时间 |
+| `max-attempts`               |  1～10000 | 连续失败多少次后暂停自动投递          |
+| `retry-delay-seconds`        |  1～300 秒 | 首次重新投递前的等待时间            |
+
+通常保持默认值即可。SystemMail 临时不可用时，尚未达到最大尝试次数的奖励会在恢复后继续投递。
+
+## database.yml
+
+### SQLite
+
+```yaml
+type: "sqlite"
+sqlite-file: "presence.db"
+worker-threads: 4
+```
+
+SQLite 适合单服，默认数据库位于 `plugins/Presence/presence.db`。`worker-threads` 范围为 1～32。
+
+### MySQL
+
+```yaml
+type: "mysql"
+sqlite-file: "presence.db"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "arcartx"
+  password: "change-me"
+  parameters: "useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC"
+  pool-size: 6
+```
+
+| 配置                                | 说明                     |
+|-----------------------------------|------------------------|
+| `mysql.host`、`mysql.port`         | MySQL 地址与端口            |
+| `mysql.database`                  | 数据库名称，可使用字母、数字、下划线和短横线 |
+| `mysql.username`、`mysql.password` | 数据库账号与密码               |
+| `mysql.parameters`                | JDBC 参数，不要添加开头的 `?`    |
+| `mysql.pool-size`                 | 连接池大小，范围为 2～50         |
+
+Presence 不会在 SQLite 与 MySQL 之间自动迁移数据。更换存储方式前，请先停止服务端并完成备份。
+
+## 多服配置
+
+多台服务器共享在线进度与领取状态时：
+
+1. 所有 Presence 实例连接同一个 MySQL；
+2. 每台服务器使用不同的 `server-id`；
+3. 所有节点使用相同的 `timezone` 并保持系统时间同步；
+4. SystemMail 按其多服方式共享 MySQL 与 Redis；
+5. 不要让多个节点分别使用 SQLite 发放同一组奖励。
+

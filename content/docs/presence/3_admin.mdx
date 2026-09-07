@@ -1,0 +1,145 @@
+---
+title: 奖励管理
+description: Presence 管理命令、阶段编辑与奖励内容
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 奖励管理
+
+Presence 的玩家与管理功能共用 `/presence`，也可以使用简写 `/prs`。OP 可以直接使用全部管理命令，其他管理员需要对应权限。
+
+## 命令与权限
+
+| 命令                           | 权限                        | 用途                   |
+|------------------------------|---------------------------|----------------------|
+| `/presence gui`              | `presence.admin.edit`     | 打开奖励编辑器              |
+| `/presence create <ID> <时长>` | `presence.admin.edit`     | 创建一份奖励阶段（需要编辑的时候启用）  |
+| `/presence edit <ID>`        | `presence.admin.edit`     | 编辑指定阶段               |
+| `/presence progress [玩家]`    | `presence.admin.progress` | 查看在线玩家的今日累计时长        |
+| `/presence sync [玩家]`        | `presence.admin.sync`     | 重新显示一名玩家或全部在线玩家的 HUD |
+| `/presence retry <领取记录ID>`   | `presence.admin.retry`    | 重新投递已暂停的奖励           |
+| `/presence reload`           | `presence.admin.reload`   | 重新读取奖励阶段与 UI 文件      |
+
+`progress` 与 `sync` 只接受在线玩家。控制台执行 `progress` 时必须填写玩家名称；`sync` 不填写玩家时会同步全部在线玩家。
+
+## 创建奖励阶段
+
+<Steps>
+
+<Step>
+
+### 创建阶段
+
+```text
+/presence create online-90m 90m
+```
+
+阶段 ID 最长 64 位，只能使用小写字母、数字、点、下划线和短横线，并以字母或数字开头。
+
+</Step>
+
+<Step>
+
+### 打开编辑器
+
+```text
+/presence edit online-90m
+```
+
+也可以执行 `/presence gui`，从阶段列表进入编辑器。
+
+</Step>
+
+<Step>
+
+### 填写内容
+
+设置奖励名称、介绍、所需在线时长、发件人、邮件标题、正文和领取期限，再添加物品、货币或命令奖励。
+
+</Step>
+
+<Step>
+
+### 启用并保存
+
+新建阶段默认停用。确认内容后调整“启用状态”，再点击“保存修改”。所需在线时长不能与其他阶段重复。
+
+</Step>
+
+</Steps>
+
+## 时长格式
+
+时长可以填写纯秒数，或使用一个单位：
+
+```text
+900
+15m
+1h
+1d
+```
+
+支持 `s`、`m`、`h`、`d`；不支持 `1h30m` 这类组合写法。
+
+## 邮件内容
+
+发件人名称、邮件标题、邮件正文、命令内容与命令显示名称支持：
+
+| 占位符        | 内容       |
+|------------|----------|
+| `{player}` | 玩家名称     |
+| `{uuid}`   | 玩家 UUID  |
+| `{stage}`  | 奖励名称     |
+| `{cycle}`  | 当前领取日期标识 |
+
+聊天输入邮件正文时，可使用 `\n` 换行。输入“清空”可以移除奖励介绍、发件人头像或邮件正文。邮件领取期限可选 1 天、7 天或 30 天，新建阶段默认 30 天。
+
+## 奖励类型
+
+### 物品奖励
+
+打开物品奖励页后，点击玩家背包中的物品即可添加。每个阶段最多添加 54 个物品，点击已添加物品可将其移除。
+
+### 货币奖励
+
+```text
+货币类型|数量|显示名称|图标路径
+```
+
+例如：
+
+```text
+vault|500|金币|presence/icon-coins.png
+```
+
+显示名称与图标可以留空，货币类型必须是ArcartX支持的货币提供者。每个阶段最多添加 32 项货币奖励。
+
+### 命令奖励
+
+```text
+执行方式|显示名称|图标路径|命令
+```
+
+例如：
+
+```text
+console|在线徽记|presence/icon-command.png|give {player} diamond 1
+```
+
+执行方式为 `console` 或 `player`，命令开头不需要 `/`。每个阶段最多添加 32 项命令奖励。
+
+## 保存与重载
+
+多人同时编辑同一阶段时，以先保存的内容为准；后提交的一方需要重新打开阶段再编辑。
+
+```text
+/presence reload
+```
+
+该命令会重新读取数据库中的奖励阶段，以及 `plugins/Presence/ui/` 下的界面文件。数据库连接、服务标识、时区和后台任务参数修改后必须完整重启。
+
+<Callout type="warn">
+不要使用 Bukkit `/reload` 或 PlugMan 热卸载 Presence。数据库连接、在线计时与奖励投递任务应随服务器完整启动和关闭。
+</Callout>
