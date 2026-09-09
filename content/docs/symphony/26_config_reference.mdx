@@ -28,6 +28,11 @@ performance:
   timer-bucket-ticks: 20
   cache-idle-seconds: 300
 
+health-persistence:
+  storage: pdc
+  cluster-id: default
+  checkpoint-seconds: 30
+
 equipment:
   offhand:
     mode: full
@@ -70,6 +75,37 @@ features:
 - 定时任务分桶限制 `entity.timer` 的扫描频率。
 - 空闲缓存超时不会替代退出清理。
 
+### 玩家生命值
+
+最大生命值由装备或其它属性来源提高后，Symphony 会保存玩家退出时的当前生命值，并在下次属性加载完成后恢复。
+
+`storage` 有两种方式：
+
+| 取值      | 使用场景       | 保存位置                      |
+|---------|------------|---------------------------|
+| `pdc`   | 单个子服       | 玩家 PDC                    |
+| `mysql` | 多个子服共享玩家数据 | `symphony_health_state` 表 |
+
+使用 MySQL 时，同一组子服必须填写相同的 `cluster-id`；互不共享生命值的服务器组应使用不同 ID。玩家使用带有角色 ID 的 `LevelProvider` 时，各角色分别保存；没有角色 ID 时按玩家保存。
+
+`checkpoint-seconds` 默认为 `30`。检查点只写入生命值或最大生命值已经变化的在线玩家，用于减少服务器异常终止造成的回退；设为 `0` 可关闭在线检查点。正常退出、被踢出和插件关闭仍会保存一次。
+
+MySQL 连接填写在 `database.yml`：
+
+```yaml
+schema: 1
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: arcartx
+  username: arcartx
+  password: change-me
+  use-ssl: false
+  allow-public-key-retrieval: true
+  pool-size: 4
+```
+
 ### 装备与功能开关
 
 副手使用 `equipment.offhand` 控制，默认 `full`，即允许副手并读取全部数值属性。四种模式如下：
@@ -92,6 +128,7 @@ features:
 | 路径                            | 内容                      |
 |-------------------------------|-------------------------|
 | `combat-power.yml`            | 战力开关、计算公式、取值限制与显示格式     |
+| `database.yml`                | 跨服生命值使用的 MySQL 连接       |
 | `attributes/*.yml`            | 属性、范围、格式、依赖与回调          |
 | `damage/*.yml`                | 伤害通道和物理防御公式             |
 | `affixes/*.yml`               | 词条等级、参数、玩家效果说明、被动与回调    |
@@ -158,6 +195,7 @@ ai/skill/write-symphony-config/scripts/validate-config-pack.ps1 -PackRoot <配�
 ## 配置结构版本
 
 - 主 `config.yml` 使用 `schema: 2`。
+- `database.yml` 使用 `schema: 1`。
 - 战力、属性、伤害、词条、宝石、套装、强化、技能和高级玩法文件使用 `schema: 1`。
 - `display.yml` 和界面布局使用 `schema: 1`。
 - `language.yml` 不使用数字结构版本，而是严格检查所有必需键名。
