@@ -1,0 +1,39 @@
+---
+title: Aria 语句
+description: 在 Aria 脚本中判断玩家是否永久拥有指定时装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Aria 语句
+
+Wardrobe 提供一个面向在线玩家的只读 Aria 语句，主要作用是用于系统商城的条件判断
+
+```aria
+player.hasWardrobePermanentFashion('example_hat')
+```
+
+## `hasWardrobePermanentFashion`
+
+```text
+player.hasWardrobePermanentFashion(fashionId) -> Boolean
+```
+
+| 项目          | 说明                               |
+|-------------|----------------------------------|
+| `player`    | 当前脚本上下文中的在线玩家                    |
+| `fashionId` | `fashions/*.yml` 中配置的时装 ID，区分大小写 |
+| 返回 `true`   | 玩家已经获得该时装的永久使用权                  |
+| 返回 `false`  | 时装不存在、玩家未拥有、只拥有限时使用权，或玩家衣柜尚未加载完成 |
+
+<Callout type="info">
+即使限时时装当前仍未过期，该语句也会返回 `false`。它只判断永久使用权，不判断玩家当前是否可以穿戴。
+</Callout>
+
+## 示例
+
+```aria
+if player.hasWardrobePermanentFashion('example_hat') {
+    player.sendMessage('你已经永久拥有示例帽子')
+}
+```
