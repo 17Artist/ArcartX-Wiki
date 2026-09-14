@@ -1,0 +1,255 @@
+---
+title: 聊天与玩家互动
+description: 频道、私聊、表情、玩家菜单、提示音与物品展示
+---
+
+# 聊天与玩家互动
+
+## 频道聊天
+
+点击频道按钮可切换发送频道。频道切换成功后，服务端会同步当前频道和聊天过滤前缀：
+
+- 综合频道默认不设置过滤前缀，因此会显示客户端已经收到的全部聊天；
+- 队伍、公会等频道可以设置独立前缀，只显示对应内容；
+- 客户端过滤只改变显示范围，玩家能否真正收到消息仍由频道权限和接收者解析器决定。
+
+默认 `team` 频道只是接入示例，Chorus 本身不提供队伍系统。需要由组队、公会等外部插件在 Bukkit 节点注册对应频道和接收者解析器。
+
+## 跨服频道
+
+`LOCAL` 频道只在当前 Bukkit 子服发送。`GLOBAL` 频道在开启代理模式后会转发到代理(BC/VC)下的其他子服，每个目标子服再按本地同名频道、接收者解析器和接收权限筛选玩家。
+
+要让队伍或公会频道跨服工作，需要同时满足：
+
+1. 所有相关子服接入同一个代理(BC/VC)；
+2. 子服中都存在同名频道；
+3. 子服中都注册了同名接收者解析器；
+4. 外部插件的成员数据在各节点可用；
+5. 频道为 `GLOBAL`，玩家具有对应发送和接收权限。
+
+## 表情
+
+表情使用ArcartX的FontIcon功能实现，默认的表情发送可在ArcartX的font_icon/下创建以下yml，若以下id已经被占用，则还需自行更改id并同步到聊天栏界面的yml中
+```yaml
+emoji1:
+  id: 1
+  path: "chorus/emojis/emoji_01.png"
+emoji2:
+  id: 2
+  path: "chorus/emojis/emoji_02.png"
+emoji3:
+  id: 3
+  path: "chorus/emojis/emoji_03.png"
+emoji4:
+  id: 4
+  path: "chorus/emojis/emoji_04.png"
+emoji5:
+  id: 5
+  path: "chorus/emojis/emoji_05.png"
+emoji6:
+  id: 6
+  path: "chorus/emojis/emoji_06.png"
+emoji7:
+  id: 7
+  path: "chorus/emojis/emoji_07.png"
+emoji8:
+  id: 8
+  path: "chorus/emojis/emoji_08.png"
+emoji9:
+  id: 9
+  path: "chorus/emojis/emoji_09.png"
+emoji10:
+  id: 10
+  path: "chorus/emojis/emoji_10.png"
+emoji11:
+  id: 11
+  path: "chorus/emojis/emoji_11.png"
+emoji12:
+  id: 12
+  path: "chorus/emojis/emoji_12.png"
+emoji13:
+  id: 13
+  path: "chorus/emojis/emoji_13.png"
+emoji14:
+  id: 14
+  path: "chorus/emojis/emoji_14.png"
+emoji15:
+  id: 15
+  path: "chorus/emojis/emoji_15.png"
+emoji16:
+  id: 16
+  path: "chorus/emojis/emoji_16.png"
+emoji17:
+  id: 17
+  path: "chorus/emojis/emoji_17.png"
+emoji18:
+  id: 18
+  path: "chorus/emojis/emoji_18.png"
+emoji19:
+  id: 19
+  path: "chorus/emojis/emoji_19.png"
+emoji20:
+  id: 20
+  path: "chorus/emojis/emoji_20.png"
+emoji21:
+  id: 21
+  path: "chorus/emojis/emoji_21.png"
+emoji22:
+  id: 22
+  path: "chorus/emojis/emoji_22.png"
+emoji23:
+  id: 23
+  path: "chorus/emojis/emoji_23.png"
+emoji24:
+  id: 24
+  path: "chorus/emojis/emoji_24.png"
+emoji25:
+  id: 25
+  path: "chorus/emojis/emoji_25.png"
+emoji26:
+  id: 26
+  path: "chorus/emojis/emoji_26.png"
+emoji27:
+  id: 27
+  path: "chorus/emojis/emoji_27.png"
+emoji28:
+  id: 28
+  path: "chorus/emojis/emoji_28.png"
+emoji29:
+  id: 29
+  path: "chorus/emojis/emoji_29.png"
+emoji30:
+  id: 30
+  path: "chorus/emojis/emoji_30.png"
+emoji31:
+  id: 31
+  path: "chorus/emojis/emoji_31.png"
+emoji32:
+  id: 32
+  path: "chorus/emojis/emoji_32.png"
+emoji33:
+  id: 33
+  path: "chorus/emojis/emoji_33.png"
+emoji34:
+  id: 34
+  path: "chorus/emojis/emoji_34.png"
+emoji35:
+  id: 35
+  path: "chorus/emojis/emoji_35.png"
+emoji36:
+  id: 36
+  path: "chorus/emojis/emoji_36.png"
+emoji37:
+  id: 37
+  path: "chorus/emojis/emoji_37.png"
+emoji38:
+  id: 38
+  path: "chorus/emojis/emoji_38.png"
+emoji39:
+  id: 39
+  path: "chorus/emojis/emoji_39.png"
+emoji40:
+  id: 40
+  path: "chorus/emojis/emoji_40.png"
+emoji41:
+  id: 41
+  path: "chorus/emojis/emoji_41.png"
+emoji42:
+  id: 42
+  path: "chorus/emojis/emoji_42.png"
+emoji43:
+  id: 43
+  path: "chorus/emojis/emoji_43.png"
+emoji44:
+  id: 44
+  path: "chorus/emojis/emoji_44.png"
+emoji45:
+  id: 45
+  path: "chorus/emojis/emoji_45.png"
+emoji46:
+  id: 46
+  path: "chorus/emojis/emoji_46.png"
+emoji47:
+  id: 47
+  path: "chorus/emojis/emoji_47.png"
+emoji48:
+  id: 48
+  path: "chorus/emojis/emoji_48.png"
+emoji49:
+  id: 49
+  path: "chorus/emojis/emoji_49.png"
+emoji50:
+  id: 50
+  path: "chorus/emojis/emoji_50.png"
+emoji51:
+  id: 51
+  path: "chorus/emojis/emoji_51.png"
+emoji52:
+  id: 52
+  path: "chorus/emojis/emoji_52.png"
+emoji53:
+  id: 53
+  path: "chorus/emojis/emoji_53.png"
+emoji54:
+  id: 54
+  path: "chorus/emojis/emoji_54.png"
+emoji55:
+  id: 55
+  path: "chorus/emojis/emoji_55.png"
+emoji56:
+  id: 56
+  path: "chorus/emojis/emoji_56.png"
+emoji57:
+  id: 57
+  path: "chorus/emojis/emoji_57.png"
+emoji58:
+  id: 58
+  path: "chorus/emojis/emoji_58.png"
+emoji59:
+  id: 59
+  path: "chorus/emojis/emoji_59.png"
+emoji60:
+  id: 60
+  path: "chorus/emojis/emoji_60.png"
+emoji61:
+  id: 61
+  path: "chorus/emojis/emoji_61.png"
+emoji62:
+  id: 62
+  path: "chorus/emojis/emoji_62.png"
+emoji63:
+  id: 63
+  path: "chorus/emojis/emoji_63.png"
+emoji64:
+  id: 64
+  path: "chorus/emojis/emoji_64.png"
+
+```
+
+## 玩家操作菜单与私聊
+
+点击其他玩家消息中的发送者名称可打开玩家操作菜单。
+
+选择“私聊”后，输入栏会显示目标玩家。输入内容并按 Enter 后，消息只进入私聊；点击目标标签可取消私聊并回到当前频道。
+
+“屏蔽 / 解除私信”会持久化玩家的私聊屏蔽关系。被屏蔽的发送者只会收到失败提示。
+
+## `@` 提示音
+
+Chorus 会按完整玩家名边界、不区分大小写地识别 `@玩家名`，只向被提及玩家播放提示音。
+
+以玩家名 `17Artist` 为例：
+
+| 文本                        | 是否触发 | 原因              |
+|---------------------------|-----:|-----------------|
+| `@17Artist`               |    是 | 名称两侧均为边界        |
+| `你好 @17Artist，我是18Artist` |    是 | `@` 前有空格，名称后有标点 |
+| `你好@17Artist`             |    否 | `@` 前紧邻其他文字     |
+| `@17Artist_2`             |    否 | 名称后仍是名称字符       |
+
+## 手持物品展示
+
+执行 `/chorus showitem` 可向当前频道展示主手物品：
+
+- 主手为空时不会发送；
+- 可以配置经济服务、展示价格和是否收费；

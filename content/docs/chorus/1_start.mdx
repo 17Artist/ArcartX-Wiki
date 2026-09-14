@@ -1,0 +1,99 @@
+---
+title: 说明与安装
+description: Chorus 的用途、运行条件与单服或跨服安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Chorus 通过 ArcartX 替换原版聊天栏，为服务器提供频道聊天、私聊、弹幕、手持物品展示、玩家操作菜单和 TPA。配合 BungeeCord 或 Velocity 组件，可在同一代理(BC/VC)下实现跨服聊天与跨服传送。
+
+<Callout type="warn">
+**Chorus是付费插件。** 使用前需要填写购买后取得的许可证 ID 和密钥。
+</Callout>
+
+## 核心能力
+
+| 能力   | 说明                                               |
+|------|--------------------------------------------------|
+| 频道聊天 | 自定义频道、图标、过滤前缀、权限、范围和多级格式                         |
+| 跨服通信 | 通过 Chorus BungeeCord 或 Velocity 组件转发全局频道、私聊和 TPA |
+| 玩家互动 | 私聊与屏蔽、玩家操作菜单、`@` 提示音、手持物品卡片                      |
+| 弹幕   | 独立格式、字号、移动时间，支持跨服                                |
+| TPA  | 请求卡片、等待与冷却、支持跨服                                  |
+| 内容安全 | 使用 Redact 检测普通聊天、私聊、物品展示和弹幕内容                    |
+| 开发接口 | 扩展频道、接收者、格式、消息处理、玩家动作和界面短提示                      |
+
+## 运行条件
+
+- Java 17+；
+- Spigot 或 Paper 1.18.2+；
+- ArcartX 2.6.72+；
+- Redact 1.0.0+；
+- PlaceholderAPI 2.11.6 或兼容版本；
+- 跨服时使用 BungeeCord 或 Velocity，二选一；
+- Chorus 有效授权。
+
+## 单服安装
+
+<Steps>
+
+<Step>
+
+### 安装依赖与插件
+
+将 Chorus Bukkit、ArcartX 和 Redact 的 JAR 放入服务端 `plugins/`，然后完整启动一次服务器。
+
+</Step>
+
+<Step>
+
+### 填写授权
+
+首次启动会生成 `plugins/Chorus/license.yml`：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+填写购买 Chorus 后取得的凭据，再完整重启服务器。验证成功前，数据库、命令、界面和跨服通道不会启动。
+
+</Step>
+
+
+<Step>
+
+### 保持单服模式
+
+确认 `config.yml` 中：
+
+```yaml
+proxy:
+  enabled: false
+```
+
+单服默认使用 SQLite，数据库文件为 `plugins/Chorus/chorus.db`。
+
+</Step>
+
+</Steps>
+
+## 跨服安装
+
+1. 每个 Bukkit 子服都安装同一版本的 Chorus Bukkit、ArcartX 和 Redact，并填写有效许可证。
+2. 在代理(BC/VC)端安装 Chorus 组件：BungeeCord 或 Velocity。
+3. 所有 Bukkit 节点连接同一个 MySQL 数据库。
+4. 所有 Bukkit 节点设置 `proxy.enabled: true`。
+5. 启动代理(BC/VC)，让组件生成 `plugins/Chorus/config.yml`。
+6. 保持代理(BC/VC)端与 Bukkit 节点的 TPA 有效期、限次、等待、冷却和禁用子服列表一致。
+
+
+代理模式开启时不能使用 SQLite，否则插件会拒绝启动。
+
+<Callout type="info">
+多个 Bukkit 子服可以接入同一个代理(BC/VC)，但不要让同一组玩家同时接入多个互不共享状态的代理(BC/VC)节点。
+</Callout>
+

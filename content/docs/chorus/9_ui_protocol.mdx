@@ -1,0 +1,155 @@
+---
+title: 界面协议
+description: Chorus 固定界面、服务端数据和客户端动作
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+## 全局状态
+
+| 变量                                       | 类型              | 用途                     |
+|------------------------------------------|-----------------|------------------------|
+| `global.chorusSelectedChannel`           | Map             | 当前频道                   |
+| `global.chorusChannels`                  | List&lt;Map&gt; | 玩家可选择的频道               |
+| `global.chorusChannelFilter`             | String          | `Chat.filter` 使用的前缀    |
+| `global.chorusUiTexts`                   | Map             | Enter、表情和菜单文字          |
+| `global.chorusChannelStateRevision`      | Number          | 频道状态修订，触发 Screen 重建控件  |
+| `global.chorusPlayerActionsVisible`      | Boolean         | 是否显示玩家操作菜单             |
+| `global.chorusPlayerActionTarget`        | Map             | 目标玩家显示信息               |
+| `global.chorusPlayerActionButtons`       | List&lt;Map&gt; | 已排序的可见按钮               |
+| `global.chorusPlayerActionStateRevision` | Number          | 玩家菜单修订                 |
+| `global.chorusActionInput`               | Map             | 当前一次性动作输入；空 Map 表示普通聊天 |
+| `global.chorusDanmakuPlaceholder`        | String          | 弹幕输入框提示                |
+
+## 服务端 → `Chorus:chat-hud`
+
+### `state`
+
+```json
+{
+  "selected": {
+    "id": "public",
+    "label": "综合频道",
+    "description": "显示全部消息",
+    "placeholder": "综合频道…",
+    "filter": "",
+    "icon": "chorus/icons/channel-public.png",
+    "activeIcon": "chorus/icons/channel-public-light.png"
+  },
+  "channels": [
+    {
+      "id": "public",
+      "label": "综合频道",
+      "description": "显示全部消息",
+      "placeholder": "综合频道…",
+      "filter": "",
+      "icon": "chorus/icons/channel-public.png",
+      "activeIcon": "chorus/icons/channel-public-light.png"
+    }
+  ],
+  "texts": {
+    "enterHint": "ENTER 发送",
+    "emojiTitle": "选择表情",
+    "playerActionsTitle": "玩家操作"
+  }
+}
+```
+
+`selected` 与 `channels[]` 的字段相同。频道列表已经按可选择状态和发送权限过滤，HUD 会同步当前过滤前缀并递增频道修订值。
+
+### `player-actions`
+
+```json
+{
+  "visible": true,
+  "target": {
+    "name": "TargetPlayer"
+  },
+  "buttons": [
+    {
+      "id": "private-message",
+      "title": "私聊",
+      "description": "向该玩家发送私聊消息"
+    }
+  ]
+}
+```
+
+
+### `compose`
+
+```json
+{
+  "label": "私信给",
+  "targetName": "TargetPlayer",
+  "placeholder": "向 TargetPlayer 发送私聊…",
+  "maximumLength": 256
+}
+```
+
+普通聊天模式发送空 Map。该数据只决定输入框显示，不包含目标 UUID 或动作 ID。
+
+### `message`
+
+```json
+{
+  "text": "§c目标玩家不在线",
+  "tone": "error"
+}
+```
+
+`tone` 只能是 `info`、`success`、`warning` 或 `error`。
+
+### `danmaku-placeholder`
+
+```json
+{
+  "placeholder": "需消耗 1 个弹幕发射器，你当前拥有 12 个"
+}
+```
+
+
+## 服务端 → `Chorus:danmaku-hud`
+
+### `show`
+
+```json
+{
+  "text": "§d§lAlice §f今晚一起打副本",
+  "fontSize": 34,
+  "durationMillis": 12000
+}
+```
+
+`fontSize` 范围为 `12..72`，`durationMillis` 范围为 `1000..60000`。
+
+## `Chorus:chat-screen` → 服务端
+
+| 动作                                         | 参数               | 用途        |
+|--------------------------------------------|------------------|-----------|
+| `Packet.send('select-channel', channelId)` | 一个最长 32 字符的频道 ID | 切换频道      |
+| `Packet.send('cancel-compose')`            | 无                | 取消一次性输入模式 |
+| `Packet.send('execute-action', buttonId)`  | 一个最长 64 字符的按钮 ID | 执行玩家操作    |
+| `Packet.send('close-player-actions')`      | 无                | 关闭玩家操作菜单  |
+
+普通聊天和玩家动作输入都由原生 `ChatTextBox` 在 Enter 时进入 Bukkit 聊天事件，不存在 `submit-message` 或 `submit-action-input` 动作。
+
+## 卡片回调
+
+TPA 卡片只需要发送：
+
+```aria
+Packet.send('accept', self.parent.data['request'])
+Packet.send('deny', self.parent.data['request'])
+```
+
+客户端的已处理状态只负责更新卡片外观。服务端仍验证请求 ID、目标、有效期和一次性状态。
+
+## 修改要求
+
+- `chat-hud` 与 `danmaku-hud` 默认打开；
+- `chat-screen` 通过 `match: [聊天界面]` 替换原版聊天输入；
+- `chat-screen.yml` 必须保留 `transfer: true` 和 `through: true`，才能操作下层聊天 HUD；
+

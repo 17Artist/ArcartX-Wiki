@@ -1,0 +1,36 @@
+---
+title: 卡片
+description: 自定义聊天卡片、内置卡片
+---
+
+# 卡片
+
+## 自定义卡片
+
+将 ArcartX 聊天卡片放入 `plugins/Chorus/card/`。文件相对路径会决定注册 ID：
+
+```text
+card/welcome.yml     → Chorus:welcome
+card/event/rules.yml → Chorus:event/rules
+```
+
+启动或执行 `/chorus reload` 时，Chorus 会注册新卡片、重载现有卡片并注销已经删除的卡片。
+
+相对路径去掉 `.yml` 后长度为 `1..96`，只能包含字母、数字、下划线、点、斜杠和连字符；最终注册 ID 会转为小写。
+
+发送示例：
+
+```text
+/chorus card send Steve welcome title=欢迎 amount=3
+```
+
+附加参数必须使用 `key=value`。最多 64 项，键最长 128 UTF-8 字节，整份数据最多 24 KiB。
+
+## 内置卡片
+
+| 卡片 ID                | 用途         | 数据                                                                                                         |
+|----------------------|------------|------------------------------------------------------------------------------------------------------------|
+| `Chorus:held_item`   | 展示玩家主手物品   | `item`、`title`                                                                                             |
+| `Chorus:tpa_request` | TPA 请求与倒计时 | `request`、`createdAt`、`expiresAt`、`title`、`handledText`、`expiredText`、`promptText`、`acceptText`、`denyText` |
+
+

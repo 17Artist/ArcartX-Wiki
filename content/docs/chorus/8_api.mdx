@@ -1,0 +1,141 @@
+---
+title: 开发者 API
+description: 扩展频道、接收者、消息处理、格式和玩家动作
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 开发者 API
+
+外部插件需要编译依赖 `Chorus-Bukkit-<version>.jar`。
+
+```kotlin
+dependencies {
+    compileOnly(files("libs/Chorus-API-1.0.0-SNAPSHOT.jar"))
+}
+```
+
+在 `plugin.yml` 中声明：
+
+```yaml
+depend:
+  - Chorus
+```
+
+能够处理 Chorus 不存在的插件也可以改用 `softdepend`。
+
+## 取得服务
+
+```java
+if (!ChorusAPI.isAvailable()) {
+    return;
+}
+
+ChorusService chorus = ChorusAPI.get();
+```
+
+API 只会在 Chorus 授权成功并完成业务启动后发布。依赖插件禁用时，应清理自己注册的扩展：
+
+```java
+chorus.unregister(this);
+```
+
+## 扩展入口
+
+```java
+chorus.registerChannelProvider(this, 100, provider);
+chorus.registerRecipientResolver(this, 100, resolver);
+chorus.registerMessageProcessor(this, 100, processor);
+chorus.registerFormatResolver(this, 100, resolver);
+chorus.registerPlayerAction(this, 100, action);
+```
+
+`priority` 越大越先处理：
+
+- 频道提供器按优先级合并，同 ID 保留最先出现的一项；
+- 接收者解析器、格式解析器和玩家动作采用最先匹配的一项；
+- 消息处理器会按优先级依次执行全部处理器。
+
+这些回调由 Bukkit 主线程调用，不要直接执行阻塞数据库或网络请求。
+
+## 自定义频道与接收者
+
+```java
+ChannelView guild = new ChannelView(
+    "guild",
+    "公会",
+    "chorus/icons/channel-guild.png",
+    "chorus/icons/channel-guild-light.png",
+    "§8[§d公会§8] §r",
+    "[公会] ",
+    true,
+    ChannelScope.GLOBAL,
+    "guild-members",
+    "guild.chat",
+    "guild.chat",
+    List.of(new ChannelFormat(
+        "default", 0, "", "§d{player}§8: §f{message}", 0
+    ))
+);
+```
+
+`ChannelProvider.channels(viewer)` 决定该玩家可见的频道列表，`find(id)` 用于发送和接收时查找频道。`RecipientResolver.resolveLocal()` 收到已经过接收权限初筛的本服在线玩家，只应返回其中的子集。
+
+GLOBAL 频道不会自动同步外部插件的公会或队伍数据。每个 Bukkit 节点都要注册同名频道与解析器，并能读取一致的成员关系。
+
+## 消息与格式
+
+`MessageProcessor` 可以修改正文或拒绝消息：
+
+```java
+chorus.registerMessageProcessor(this, 200, message -> {
+    if (message.body().contains("forbidden")) {
+        return ProcessResult.reject(message, "§c这条消息不能发送");
+    }
+    return ProcessResult.allow(message.withBody(message.body().trim()));
+});
+```
+
+拒绝说明会通过 Chorus 短提示显示给发送者。处理器不应修改消息 ID、来源和目标来绕过路由规则。
+
+`FormatResolver` 可根据玩家和频道返回自定义 `ResolvedFormat`。普通频道的 `fontSize` 可以为 0，弹幕格式必须在 `12..72` 之间。没有解析器命中时，Chorus 使用频道中无权限要求的默认格式。
+
+## 玩家动作
+
+`player-actions.yml` 负责按钮外观和触发方式，API 的 `PlayerAction` 负责 `ACTION` 类型的实际业务：
+
+```java
+chorus.registerPlayerAction(this, 100, new PlayerAction() {
+    @Override
+    public String id() {
+        return "party-invite";
+    }
+
+    @Override
+    public Optional<PlayerActionInput> input() {
+        return Optional.empty();
+    }
+
+    @Override
+    public void execute(PlayerActionContext context) {
+        partyService.invite(context.viewer(), context.targetId());
+    }
+});
+```
+
+需要一行额外输入时，可返回 `PlayerActionInput`。标题最多 32 字符，占位文字最多 128 字符，最大输入长度范围为 `1..4096`。目标 UUID 来自服务端保存的点击上下文，不由客户端提交。
+
+## 主动调用
+
+| 方法                                       | 用途                       |
+|------------------------------------------|--------------------------|
+| `selectChannel(player, channelId)`       | 为玩家选择频道并同步界面             |
+| `openPlayerActions(viewer, targetId)`    | 打开目标玩家的操作菜单              |
+| `sendPrivate(sender, targetId, message)` | 发送经过长度、Redact、屏蔽和代理路由的私聊 |
+| `sendRaw(target, message)`               | 向当前节点玩家发送不经过频道格式的颜色文本    |
+| `sendCard(target, cardId, data)`         | 向当前节点玩家发送已注册卡片           |
+| `showNotice(target, message, tone)`      | 在常驻聊天 HUD 显示短提示          |
+
+`NoticeTone` 支持 `INFO`、`SUCCESS`、`WARNING` 和 `ERROR`。
+
+

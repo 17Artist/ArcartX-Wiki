@@ -1,0 +1,100 @@
+---
+title: 基础配置
+description: 授权、聊天、速率、弹幕、TPA 与数据库设置
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 基础配置
+
+## 文件说明
+
+| 文件                   | 用途                             |   | 重载生效 |
+|----------------------|--------------------------------|:--|-----:|
+| `license.yml`        | 许可证 ID 与密钥                     |   |    否 |
+| `config.yml`         | 代理模式、消息、内容检测、速率、提示音、物品、弹幕和 TPA |   |    是 |
+| `channels.yml`       | 频道、图标、范围、权限和格式                 |   |    是 |
+| `database.yml`       | SQLite、MySQL 与连接池              |   |    否 |
+| `language.yml`       | 语言文件                           |   |    是 |
+| `player-actions.yml` | 玩家操作菜单动作                       |   |    是 |
+| `card/*.yml`         | ArcartX 聊天卡片                   |   |    是 |
+| `ui/*.yml`           | Chorus 的三个 UI                  |   |    是 |
+
+存在错误时，Chorus 会继续使用上一份有效设置
+
+## 授权
+
+首次启动生成：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+修改 `license.yml` 后必须完整重启。
+
+## `config.yml`
+
+| 配置项                                              |                   默认值 | 说明                                         |
+|--------------------------------------------------|----------------------:|--------------------------------------------|
+| `proxy.enabled`                                  |               `false` | 是否使用 BungeeCord 或 Velocity；开启时数据库必须为 MySQL |
+| `default-channel`                                |              `public` | 玩家没有可用已选频道时使用的频道                           |
+| `message-max-length`                             |                 `256` | 普通聊天、私聊和弹幕长度，范围 `1..4096`                  |
+| `moderation.action`                              |               `BLOCK` | `BLOCK` 拒绝内容，`SANITIZE` 使用 Redact 替换结果     |
+| `rate-limit.capacity`                            |                 `4.0` | 玩家频率限速总容量                                  |
+| `rate-limit.refill-per-second`                   |                `0.75` | 每秒恢复量                                      |
+| `rate-limit.public-cost`                         |                 `1.0` | 普通频道消息消耗                                   |
+| `rate-limit.private-cost`                        |                 `1.0` | 私聊消耗                                       |
+| `rate-limit.card-cost`                           |                 `2.0` | 手持物品卡片消耗                                   |
+| `rate-limit.danmaku-cost`                        |                 `2.0` | 弹幕速率消耗                                     |
+| `mention.enabled`                                |                `true` | 是否启用 `@` 提示音                               |
+| `mention.sound`                                  | `chorus/sound/at.ogg` | 客户端声音资源路径                                  |
+| `mention.category`                               |              `master` | 声音分类                                       |
+| `mention.pitch`                                  |                   `1` | 播放音调                                       |
+| `mention.keep-time`                              |                `5000` | 声音保持时间，单位毫秒                                |
+| `held-item.cost.enabled`                         |               `false` | 是否对物品展示收费                                  |
+| `held-item.cost.provider`                        |               `Vault` | ArcartX 中注册的经济提供者名称                        |
+| `held-item.cost.amount`                          |                 `0.0` | 展示价格，开启收费时必须大于 0                           |
+| `held-item.delivery.byte-budget-per-tick`        |              `131072` | 每个节点共享的单 Tick 字节预算，范围 `16384..4194304`     |
+| `held-item.delivery.maximum-recipients-per-tick` |                  `64` | 每个节点单 Tick 最大接收者数，范围 `1..512`              |
+| `danmaku.charge-per-message`                     |                   `1` | 每条弹幕消耗的发射器数量                               |
+| `danmaku.maximum-balance`                        |             `1000000` | 弹幕余额上限                                     |
+| `danmaku.duration-millis`                        |               `12000` | 弹幕移动时间，范围 `1000..60000`                    |
+| `tpa.request-expire-seconds`                     |                  `30` | 请求有效期，范围 `5..300`                          |
+| `tpa.request-limit.window-seconds`               |                  `30` | 请求限次统计窗口，范围 `1..3600`                      |
+| `tpa.request-limit.maximum`                      |                   `3` | 统计窗口内最多请求数，范围 `1..100`                     |
+| `tpa.teleport-delay-seconds`                     |                   `3` | 接受后的等待时间，范围 `0..300`                       |
+| `tpa.teleport-cooldown-seconds`                  |                  `60` | 传送冷却，范围 `0..86400`                         |
+| `tpa.cross-server.denied-servers`                |           `[dungeon]` | 禁止跨服 TPA 的子服名                              |
+
+各项 `rate-limit.*-cost` 必须大于 0，且不能超过 `capacity`。开启代理后，Bukkit 与代理(BC/VC)各自执行一层速率限制。
+
+## `database.yml`
+
+```yaml
+type: "sqlite"
+sqlite-file: "chorus.db"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "root"
+  password: "change-me"
+  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&connectTimeout=5000&socketTimeout=30000&tcpKeepAlive=true"
+  pool-size: 8
+```
+
+- `type` 只接受 `SQLITE` 或 `MYSQL`；
+- `sqlite-file` 只能是 Chorus 数据目录中的单个文件名；
+- `worker-threads` 范围为 `1..32`；SQLite 固定使用单工作线程；
+- MySQL 端口范围为 `1..65535`，`pool-size` 范围为 `2..50`；
+- `parameters` 不要添加开头的 `?`；
+- 数据库连接配置变化后必须完整重启。
+
+数据库用于保存私聊屏蔽关系和弹幕余额。
+
+<Callout type="warn">
+代理(BC/VC)模式下所有 Bukkit 节点必须连接同一套 MySQL。使用 SQLite 会导致插件拒绝启动，避免玩家换服后出现余额或屏蔽状态不一致。
+</Callout>

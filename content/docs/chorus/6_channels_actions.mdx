@@ -1,0 +1,86 @@
+---
+title: 频道与玩家操作
+description: 自定义频道、聊天格式和玩家操作菜单
+---
+
+# 频道与玩家操作
+
+## 频道配置
+
+频道在 `plugins/Chorus/channels.yml` 中配置：
+
+```yaml
+guild:
+  display-name: "公会"
+  icon: "chorus/icons/channel-guild.png"
+  active-icon: "chorus/icons/channel-guild-light.png"
+  prefix: "&8[&d公会&8] &r"
+  filter-prefix: "[公会] "
+  selectable: true
+  scope: GLOBAL
+  recipient-resolver: guild
+  send-permission: "guild.chat"
+  receive-permission: "guild.chat"
+  formats:
+    leader:
+      priority: 100
+      permission: "guild.leader"
+      template: "&d[会长] &f{player}&8: &f{message}"
+    default:
+      priority: 0
+      permission: ""
+      template: "&d{player}&8: &f{message}"
+```
+
+| 字段                     | 说明                                  |
+|------------------------|-------------------------------------|
+| `display-name`         | 频道在界面中的名称                           |
+| `icon` / `active-icon` | 普通和选中状态的客户端图标，两项都必须填写               |
+| `prefix`               | 实际消息前缀，不能为空，支持 `&` 颜色               |
+| `filter-prefix`        | AX UI `Chat.filter` 使用的显示前缀，非空值不能重复 |
+| `selectable`           | 是否显示在频道选择器中                         |
+| `scope`                | `LOCAL` 或 `GLOBAL`                  |
+| `recipient-resolver`   | 接收者解析器 ID                           |
+| `send-permission`      | 发送权限，空字符串表示不限                       |
+| `receive-permission`   | 接收候选权限，空字符串表示不限                     |
+| `formats`              | 按 `priority` 从高到低选择的聊天格式            |
+
+每个频道至少需要一个 `permission: ""` 的默认格式。格式模板必须包含 `{player}` 和 `{message}`，还可以使用 `{server}` 与 PlaceholderAPI 变量。
+
+综合频道的 `filter-prefix` 建议保持空字符串，让它显示所有已接收内容。内置 `danmaku` 频道必须存在、可以选择，并设置为 `GLOBAL`，不需要不给玩家权限即可。
+
+频道 ID 长度为 `1..32`，只能包含小写字母、数字、下划线、点和连字符。
+
+## 玩家操作菜单
+
+菜单按钮在 `plugins/Chorus/player-actions.yml` 中配置：
+
+```yaml
+buttons:
+  invite-team:
+    enabled: true
+    title: "邀请组队"
+    description: "邀请该玩家加入队伍"
+    priority: 900
+    permission: "party.invite"
+    trigger:
+      type: COMMAND
+      value: "party invite {target}"
+      sender: PLAYER
+```
+
+| 字段               | 说明                         |
+|------------------|----------------------------|
+| `enabled`        | 是否启用按钮                     |
+| `title`          | 按钮标题，最多 64 字符              |
+| `description`    | 按钮说明，最多 160 字符             |
+| `priority`       | 排序值，越大越靠前                  |
+| `permission`     | 玩家查看和执行按钮所需权限              |
+| `trigger.type`   | `ACTION` 或 `COMMAND`       |
+| `trigger.value`  | API 动作 ID 或要执行的命令          |
+| `trigger.sender` | 命令发送者，`PLAYER` 或 `CONSOLE` |
+
+命令模板支持 `{viewer}`、`{viewer_uuid}`、`{target}` 和 `{target_uuid}`。
+
+按钮 ID 长度为 `1..64`，只能包含小写字母、数字、下划线、点和连字符。
+

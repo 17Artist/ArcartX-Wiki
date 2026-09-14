@@ -1,0 +1,32 @@
+---
+title: 命令与权限
+description: Chorus 的玩家命令、管理命令与常用权限
+---
+
+# 命令与权限
+
+| 命令                                                 | 权限                       | 说明                          |
+|----------------------------------------------------|--------------------------|-----------------------------|
+| `/chorus reload`                                   | `chorus.admin.reload`    | 重新读取配置、卡片和 UI               |
+| `/chorus showitem`                                 | `chorus.showitem`        | 向当前频道可接收消息的接收者展示主手物品        |
+| `/chorus raw <玩家或UUID或*> <内容>`                     | `chorus.admin.raw`       | 发送不经过频道格式的颜色文本，`*` 表示全部在线玩家 |
+| `/chorus card send <玩家或UUID> <卡片> [key=value ...]` | `chorus.admin.card`      | 向目标玩家发送已注册卡片                |
+| `/chorus danmaku give <玩家> <数量>`                   | `chorus.admin.danmaku`   | 增加在线玩家的弹幕余额                 |
+| `/chorus danmaku balance`                          | `chorus.danmaku.balance` | 查询自己的弹幕余额                   |
+| `/tpa send <玩家>`                                   | `chorus.tpa`             | 发起 TPA 请求                   |
+
+## 常用权限
+
+- 以下权限包含了一些示例配置的默认节点
+
+| 权限                        | 作用                       |
+|---------------------------|--------------------------|
+| `chorus.chat.color`       | 允许消息正文中的颜色代码生效           |
+| `chorus.channel.team`     | 使用默认示例队伍频道               |
+| `chorus.channel.danmaku`  | 使用弹幕频道                   |
+| `chorus.format.owner`     | 使用综合频道的 `owner` 特殊格式     |
+| `chorus.danmaku.featured` | 使用弹幕频道的 `featured` 格式与字号 |
+
+
+`/chorusui open <UUID>` 是点击聊天姓名时使用的内部入口，普通玩家不需要手工执行，也不应将它作为管理命令开放。
+

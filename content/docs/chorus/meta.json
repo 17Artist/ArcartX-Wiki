@@ -1,0 +1,32 @@
+{
+    "title": "Chorus — 众声",
+    "description": "多频道聊天、私聊、弹幕与跨服互动",
+    "icon": "logo/chorus-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "付费", "color": "#FF4500" },
+        { "label": "社交", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" },
+        { "label": "API", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#A855F7",
+    "entry": "chorus/1_start",
+    "tagline": "频道聊天、私聊、弹幕与跨服互动",
+    "order": 20,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player_chat",
+        "3_danmaku_tpa",
+        "4_commands",
+        "---配置聊天---",
+        "5_configuration",
+        "6_channels_actions",
+        "7_cards_resources",
+        "---界面与开发---",
+        "8_api",
+        "9_ui_protocol"
+    ]
+}
