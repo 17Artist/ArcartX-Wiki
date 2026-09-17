@@ -1,0 +1,30 @@
+{
+    "title": "Ritual — 仪式",
+    "description": "自然周签到、轮换奖励与系统邮箱投递",
+    "icon": "logo/ritual-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#A855F7",
+    "entry": "ritual/1_start",
+    "tagline": "自然周签到、轮换奖励与邮箱投递",
+    "order": 21,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---奖励与配置---",
+        "4_rewards",
+        "5_rotation",
+        "6_configuration",
+        "7_database_delivery",
+        "---界面与维护---",
+        "8_ui_protocol"
+    ]
+}

@@ -1,0 +1,62 @@
+---
+title: 数据库与奖励投递
+description: SQLite、MySQL、多服共享、重试与维护
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 数据库与奖励投递
+
+## SQLite 单服
+
+```yaml
+type: "sqlite"
+sqlite-file: "ritual.db"
+worker-threads: 4
+```
+
+SQLite 文件必须位于 `plugins/Ritual/` 中，并使用相对文件名。不要让多个服务端进程同时打开同一个 SQLite 文件。
+
+## MySQL 多服
+
+```yaml
+type: "mysql"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "arcartx"
+  password: "请替换"
+  parameters: "useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  pool-size: 6
+```
+
+多个子服共享签到状态时，所有 Ritual 节点必须：
+
+- 连接同一套 MySQL；
+- 使用相同的 `timezone`；
+- 使用相同的 `rotation.anchor-monday`；
+- 保持系统时间同步。
+
+SystemMail 也须按照其多服方案共享 MySQL 与 Redis。
+
+## 投递可靠性
+
+玩家出勤和邮件投递状态分开保存。签到成功后，即使 SystemMail 暂时离线，出勤记录也不会回滚，也不要求玩家重新签到。
+
+同一份奖励使用固定发放标识，防止服务器重启、处理超时或多节点竞争造成重复邮件。
+
+- 临时失败会自动重试；
+- 请求内容无效、邮件去重冲突等无法自行恢复的问题会立即暂停；
+- 其他失败达到 `delivery.max-attempts` 后暂停；
+- 管理员解决 SystemMail、数据库或奖励配置问题后，使用 `/ritual retry <奖励记录ID>` 恢复处理。
+
+玩家界面保持打开时，邮件成功或进入暂停状态后会自动更新。
+
+<Callout type="warn">
+不要直接删除待发送记录。人工处理前应备份数据库，并确认 SystemMail 中是否已经存在对应邮件。
+</Callout>
+
+

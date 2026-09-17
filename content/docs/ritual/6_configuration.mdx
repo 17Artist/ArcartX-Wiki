@@ -1,0 +1,51 @@
+---
+title: 配置
+description: 时区、轮换、投递重试、历史保留与语言文件
+---
+
+# 配置
+
+主配置位于 `plugins/Ritual/config.yml`：
+
+```yaml
+timezone: "Asia/Shanghai"
+
+rotation:
+  anchor-monday: "auto"
+
+delivery:
+  check-interval-seconds: 20
+  batch-size: 32
+  processing-timeout-seconds: 30
+  max-attempts: 50
+  retry-delay-seconds: 2
+
+history:
+  cleanup-interval-hours: 12
+  retention-weeks: 52
+  audit-retention-days: 90
+```
+
+| 配置项                                   | 说明                               |
+|---------------------------------------|----------------------------------|
+| `timezone`                            | 每日零点和自然周使用的时区，例如 `Asia/Shanghai` |
+| `rotation.anchor-monday`              | 轮换第一组对应的周一；`auto` 会在首次启动时保存当周周一  |
+| `delivery.check-interval-seconds`     | 扫描待发送奖励的间隔，范围 `1..300` 秒         |
+| `delivery.batch-size`                 | 每批最多处理的奖励数，范围 `1..256`           |
+| `delivery.processing-timeout-seconds` | 单次发放被占用后的超时，范围 `10..300` 秒       |
+| `delivery.max-attempts`               | 连续失败多少次后暂停自动发送                   |
+| `delivery.retry-delay-seconds`        | 首次重试间隔；后续指数退避，最长 1 小时            |
+| `history.cleanup-interval-hours`      | 历史数据维护间隔                         |
+| `history.retention-weeks`             | 已完成签到、周分配和已送达记录的保留周数             |
+| `history.audit-retention-days`        | 管理操作记录的保留天数                      |
+
+待发送和已经暂停的奖励不会被历史清理删除。
+
+`timezone` 与 `rotation.anchor-monday` 变化后需要完整重启。投递和历史配置也建议在维护时重启生效，避免不同节点短时间使用不一致设置。
+
+## `language.yml`
+
+`plugins/Ritual/language.yml` 管理玩家在签到界面中看到的业务结果，例如签到、全勤、投递状态和状态读取失败：
+
+修改后执行 `/ritual reload`。新文件校验失败时，插件继续使用原配置并向管理员报告错误。
+

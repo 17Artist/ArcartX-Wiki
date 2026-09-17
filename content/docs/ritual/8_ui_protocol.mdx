@@ -1,0 +1,193 @@
+---
+title: 界面协议
+description: Ritual 签到界面的状态、结果与客户端动作
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+## 通讯总览
+
+| 方向       | 名称        | 参数或数据  | 用途            |
+|----------|-----------|--------|---------------|
+| 服务端 → UI | `state`   | 完整状态对象 | 首次绘制或整体替换界面状态 |
+| 服务端 → UI | `result`  | 结果对象   | 展示操作结果或状态读取错误 |
+| UI → 服务端 | `refresh` | 无参数    | 请求最新完整状态      |
+| UI → 服务端 | `sign`    | 无参数    | 签到服务端当前日期     |
+| UI → 服务端 | `bonus`   | 无参数    | 尝试领取本周全勤奖励    |
+
+`state` 是完整快照，不是局部更新。界面每次收到它都应替换本地状态，并以最后一份数据为准。
+
+固定流程：
+
+1. 界面确认打开后，服务端发送 `state`；
+2. 收到 `refresh` 后，服务端发送最新 `state`；读取失败时发送 `result`；
+3. 收到 `sign` 或 `bonus` 后，服务端发送 `result`，再发送最新 `state`；
+
+## `state`
+
+`days` 始终包含七项，下面只保留第一项作为示例：
+
+```json
+{
+  "timezone": "Asia/Shanghai",
+  "serverEpochMillis": 1789358400000,
+  "nextDayStartsAtEpochMillis": 1789401600000,
+  "weekStart": "2026-09-14",
+  "weekEnd": "2026-09-20",
+  "today": "2026-09-14",
+  "todaySlot": 1,
+  "attendanceDays": 0,
+  "fullAttendance": false,
+  "days": [
+    {
+      "slot": 1,
+      "day": "周一",
+      "date": "2026-09-14",
+      "name": "周一签到奖励",
+      "description": "完成周一签到后发放",
+      "enabled": true,
+      "state": "available",
+      "rewardCount": 1,
+      "rewards": [
+        {
+          "id": "slot-1-item-1",
+          "type": "item",
+          "content": "{Asteroid ItemStack JSON}"
+        }
+      ]
+    }
+  ],
+  "bonus": {
+    "slot": 8,
+    "name": "七日全勤奖励",
+    "description": "本周七天全部签到后可领取",
+    "enabled": true,
+    "state": "locked",
+    "rewardCount": 1,
+    "rewards": [
+      {
+        "id": "slot-8-eco-1",
+        "type": "eco",
+        "name": "金币 × 500",
+        "icon": "ritual/icons/icon-coins.png"
+      }
+    ]
+  }
+}
+```
+
+### 根字段
+
+| 字段                           | 类型      | 说明                      |
+|------------------------------|---------|-------------------------|
+| `timezone`                   | String  | 服务端使用的时区                |
+| `serverEpochMillis`          | Long    | 生成状态时的服务器时间戳            |
+| `nextDayStartsAtEpochMillis` | Long    | 下一自然日 00:00 的时间戳        |
+| `weekStart` / `weekEnd`      | String  | 本周周一和周日，格式 `yyyy-MM-dd` |
+| `today`                      | String  | 服务端当前日期                 |
+| `todaySlot`                  | Number  | 当前星期槽位，范围 `1..7`        |
+| `attendanceDays`             | Number  | 本周已签到天数，范围 `0..7`       |
+| `fullAttendance`             | Boolean | 七天是否都已经签到               |
+| `days`                       | Array   | 固定七项，按槽位 `1..7` 排列      |
+| `bonus`                      | Object  | 全勤奖励，固定 `slot = 8`      |
+
+每日对象包含 `slot`、`day`、`date`、`name`、`description`、`enabled`、`state`、`rewardCount` 和 `rewards`。全勤对象使用相同奖励字段，但没有 `day` 与 `date`。
+
+协议要求：
+
+- `days.length = 7`，且 `days[i].slot = i + 1`；
+- `bonus.slot = 8`；
+- `rewardCount` 必须等于 `rewards.length`；
+- 每日能否签到只看 `state`；即使 `enabled = false`，今天仍可以记录出勤；
+- 客户端不能根据本地日期、`attendanceDays` 或 `enabled` 推导领取状态。
+
+### 每日状态
+
+| 值           | 说明             |
+|-------------|----------------|
+| `available` | 今天可以签到         |
+| `signed`    | 已签到，邮件已送达或奖励关闭 |
+| `pending`   | 已签到，邮件仍在处理     |
+| `failed`    | 已签到，但自动投递已经暂停  |
+| `missed`    | 日期已过且没有签到      |
+| `locked`    | 日期尚未到          |
+
+### 全勤状态
+
+| 值           | 说明              |
+|-------------|-----------------|
+| `available` | 当前为周日、七天全勤且奖励启用 |
+| `claimed`   | 邮件已经送达          |
+| `pending`   | 全勤条件已确认，邮件仍在处理  |
+| `failed`    | 自动投递已经暂停        |
+| `disabled`  | 本周全勤奖励关闭        |
+| `locked`    | 尚未达到领取条件        |
+
+## `result`
+
+```json
+{
+  "code": "signed",
+  "success": true,
+  "message": "签到成功，奖励已发送到系统邮箱。"
+}
+```
+
+| 字段        | 类型      | 说明            |
+|-----------|---------|---------------|
+| `code`    | String  | 程序结果码         |
+| `success` | Boolean | 本次业务请求是否已被接受  |
+| `message` | String  | 可直接展示的服务端语言文本 |
+
+常用结果码：
+
+| code                        | success | 说明            |
+|-----------------------------|--------:|---------------|
+| `signed`                    |    true | 签到和奖励邮件均已完成   |
+| `signed_without_reward`     |    true | 已记录签到，但当天奖励关闭 |
+| `already_signed`            |   false | 今天已经签到        |
+| `bonus_claimed`             |    true | 全勤奖励已完成       |
+| `bonus_not_sunday`          |   false | 当前不是周日        |
+| `bonus_not_full_attendance` |   false | 本周尚未达到全勤      |
+| `bonus_disabled`            |   false | 全勤奖励关闭        |
+| `already_claimed`           |   false | 奖励此前已经送达      |
+| `delivery_pending`          |    true | 资格已保存，邮件正在处理  |
+| `delivery_failed`           |   false | 自动投递已经暂停      |
+| `no_reward_group`           |   false | 当前没有可用奖励组     |
+| `internal_error`            |   false | 操作或状态读取未完成    |
+
+界面应直接显示服务端 `message`，最终按钮和卡片状态由随后收到的 `state` 决定。不要在客户端复制语言文案，也不要显示内部异常、邮件 ID 或奖励记录 ID。
+
+## 客户端动作
+
+合法调用只有：
+
+```aria
+Packet.send('refresh')
+Packet.send('sign')
+Packet.send('bonus')
+```
+
+三个动作都不携带参数。服务端以数据包发送者作为唯一玩家身份，客户端不得提交玩家 UUID、日期、奖励组、奖励槽位、目标周或邮件内容。
+
+## 奖励对象
+
+| `type`    | 字段                        | 显示方式                        |
+|-----------|---------------------------|-----------------------------|
+| `item`    | `id`、`type`、`content`     | 使用 UI Icon Slot 读取真实物品名称和数量 |
+| `eco`     | `id`、`type`、`name`、`icon` | 显示服务端名称与货币图标                |
+| `command` | `id`、`type`、`name`、`icon` | 只显示管理端配置的标题和图标              |
+
+`id` 只是当前奖励槽位内的稳定展示键，不是数据库 ID、邮件 ID 或去重标识。客户端不会收到真实命令正文、执行身份或邮件内部数据。
+
+奖励列表支持最多 54 个物品、32 个货币和 32 个命令，不能截断。列表为空也是合法状态，每日领取按钮仍只按服务端 `state` 决定。
+
+## 时间刷新
+
+客户端不需要解析时区。它使用 `serverEpochMillis` 计算与服务端的时间偏移，并在 `nextDayStartsAtEpochMillis` 到达后发送一次 `refresh`。
+
+每次收到新 `state` 时，应取消旧计时并使用新的时间戳重新安排刷新。该计时只用于及时更新画面，不能作为签到或全勤资格判断。
+
+

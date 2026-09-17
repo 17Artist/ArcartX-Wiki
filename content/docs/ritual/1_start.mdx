@@ -1,0 +1,93 @@
+---
+title: 说明与安装
+description: Ritual 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Ritual 按自然周提供七日签到。服主可配置周一至周日的独立奖励和七日全勤奖励，并让多组奖励按照固定顺序逐周轮换。
+
+<Callout type="warn">
+**Ritual 为 ArcartX 高级会员专属插件。** 使用时需要有效授权。
+</Callout>
+
+## 核心能力
+
+| 能力    | 说明                              |
+|-------|---------------------------------|
+| 自然周签到 | 每周一 00:00 开始新周期                 |
+| 七日奖励  | 为周一至周日分别配置物品、货币和命令奖励            |
+| 全勤奖励  | 玩家在周日且七天全部签到后领取一次               |
+| 奖励轮换  | 多组启用方案按管理界面顺序在全服统一逐周轮换          |
+| 可视化编辑 | 在游戏内创建奖励组、编辑邮件、附件和奖励顺序          |
+
+## 运行条件
+
+- Java 17+；
+- Paper 1.18.2+；
+- Blink 1.3.14 运行环境；
+- ArcartX 2.5.36.8+；
+- SystemMail 1.0.0+；
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装依赖与插件
+
+停止服务器，将 Ritual JAR 放入 `plugins/`，并确认 ArcartX 与 SystemMail 已经安装。
+
+</Step>
+
+
+<Step>
+
+### 填写许可证
+
+首次启动会生成 `plugins/Ritual/license.yml`，未填写时 Ritual 不会启动业务：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+填写 Ritual 的有效授权凭据，再完整重启服务器。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认以下文件已经生成：
+
+```text
+plugins/Ritual/
+├─ license.yml
+├─ config.yml
+├─ database.yml
+├─ language.yml
+└─ ui/
+   └─ signin.yml
+```
+
+</Step>
+
+<Step>
+
+### 调整默认奖励
+
+执行 `/ritual gui` 打开管理界面，检查默认生成的三组奖励。正式开放前，请调整每日奖励、全勤奖励和奖励组顺序。
+
+最后使用 `/ritual open` 检查玩家界面。
+
+</Step>
+
+</Steps>
+
+玩家界面只显示奖励内容，不显示奖励组 ID、管理名称或轮换位置。
