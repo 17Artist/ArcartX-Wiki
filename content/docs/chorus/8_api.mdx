@@ -56,6 +56,8 @@ chorus.registerPlayerAction(this, 100, action);
 - 接收者解析器、格式解析器和玩家动作采用最先匹配的一项；
 - 消息处理器会按优先级依次执行全部处理器。
 
+这里的注册优先级只决定扩展处理顺序和同 ID 频道由哪个提供器持有。`ChannelView.priority` 才决定频道在聊天界面中的位置；所有提供器的频道合并去重后，会按该值从高到低排列。
+
 这些回调由 Bukkit 主线程调用，不要直接执行阻塞数据库或网络请求。
 
 ## 自定义频道与接收者
@@ -64,6 +66,7 @@ chorus.registerPlayerAction(this, 100, action);
 ChannelView guild = new ChannelView(
     "guild",
     "公会",
+    500,
     "chorus/icons/channel-guild.png",
     "chorus/icons/channel-guild-light.png",
     "§8[§d公会§8] §r",
@@ -79,7 +82,9 @@ ChannelView guild = new ChannelView(
 );
 ```
 
-`ChannelProvider.channels(viewer)` 决定该玩家可见的频道列表，`find(id)` 用于发送和接收时查找频道。`RecipientResolver.resolveLocal()` 收到已经过接收权限初筛的本服在线玩家，只应返回其中的子集。
+`ChannelProvider.channels(viewer)` 决定该玩家可见的频道列表，`find(id)` 用于发送和接收时查找频道。`ChannelView.priority` 数值越大，频道在 UI 中越靠前。`RecipientResolver.resolveLocal()` 收到已经过接收权限初筛的本服在线玩家，只应返回其中的子集。
+
+这种方式已经完整提供频道，因此 `channels.yml` 不需要再出现 `guild`。如果希望由服主在 `channels.yml` 控制频道名称、图标、格式和排序，就不要注册 `ChannelProvider`，只注册配置中 `recipient-resolver` 对应的 `RecipientResolver`。
 
 GLOBAL 频道不会自动同步外部插件的公会或队伍数据。每个 Bukkit 节点都要注册同名频道与解析器，并能读取一致的成员关系。
 
@@ -137,5 +142,4 @@ chorus.registerPlayerAction(this, 100, new PlayerAction() {
 | `showNotice(target, message, tone)`      | 在常驻聊天 HUD 显示短提示          |
 
 `NoticeTone` 支持 `INFO`、`SUCCESS`、`WARNING` 和 `ERROR`。
-
 

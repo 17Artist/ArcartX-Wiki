@@ -12,6 +12,7 @@ description: 自定义频道、聊天格式和玩家操作菜单
 ```yaml
 guild:
   display-name: "公会"
+  priority: 500
   icon: "chorus/icons/channel-guild.png"
   active-icon: "chorus/icons/channel-guild-light.png"
   prefix: "&8[&d公会&8] &r"
@@ -35,6 +36,7 @@ guild:
 | 字段                     | 说明                                  |
 |------------------------|-------------------------------------|
 | `display-name`         | 频道在界面中的名称                           |
+| `priority`             | 频道列表排序优先级，数值越大越靠前；同值保持提供器顺序         |
 | `icon` / `active-icon` | 普通和选中状态的客户端图标，两项都必须填写               |
 | `prefix`               | 实际消息前缀，不能为空，支持 `&` 颜色               |
 | `filter-prefix`        | AX UI `Chat.filter` 使用的显示前缀，非空值不能重复 |
@@ -47,9 +49,14 @@ guild:
 
 每个频道至少需要一个 `permission: ""` 的默认格式。格式模板必须包含 `{player}` 和 `{message}`，还可以使用 `{server}` 与 PlaceholderAPI 变量。
 
+`channels.yml` 只定义由 Chorus 配置持有的频道。外部插件有两种互斥接入方式：
+
+- 由服主在 `channels.yml` 定义频道，外部插件只注册 `recipient-resolver` 指向的 `RecipientResolver`；
+- 外部插件通过 `ChannelProvider` 完整注册 `ChannelView`，此时不要在 `channels.yml` 重复配置同 ID 频道。
+
 综合频道的 `filter-prefix` 建议保持空字符串，让它显示所有已接收内容。内置 `danmaku` 频道必须存在、可以选择，并设置为 `GLOBAL`，不需要不给玩家权限即可。
 
-频道 ID 长度为 `1..32`，只能包含小写字母、数字、下划线、点和连字符。
+每个配置频道都必须填写整数 `priority`。频道 ID 长度为 `1..32`，只能包含小写字母、数字、下划线、点和连字符。
 
 ## 玩家操作菜单
 
@@ -83,4 +90,3 @@ buttons:
 命令模板支持 `{viewer}`、`{viewer_uuid}`、`{target}` 和 `{target_uuid}`。
 
 按钮 ID 长度为 `1..64`，只能包含小写字母、数字、下划线、点和连字符。
-
