@@ -6,7 +6,7 @@ description: 由 ArcartX 向 Overture 注册客户端特殊 Tag Meta 与统一�
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="warn">
-这些扩展由 ArcartX 提供，不属于 Overture 的独立功能。只安装 Overture 不会写入或消费任何 ArcartX 特殊 Tag。
+本页“可用 Meta”和“统一物品提供器”由 ArcartX 注册。Overture 本身不声明 ArcartX 依赖。Display 的 `nbt` 是 Overture 自身功能；需要支持读取NBT继续渲染的组件进行读取后渲染。
 </Callout>
 
 ## 可用 Meta
@@ -52,6 +52,26 @@ arcartx_showcase:
 这里使用 `meta!!`，表示物品版本更新时先清理旧的同名根 Tag，再写入新值。若使用普通 `meta`，新生成物品仍会写入这些 Tag，但已有物品在版本更新检查中会遵循 Overture 的未锁定 Meta 保留规则。
 
 移除某个 `arcartx:*` 配置后，Overture 会根据 Meta 历史调用 ArcartX 注册的清理实例并删除对应根 Tag；`arcartx:extra_model` 会整体替换或移除 `extra_model` compound，不会保留已经从配置删除的定位器。
+
+## 为 ArcartX Tooltip 提供数据
+
+ArcartX Tooltip 可当前物品读取 NBT 进行渲染展示。Overture 的展示方案可把同一套变量额外写入 `render` 根节点：
+
+```yaml
+equipment_display:
+  name: "<item_name>"
+  lore:
+    - "<item_desc...>"
+  nbt:
+    tooltip_title: "<item_name>"
+    tooltip_lines:
+      - "<item_desc...>"
+      - "&7护甲: &f<armor_display>"
+```
+
+ArcartX Tooltip 中读取字符串时使用 `item.getNBT("render.tooltip_title")`，读取列表时使用 `item.getNBTList("render.tooltip_lines")`。`tooltip_title` 和 `tooltip_lines` 只是示例键名，可按 Tooltip 配置自行命名。
+
+`nbt` 字符串写入 NBT String，列表写入`NBT List<String>`。它们与名称和 Lore 共用变量来源，也支持第三方 RenderEntry；具体展开规则见[展示方案](/docs/overture/6_display)。物品重建或条件展示切换时，`render` 按当前方案完整替换，避免旧 Tooltip 字段残留。
 
 
 ## ArcartX 统一物品提供器

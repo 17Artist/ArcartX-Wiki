@@ -58,11 +58,16 @@ weapon_display:
     - ""
     - "&7攻击力: &f<damage_display>"
     - "&7等级: &f<level_text>"
+  nbt:
+    tooltip_title: "<item_name> <item_level>"
+    tooltip_lines:
+      - "<item_desc...>"
+      - "&7攻击力: &f<damage_display>"
 ```
 
-`name.item_name`、`name.item_level` 供 Display 的 `name` 模板引用；`lore.item_type`、`lore.item_desc` 供 Display 的 `lore` 模板引用。`data-mapper` 结果会同时加入名称和 Lore 变量。
+`name.item_name`、`name.item_level` 供 Display 的单值模板引用；`lore.item_type`、`lore.item_desc` 供 Display 的列表模板引用。`data-mapper` 结果会同时加入两类变量。
 
-`<var>` 读取单值，`<var...>` 在 Lore 中展开整个列表。定义但未在所选 Display 中引用的变量不会出现在最终 ItemMeta。完整模板规则见[展示方案](/docs/overture/6_display)。
+`<var>` 读取单值，`<var...>` 在 Lore 或 `nbt` 列表中展开整个列表。上例还会写入字符串 `render.tooltip_title` 和字符串列表 `render.tooltip_lines`，供例如 ArcartX Tooltip 读取。定义但未在所选 Display 中引用的变量不进入最终名称、Lore 或 `render` NBT。完整模板规则见[展示方案](/docs/overture/6_display)。
 
 ## 字段
 

@@ -1,9 +1,9 @@
 ---
 title: 展示方案
-description: 配置可复用的名称、Lore 与条件展示模板
+description: 配置可复用的名称、Lore、 NBT 与条件展示模板
 ---
 
-展示方案位于 `displays/` 目录，用于把物品变量渲染为名称和 Lore。
+展示方案位于 `displays/` 目录，用于把物品变量渲染为名称、Lore 和客户端可读取的 NBT。
 
 ## 普通展示
 
@@ -16,14 +16,30 @@ weapon_display:
     - "<item_desc...>"
     - ""
     - "&7攻击力: &f<damage_display>"
+  nbt:
+    tooltip_title: "<item_name> <item_level>"
+    tooltip_lines:
+      - "<item_desc...>"
+      - "&7攻击力: &f<damage_display>"
 ```
 
-| 语法         | 行为                |
-|------------|-------------------|
-| `<var>`    | 读取单个值；列表只取第一项     |
-| `<var...>` | 在 Lore 中按返回顺序展开多行 |
+| 语法         | 行为                          |
+|------------|-----------------------------|
+| `<var>`    | 读取单个值；列表只取第一项               |
+| `<var...>` | 在 Lore 或 `nbt` 列表中按返回顺序展开多行 |
 
 展开变量为空列表时，模板所在行会被移除，不会留下空白占位。
+
+## 展示 NBT
+
+`nbt` 下的每个直接子键都会写入物品根 NBT 的 `render.<key>`：
+
+- 字符串配置写为 NBT String。
+- YAML 字符串列表写为 `NBT List<String>`。
+- 字符串使用单值变量；列表使用与 Lore 相同的 `<var>` 和 `<var...>` 规则。
+- `&` 与 `&#RRGGBB` 颜色代码会和名称、Lore 一样转换后再写入。
+
+上例可由 ArcartX Tooltip 分别通过 `item.getNBT("render.tooltip_title")` 和 `item.getNBTList("render.tooltip_lines")` 读取。键名由展示方案自行约定；切换到新的展示方案时，`render` 会按新方案完整重建，不再配置的旧键将被移除。
 
 ## 变量来源
 
@@ -51,7 +67,10 @@ weapon_display_smart:
 name: "<example:item_desc>"
 lore:
   - "<example:item_desc...>"
+nbt:
+  tooltip_title: "<example:item_desc>"
+  tooltip_lines:
+    - "<example:item_desc...>"
 ```
 
-名称取回调结果的第一行，Lore 展开全部行。同一个标签在一次渲染中只执行一次回调；第三方 RenderEntry 只在主线程执行。注册方式见[扩展注册](/docs/overture/14_extensions)。
-
+名称和 `nbt` 字符串取回调结果的第一行，Lore 与 `nbt` 列表可展开全部行。同一个标签在一次渲染中只执行一次回调；第三方 RenderEntry 只在主线程执行。注册方式见[扩展注册](/docs/overture/14_extensions)。

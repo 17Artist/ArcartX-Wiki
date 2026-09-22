@@ -13,7 +13,7 @@ description: 注册 RenderEntry、Trigger、Behavior、Provider、Meta、Mapper 
 
 | 需求                              | 应选择                                 | 回调能拿到什么                                        | 会不会修改实例数据                         |
 |---------------------------------|-------------------------------------|------------------------------------------------|-----------------------------------|
-| 根据玩家、当前物品生成名称或多行 Lore           | RenderEntry                         | `player`、只读物品 clone、`displayId`、`ItemDataView` | 否                                 |
+| 根据玩家、当前物品生成名称、Lore 或渲染 NBT      | RenderEntry                         | `player`、只读物品 clone、`displayId`、`ItemDataView` | 否                                 |
 | 把第三方 Bukkit 事件接入 `event` 动作     | Trigger + `dispatchExternalTrigger` | 调用方提供玩家、物品、事件与变量                               | 动作执行后可能修改，调用方负责写回                 |
 | 用 Java/Kotlin 处理物品触发器           | Behavior                            | 触发器、玩家、只读物品 clone、可变数据、事件、配置 options           | 可以，通过 `MutableItemData`           |
 | 校验并持久化第三方配置/实例状态                | ItemComponentCodec                  | 不可变 `ItemDataNode` 配置树                         | codec 只编译 definition；实例用数据 API 修改 |
@@ -69,7 +69,7 @@ Provider 还有第二层资源冲突规则：所有活动 Provider 按较小优�
 - `/ot inspect reload`：查看最近一次重载的问题、冲突、来源和回滚结果。
 - 注册冲突会在注册调用点抛异常；Provider/组件候选错误进入 `ReloadReport`；运行期回调错误会按各扩展自己的隔离规则记录日志。
 
-## 自定义名称与 Lore
+## 自定义名称、Lore 与渲染 NBT
 
 ```kotlin
 private val registrations = mutableListOf<RegistrationHandle>()
@@ -92,9 +92,13 @@ override fun onLoad() {
 name: "<example:item_desc>"
 lore:
   - "<example:item_desc...>"
+nbt:
+  tooltip_title: "<example:item_desc>"
+  tooltip_lines:
+    - "<example:item_desc...>"
 ```
 
-`RenderEntryRenderer` 接收 `RenderEntryContext`，其中包含 `key`、`player`、`itemStack`、`displayId` 与只读 `data`。名称使用第一行，Lore 展开全部行。同一标签每次渲染只调用一次。回调仅在主线程执行；`itemStack` 与 `data` 都来自 clone，修改不会写回真实物品。
+`RenderEntryRenderer` 接收 `RenderEntryContext`，其中包含 `key`、`player`、`itemStack`、`displayId` 与只读 `data`。名称和 `nbt` 字符串使用第一行，Lore 与 `nbt` 列表可展开全部行。同一标签每次渲染只调用一次，即使同一个标签同时出现在这几个位置。回调仅在主线程执行；`itemStack` 与 `data` 都来自 clone，修改不会写回真实物品。
 
 回调异常会被隔离；软预算为 5ms，超时会写入警告和 `/ot inspect` 耗时。返回值最多保留 128 行，每行最多 2048 字符。
 
