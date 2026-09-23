@@ -5,7 +5,7 @@
     "tags": [
         { "label": "闭源", "color": "#DC143C" },
         { "label": "高级会员专属", "color": "#F59E0B" },
-        { "label": "特效", "color": "#0EA5E9" },
+        { "label": "模型", "color": "#0EA5E9" },
         { "label": "UI", "color": "#8B5CF6" }
     ],
     "root": true,
