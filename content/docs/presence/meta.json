@@ -1,6 +1,6 @@
 {
     "title": "Presence — 存在",
-    "description": "在线时长、阶段礼包与系统邮箱发放",
+    "description": "每日在线奖励",
     "icon": "logo/presence-logo.png",
     "tags": [
         { "label": "闭源", "color": "#DC143C" },
@@ -11,7 +11,7 @@
     "root": true,
     "color": "#3B82F6",
     "entry": "presence/1_start",
-    "tagline": "在线时长、阶段礼包邮箱发放",
+    "tagline": "每日在线奖励",
     "order": 18,
     "defaultOpen": true,
     "pages": [
