@@ -93,7 +93,7 @@ features:
 MySQL 连接填写在 `database.yml`：
 
 ```yaml
-schema: 1
+schema: 2
 
 mysql:
   host: 127.0.0.1
@@ -101,10 +101,11 @@ mysql:
   database: arcartx
   username: arcartx
   password: change-me
-  use-ssl: false
-  allow-public-key-retrieval: true
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
   pool-size: 4
 ```
+
+`parameters` 填写时不要在开头加 `?` `&`。默认值适用于本机或可信内网；数据库位于不可信网络时，应根据数据库证书配置 TLS。
 
 ### 装备与功能开关
 
@@ -195,7 +196,7 @@ ai/skill/write-symphony-config/scripts/validate-config-pack.ps1 -PackRoot <配�
 ## 配置结构版本
 
 - 主 `config.yml` 使用 `schema: 2`。
-- `database.yml` 使用 `schema: 1`。
+- `database.yml` 使用 `schema: 2`。旧版 `schema: 1` 配置仍可读取；。
 - 战力、属性、伤害、词条、宝石、套装、强化、技能和高级玩法文件使用 `schema: 1`。
 - `display.yml` 和界面布局使用 `schema: 1`。
 - `language.yml` 不使用数字结构版本，而是严格检查所有必需键名。
