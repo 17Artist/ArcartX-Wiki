@@ -34,6 +34,8 @@ GiftCode 是面向 ArcartX 服务器的**礼包兑换码插件**。管理员可�
 
 如果尚未安装邮件系统，请先完成 [SystemMail 安装](/docs/systemmail/1_start)。
 
+群组服可使用 MySQL 5.7 或 8.x。
+
 ## 安装步骤
 
 <Steps>
@@ -81,11 +83,11 @@ redemption.yml
 language.yml
 license.yml
 ui/redeem.yml
-exports/
 giftcode.db
 ```
 
 `giftcode.db` 只会在默认 SQLite 模式下使用。
+`exports/` 会在首次生成或重新导出兑换码时创建。
 
 </Step>
 

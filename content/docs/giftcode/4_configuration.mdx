@@ -17,7 +17,7 @@ time-zone: Asia/Shanghai
 ```
 
 - `server-id`：当前子服的唯一名称；多个子服共用 MySQL 时，每台必须不同；
-- `time-zone`：Java `ZoneId`，用于礼包有效期和导出文件时间。
+- `time-zone`：Java `ZoneId`，用于导出文件名中的时间。
 
 ## database.yml
 
@@ -32,13 +32,21 @@ mysql:
   database: arcartx
   username: root
   password: change-me
-  parameters: useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
   pool-size: 6
 ```
 
 单服保持 `type: sqlite` 即可，数据库文件默认为 `plugins/GiftCode/giftcode.db`。多个子服必须改为 `type: mysql`，并让所有节点连接同一个 MySQL 数据库。
 
-`parameters` 只填写 JDBC 参数，不要在开头添加 `?`。生产环境是否启用 TLS，应按实际网络环境决定。
+| 配置项                                                  | 说明                                   |
+|------------------------------------------------------|--------------------------------------|
+| `type`                                               | `sqlite` 用于单服，`mysql` 用于共享数据库的群组服    |
+| `sqlite-file`                                        | SQLite 文件相对于 `plugins/GiftCode/` 的路径 |
+| `worker-threads`                                     | 数据库、生成和投递任务的工作线程数，范围 2–16            |
+| `mysql.host`、`port`、`database`、`username`、`password` | MySQL 连接信息                           |
+| `mysql.parameters`                                   | JDBC 参数，不要在开头添加 `?`                  |
+| `mysql.pool-size`                                    | MySQL 连接池上限，范围 2–50                  |
+
 
 ## redis.yml
 
@@ -55,6 +63,8 @@ key-prefix: "giftcode:"
 ```
 
 Redis 是可选项，用于减少多个子服同时兑换热门码时的等待。Redis 暂时不可用时，插件仍会通过数据库处理兑换。
+
+`database` 可填写 0–15，`timeout-millis` 范围为 250–15000 毫秒。多个节点连接同一 Redis 时应使用相同的 `key-prefix`。
 
 <Callout type="info">
 Redis 不能代替共享 MySQL。群组服如果各自使用不同数据库，即使连接同一个 Redis，也无法共享兑换记录。
