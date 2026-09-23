@@ -55,7 +55,7 @@ Packet.send('getlist', page, filter, search)
 | 1  | `String` | `全部`、`未读` 或 `含附件`   |
 | 2  | `String` | 标题/发件人搜索；`''` 表示不搜索 |
 
-每页数量由 `mail.yml -> limits.inbox-page-size` 决定，默认 20。
+每页数量由 `mail.yml -> limits.inbox-page-size` 决定，默认 `20`，允许 `1–100`。
 
 成功回包使用 `list`，内容为 `List<Map>`：
 
@@ -87,7 +87,7 @@ Packet.send('getlist', page, filter, search)
 | `expired` | `String`  | 剩余时间；永不过期时为 `""`                |
 | `read`    | `Boolean` | 是否已读                            |
 
-无结果时返回 `[]`。`含附件` 只匹配有附件的邮件。
+无结果时返回 `[]`。`含附件` 只匹配有可领取附件的邮件。
 
 `systemmail_page_count` 是未筛选收件箱的总页数，最小为 `1`，不代表当前搜索结果的页数。当前回包少于每页数量时可以确定没有下一页；刚好等于每页数量时，应结合该变量或允许用户继续翻页。
 

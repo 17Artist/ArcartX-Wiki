@@ -31,7 +31,8 @@ SystemMail 只处理“系统 → 玩家”邮件，不提供玩家互寄功能�
 - Java 17+；
 - Minecraft 1.18.2+；
 - ArcartX；
-- 高级会员有效授权。
+- 高级会员有效授权；
+- 多服模式使用 MySQL 5.7 或 8.x 与 Redis。
 
 ## 安装步骤
 
@@ -133,6 +134,6 @@ key-prefix: 'systemmail:'
 ```
 
 <Callout type="info">
-MySQL 保存邮件、附件和领取状态。Redis 只负责快速通知；短暂断线时，SystemMail 会继续 从 MySQL 检查新邮件。
+MySQL 保存邮件、附件和领取状态。Redis 只负责快速通知；短暂断线时，SystemMail 会继续从 MySQL 检查新邮件。
 </Callout>
 
