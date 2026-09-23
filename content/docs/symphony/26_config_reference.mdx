@@ -101,11 +101,11 @@ mysql:
   database: arcartx
   username: arcartx
   password: change-me
-  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
   pool-size: 4
 ```
 
-`parameters` 填写时不要在开头加 `?` `&`。默认值适用于本机或可信内网；数据库位于不可信网络时，应根据数据库证书配置 TLS。
+`parameters` 不要以 `?` 或 `&` 开头。默认值适用于本机或可信内网。
 
 ### 装备与功能开关
 

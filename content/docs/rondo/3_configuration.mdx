@@ -25,7 +25,7 @@ storage:
     database: rondo
     username: rondo
     password: ""
-    parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+    parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
     pool-size: 10
 
 performance:
@@ -79,10 +79,9 @@ cross-server:
 ## 连接安全
 
 - 默认 `parameters` 关闭 MySQL TLS，并允许从服务器获取 RSA 公钥，只适用于本机或可信内网。
-- 数据库经过不可信网络时，请部署 CA 与主机名证书，并把 `parameters` 改为经过实际环境验证的 TLS 参数。例如：`useUnicode=true&characterEncoding=UTF-8&sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false&serverTimezone=UTC`。
+- 数据库经过不可信网络时，请部署 CA 与主机名证书，并把 `parameters` 改为经过实际环境验证的 TLS 参数。例如：`useUnicode=true&characterEncoding=UTF-8&sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false`。
 - `parameters` 不要以 `?` 或 `&` 开头，也不要加入空格。
 - Redis 使用 ACL 时填写 `username`；多组服务器共用 Redis 时，分别设置 `database` 和 `sync-channel`。
-
 
 ---
 
