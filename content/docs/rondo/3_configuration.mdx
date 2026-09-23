@@ -25,9 +25,7 @@ storage:
     database: rondo
     username: rondo
     password: ""
-    # DISABLED / PREFERRED / REQUIRED / VERIFY_CA / VERIFY_IDENTITY
-    ssl-mode: PREFERRED
-    allow-public-key-retrieval: false
+    parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
     pool-size: 10
 
 performance:
@@ -80,9 +78,11 @@ cross-server:
 
 ## 连接安全
 
-- 跨主机 MySQL 建议使用 `VERIFY_IDENTITY`，并正确部署 CA 与主机名证书。
+- 默认 `parameters` 关闭 MySQL TLS，并允许从服务器获取 RSA 公钥，只适用于本机或可信内网。
+- 数据库经过不可信网络时，请部署 CA 与主机名证书，并把 `parameters` 改为经过实际环境验证的 TLS 参数。例如：`useUnicode=true&characterEncoding=UTF-8&sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false&serverTimezone=UTC`。
+- `parameters` 不要以 `?` 或 `&` 开头，也不要加入空格。
 - Redis 使用 ACL 时填写 `username`；多组服务器共用 Redis 时，分别设置 `database` 和 `sync-channel`。
-- `allow-public-key-retrieval` 在生产环境建议保持 `false`。
+
 
 ---
 
@@ -90,11 +90,20 @@ cross-server:
 
 | 参数                                           | 允许范围                    |
 |----------------------------------------------|-------------------------|
+| `storage.type`                               | `sqlite` 或 `mysql`      |
+| `storage.mysql.host` / `username`            | 非空                      |
+| `storage.mysql.port`                         | 1–65535                 |
+| `storage.mysql.database`                     | 1–64 位字母、数字、下划线或连字符     |
+| `storage.mysql.parameters`                   | 非空；不含空白；不以 `?` 或 `&` 开头 |
+| `storage.mysql.pool-size`                    | 1–128                   |
 | `performance.log-queue-size`                 | 100–100000              |
 | `performance.ranking-refresh`                | 不小于 200 tick            |
 | `performance.ranking-size`                   | 1–10000                 |
 | `performance.read-cache-offline-ttl-seconds` | 0–86400 秒               |
 | `performance.read-cache-max-offline-entries` | 1–1000000               |
+| `features.log-retention-days`                | `-1` 或正整数               |
+| `cross-server.redis.host`                    | 非空                      |
+| `cross-server.redis.port`                    | 1–65535                 |
 | `cross-server.redis.database`                | 0–15                    |
 | `cross-server.redis.timeout-millis`          | 500–30000 ms            |
 | `cross-server.redis.pool-size`               | 2–128                   |

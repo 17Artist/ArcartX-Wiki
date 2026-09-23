@@ -11,7 +11,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 |------------|-------------------------------|
 | **Java**   | 17                            |
 | **服务端**    | Spigot/Paper 1.18.2+ API 兼容版本 |
-| **跨服额外服务** | 共享 MySQL/InnoDB 与 Redis       |
+| **MySQL**  | 5.7 或 8.x，使用 InnoDB           |
+| **跨服额外服务** | 共享 MySQL 5.7 或 8.x 与 Redis    |
 | **可选插件**   | Vault、PlaceholderAPI          |
 
 ---
@@ -53,10 +54,11 @@ storage:
     database: database
     username: rondo
     password: "change-me"
-    ssl-mode: VERIFY_IDENTITY
-    allow-public-key-retrieval: false
+    parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
     pool-size: 10
 ```
+
+这组默认参数适用于本机或可信内网直连。数据库经过不可信网络时，请配置并验证 TLS 证书，再按[主配置](/docs/rondo/3_configuration#连接安全)中的说明替换 `parameters`。
 
 ---
 
@@ -88,7 +90,7 @@ storage:
 
 ### MySQL 连接失败
 
-- 检查数据库名、账号权限、TLS 与防火墙。
+- 检查数据库名、账号权限、`parameters`、TLS 与防火墙。
 
 ### Redis 连接失败
 

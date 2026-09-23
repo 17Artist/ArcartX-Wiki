@@ -48,6 +48,7 @@ ranking-enabled: true
 | `display-name`      | 显示名称                               |
 | `symbol`            | 货币符号                               |
 | `color`             | Minecraft 颜色名或 `§` 颜色代码            |
+| `description`       | 供第三方插件读取的货币说明                      |
 | `decimal-places`    | 小数位数，范围 `0..4`                     |
 | `max-balance`       | 余额上限，`-1` 表示不限制                    |
 | `default-balance`   | 新玩家初始余额                            |
@@ -60,6 +61,8 @@ ranking-enabled: true
 
 例如转账 100、税率为 5% 时，发送方扣除 105，接收方得到 100。
 
+`id` 长度为 1–64 位，且必须使用规范小写形式。`transfer-tax-rate` 允许 `0..1`，最多 12 位有效小数。`max-balance` 只能是 `-1` 或非负数；`default-balance` 必须符合数据库精度，不能超过余额上限，关闭负数余额时也不能小于零。
+
 ---
 
 ## 新增、修改与删除
@@ -71,4 +74,3 @@ ranking-enabled: true
 <Callout type="warn">
 删除货币配置不会自动删除数据库中的余额和流水。
 </Callout>
-
