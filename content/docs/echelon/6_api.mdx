@@ -45,17 +45,22 @@ priv.seventeen.artist.arcartx.echelon.api.event
 ```kotlin
 import priv.seventeen.artist.arcartx.echelon.api.EchelonAPI
 
+if (!EchelonAPI.isReady()) return
 val service = EchelonAPI.service() ?: return
 ```
 
 Java：
 
 ```java
+import priv.seventeen.artist.arcartx.echelon.api.EchelonAPI;
+import priv.seventeen.artist.arcartx.echelon.api.EchelonService;
+
+if (!EchelonAPI.isReady()) return;
 EchelonService service = EchelonAPI.service();
 if (service == null) return;
 ```
 
-也可以通过 Bukkit `ServicesManager` 获取 `EchelonService`。
+`EchelonAPI.isReady()` 用于确认等级服务当前是否可用。也可以通过 Bukkit `ServicesManager` 获取 `EchelonService`。
 
 ## EchelonService
 
@@ -66,7 +71,7 @@ if (service == null) return;
 | `addExperience(UUID, long, String)`    | 增加经验，经验必须大于 `0`                   |
 | `setProgress(UUID, int, long, String)` | 设置等级和当前等级内经验                      |
 
-除 `cached` 外，其余方法都返回 `CompletionStage`。如果服务在操作开始前已不可用，结果为 `null`，且不修改玩家数据。短时间内提交量超过插件的处理能力时，结果会以异常结束，防止干爆线程；调用方应处理异常，并按自己的业务规则决定是否稍后重试。同一批经验能够合并时，建议先合计后再调用。回调线程不固定，不要直接在回调中修改世界、实体、玩家背包或界面。
+除 `cached` 外，其余方法都返回 `CompletionStage`。如果服务在操作开始前已不可用，结果为 `null`，且不修改玩家数据。短时间内提交量超过插件的处理能力时，结果会以异常结束，避免请求持续堆积；调用方应处理异常，并按自己的业务规则决定是否稍后重试。同一批经验能够合并时，建议先合计后再调用。回调线程不固定，不要直接在回调中修改世界、实体、玩家背包或界面。
 
 ```kotlin
 service.addExperience(player.uniqueId, 50, "quest:daily")
@@ -102,13 +107,13 @@ service.addExperience(player.uniqueId, 50, "quest:daily")
 
 ## ExperienceResult
 
-| 属性                    | 内容                     |
-|-----------------------|------------------------|
-| `before`、`after`      | 修改前后的等级快照              |
-| `amount`              | 本次请求的经验变动量             |
-| `levelsGained`        | 本次提升的等级数               |
-| `discardedExperience` | 因达到满级而没有计入的经验          |
-| `levelEventId`        | 本次升级事件编号，没有升级时为 `null` |
+| 属性                    | 内容                                                       |
+|-----------------------|----------------------------------------------------------|
+| `before`、`after`      | 修改前后的等级快照                                                |
+| `amount`              | `addExperience` 的请求经验；`setProgress` 产生的总经验变化量，降低等级时可能为负数 |
+| `levelsGained`        | 本次提升的等级数                                                 |
+| `discardedExperience` | `addExperience` 因达到满级而没有计入的经验；`setProgress` 返回 `0`       |
+| `levelEventId`        | 本次升级事件编号，没有升级时为 `null`                                   |
 
 ## 升级事件
 

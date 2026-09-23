@@ -31,7 +31,7 @@ mysql:
   database: "arcartx"
   username: "root"
   password: "change-me"
-  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&connectTimeout=5000&socketTimeout=30000&tcpKeepAlive=true"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
   pool-size: 8
 ```
 
@@ -43,7 +43,7 @@ mysql:
 
 把 `type` 改为 `mysql`，并让所有 Echelon 子服填写同一套 MySQL 地址、端口和数据库名称。其他子服写入的等级变化会在 `level.yml` 的 `multi-server.online-sync-seconds` 设置时间内更新到玩家当前所在服务器。
 
-`parameters` 只填写 JDBC 参数本体，不要在开头添加 `?`。
+`parameters` 不要在开头添加 `?`，通常保持默认值即可。默认参数适用于本机或可信内网中的 MySQL。数据库位于不可信网络时，请按照实际证书配置 TLS，并替换默认的 `useSSL=false`。
 
 `sqlite-file` 只填写 Echelon 数据目录中的文件名。
 
@@ -155,4 +155,3 @@ titles:
 该命令会重新读取等级、称号、提示文字和插件联动。新配置有误时，Echelon 会继续使用重载前的有效设置，并在控制台说明原因。
 
 修改数据库类型、文件名、地址、账号、连接参数、线程数或连接池大小后，必须完整重启服务器。在线同步间隔可以通过重载更新。
-
