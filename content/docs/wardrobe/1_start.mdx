@@ -28,13 +28,14 @@ Wardrobe 负责管理时装目录、玩家拥有状态和穿搭预设。如果�
 | 穿搭预设 | 玩家可以保存多套穿搭，并按配置解锁新栏位                 |
 | 时装购买 | 通过 ArcartX 支持的货币提供者，支持不同经济提供器        |
 | 收藏值  | 统计玩家当前有效时装的收藏值，并提供 PlaceholderAPI 变量 |
-| 存储方式 | 单服使用 SQLite，群组服可以共享 MySQL            |
+| 存储方式 | 单服使用 SQLite，群组服可以共享 MySQL 5.7 或 8.x  |
 
 ## 运行条件
 
 - Java 17+；
 - Spigot 或 Paper 1.18.2+；
 - ArcartX 2.6.50+；
+- MySQL 可选，支持 5.7.44 和 8.x；
 - 高级会员有效授权；
 - PlaceholderAPI 可选，仅在使用收藏值变量时需要。
 
@@ -91,7 +92,7 @@ ui/
 
 ### 配置第一件时装
 
-编辑 `fashions/example.yml`，把示例模型 ID 换成已经导入 符合ArcartX时装格式的模型。保存后执行：
+编辑 `fashions/example.yml`，把示例模型 ID 换成已经导入并符合 ArcartX 时装格式的模型。保存后执行：
 
 ```text
 /wardrobe reload

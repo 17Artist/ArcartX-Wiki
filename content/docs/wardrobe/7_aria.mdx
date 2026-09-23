@@ -7,7 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # Aria 语句
 
-Wardrobe 提供一个面向在线玩家的只读 Aria 语句，主要作用是用于系统商城的条件判断
+Wardrobe 提供一个面向在线玩家的只读 Aria 语句，可用于系统商城和其他服务端脚本的条件判断。
 
 ```aria
 player.hasWardrobePermanentFashion('example_hat')
@@ -29,6 +29,8 @@ player.hasWardrobePermanentFashion(fashionId) -> Boolean
 <Callout type="info">
 即使限时时装当前仍未过期，该语句也会返回 `false`。它只判断永久使用权，不判断玩家当前是否可以穿戴。
 </Callout>
+
+参数数量错误、时装 ID 格式非法、Wardrobe 尚未就绪或授权不可用时，该语句会返回 `false`。
 
 ## 示例
 
