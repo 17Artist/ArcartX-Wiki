@@ -63,7 +63,7 @@ boards:
 
 榜单名称只能使用小写字母、数字、下划线和短横线，并以字母或数字开头。
 
-`placeholder` 长度为 3～256 个字符，必须包含开头和结尾的 `%`。
+`placeholder` 长度为 3～256 个字符，必须包含开头和结尾的 `%`，不能引用 `%laurels_...%`。
 
 所有榜单的 `maximum-entries` 合计不能超过 `100000`，避免一次刷新占用过多内存。
 
@@ -91,6 +91,8 @@ sqlite-file: "laurels.db"
 worker-threads: 4
 ```
 
+`type` 只接受 `sqlite` 或 `mysql`。`sqlite-file` 必须指向 `plugins/Laurels/` 内的文件，不要让多台服务器同时打开同一个 SQLite 文件。
+
 ## MySQL
 
 ```yaml
@@ -103,15 +105,20 @@ mysql:
   database: "arcartx"
   username: "arcartx"
   password: "请填写密码"
-  parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
   pool-size: 4
 ```
 
-| 配置                | 说明                | 范围          |
-|-------------------|-------------------|-------------|
-| `worker-threads`  | 数据库与排行榜后台任务线程数    | `1`～`16`    |
-| `mysql.port`      | MySQL 端口          | `1`～`65535` |
-| `mysql.pool-size` | 当前节点的 MySQL 连接池大小 | `1`～`16`    |
+| 配置                 | 说明                      | 范围           |
+|--------------------|-------------------------|--------------|
+| `worker-threads`   | 数据库与排行榜后台任务线程数          | `1`～`16`     |
+| `mysql.host`       | MySQL 地址                | 最多 255 个字符   |
+| `mysql.port`       | MySQL 端口                | `1`～`65535`  |
+| `mysql.database`   | 数据库名，只能使用字母、数字、下划线和短横线  | `1`～`64` 个字符 |
+| `mysql.username`   | 数据库账号                   | 最多 128 个字符   |
+| `mysql.password`   | 数据库密码                   | 最多 1024 个字符  |
+| `mysql.parameters` | JDBC 连接参数，填写时不要加开头的 `?` | 最多 2048 个字符  |
+| `mysql.pool-size`  | 当前节点的 MySQL 连接池大小       | `1`～`16`     |
 
 Laurels 的数据库操作量较少，通常保持默认 `4`，或按实际负载设置为 `2`～`4` 即可。
 
