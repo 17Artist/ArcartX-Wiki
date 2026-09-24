@@ -1,6 +1,6 @@
 ---
 title: 商品目录
-description: 配置商品分组、奖励、限购和优惠券模板
+description: 配置商品分组、商品内容、限购和优惠券模板
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -41,7 +41,7 @@ groups:
     description:
       - "§7日常探索与便利道具"
     order: 10
-    icon: "shop/textures/group_items.png"
+    icon: "shop/box_linear.png"
 ```
 
 | 字段            | 必填 |  默认值 | 说明      |
@@ -122,7 +122,7 @@ products:
 
 省略 `mode` 时，单物品商品默认使用 `reward-item`，混合奖励、多物品、纯货币或纯命令商品默认使用 `paper`。
 
-## 物品奖励
+## 物品内容
 
 ```yaml
 rewards:
@@ -144,9 +144,9 @@ rewards:
 - `display` 只用于奖励列表，不会修改实际物品；
 - 最终数量为 `amount × 购买数量`。
 
-原版物品 ID 不存在、为 `AIR` 或不是可持有物品时，重载会失败。
+原版物品 ID 不存在、为 `AIR` 或不是可持有物品时，重载失败。
 
-## 货币奖励
+## 货币内容
 
 ```yaml
 rewards:
@@ -159,7 +159,7 @@ rewards:
 
 `provider` 必须是 ArcartX 已注册的经济提供者，`amount` 必须为正数。最终金额为 `amount × 购买数量`。
 
-## 命令奖励
+## 命令内容
 
 ```yaml
 rewards:
@@ -173,12 +173,15 @@ rewards:
         - "say <player> completed a purchase"
 ```
 
-- `id` 是稳定标识，同一商品内不能重复；
-- `display` 是玩家看到的名称；
-- 命令不要添加开头的 `/`，由控制台执行；
-- 只会替换大小写完全相同的 `<player>`；
-- 购买 N 件时，整个命令组按顺序执行 N 次。
+- `id` 是订单恢复使用的稳定标识，必须符合通用 ID 格式，同一商品内不能重复；
+- `display` 必填，是玩家看到的展示名；
+- `description` 省略时显示“无描述”；
+- `icon` 是可选 UI 资源路径，省略时使用界面通用命令图标；
+- `commands` 至少有一条非空命令，不要添加开头的 `/`；
+- 只替换大小写完全相同的字面量 `<player>`；
+- 购买 N 件时，整个命令组按配置顺序执行 N 次。
 
+商品至少要有一项物品、货币或非空命令组。内容条目总数受 `limits.max-reward-entries` 限制，命令总执行次数受 `limits.max-command-executions` 限制。发放顺序固定为物品、货币、命令。
 
 ## 限购
 
@@ -189,9 +192,16 @@ limits:
   period: DAILY
 ```
 
-`personal` 和 `global` 可以单独使用，也可以同时使用；数值必须为正整数。`period` 可填写 `NEVER`、`DAILY`、`WEEKLY` 或 `MONTHLY`，默认为 `NEVER`。
+`personal` 和 `global` 可以单独使用，也可以同时使用；存在时必须为正整数。两者同时存在时，每笔购买必须同时具有足够的个人和全服额度。
 
-两种上限都省略时，商品不限购。取消或完成退款后，相应占用会释放；购买成功后才会计入已使用数量。
+| `period`  | 窗口       |
+|-----------|----------|
+| `NEVER`   | 永久累计     |
+| `DAILY`   | 时区自然日    |
+| `WEEKLY`  | 每周，周一开始  |
+| `MONTHLY` | 配置时区的自然月 |
+
+两种上限都省略时，商品显示“不限购”，购买不写入限购计数或预约表。明确取消或成功退款会释放预约；订单完成后才把预约转为已使用数量。
 
 ## 优惠券模板
 
@@ -208,12 +218,13 @@ coupons:
     applicable-groups:
       - items
     applicable-payment-providers:
-      - vault
+      - Vault
     eligibility-condition: |-
       return val.player.getLevel() < 30
     condition-failure-display: "§c仅限 30 级以下玩家"
     expiry:
       valid-for: PT168H
+      # expires-at: 2026-12-31T15:59:59Z
 ```
 
 | 配置                             | 必填  | 默认值  | 说明                                     |
@@ -222,7 +233,7 @@ coupons:
 | `description`                  | 否   | `[]` | 卡包说明                                   |
 | `mode`                         | 是   | —    | `FIXED` 或 `MULTIPLIER`                 |
 | `value`                        | 是   | —    | 固定抵扣金额或折扣倍率                            |
-| `applicable-groups`            | 否   | `[]` | 空列表表示适用全部普通分组                          |
+| `applicable-groups`            | 否   | `[]` | 空列表表示适用全部规范分组                          |
 | `applicable-payment-providers` | 否   | `[]` | 空列表表示适用全部支付方式                          |
 | `eligibility-condition`        | 否   | 无    | Aria 用券条件                              |
 | `condition-failure-display`    | 否   | 默认语言 | 条件不满足时的提示                              |
