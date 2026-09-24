@@ -3,11 +3,9 @@ title: 玩家使用
 description: 浏览商品、收藏、选择优惠券并完成购买
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
 # 玩家使用
 
-玩家需要 `systemshop.use` 权限，通过以下任一命令使用商城：
+玩家需要 `systemshop.use` 权限，通过以下任一命令打开商城：
 
 ```text
 /ss open
@@ -15,11 +13,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 /systemshop open
 ```
 
-直接输入根命令会显示帮助。
+直接输入根命令显示帮助。
 
 ## 浏览与收藏
 
-商城界面支持：
+商城界面可以：
 
 - 查看全部商品或切换商品分组；
 - 翻页浏览当前分组；
@@ -53,10 +51,13 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 日、周、月按服务器配置的 `time-zone` 计算。
 
-## 商品奖励
+## 商品内容
 
 一个商品可以同时包含物品、货币和命令奖励，发放顺序为：
 
+1. 物品；
+2. 货币；
+3. 命令组。
 
 奖励会按购买数量放大。命令由控制台执行，玩家界面只显示配置的名称和说明。
 
