@@ -314,6 +314,58 @@ import:
 | spaceBetweenY | Y轴间距 |  0  | 子组件之间的垂直间距 |
 |      row      |  行数  |  1  |   子组件的行数   |
 
+### 数据网格布局 `RepeatGrid`
+- 数据网格布局用于根据一个有序列表自动创建、复用、排序和删除子控件。
+- 该控件必须且只能配置一个直接子控件，这个子控件会作为每一条数据的模板，本身不会额外渲染。
+- <strong>独有属性:</strong>
+
+|       名称       |  说明   |    默认值    |                            备注                             |
+|:--------------:|:-----:|:---------:|:---------------------------------------------------------:|
+|     items      | 数据列表  |    空列表    |                     按列表当前顺序创建和排列模板控件                      |
+|      key       | 唯一键字段 |     无     |     每条数据为字典时填写字段名，建议使用不会变化的唯一值，例如 `~uuid`；不填写时使用列表下标      |
+|      flow      | 排列方向  | `~column` | `~column` 为从上到下、到达 `row` 后换列；`~row` 为从左到右、到达 `column` 后换行 |
+|      row       | 每列行数  |    20     |                    `flow: ~column` 时生效                    |
+|     column     | 每行列数  |     1     |                     `flow: ~row` 时生效                      |
+| spaceBetweenX  | X轴间距  |     0     |                        子控件之间的水平间距                         |
+| spaceBetweenY  | Y轴间距  |     0     |                        子控件之间的垂直间距                         |
+|    maxSize     | 最大数量  |    80     |                       超出后只使用列表前面的数据                       |
+| updateInterval | 更新间隔  |    100    |                           单位为毫秒                           |
+
+每个创建出来的模板根控件都会自动获得以下属性：
+
+|      名称       |     说明      |
+|:-------------:|:-----------:|
+|  `self.item`  | 当前条目的完整列表元素 |
+|  `self.key`   |  当前条目的唯一键   |
+| `self.index`  | 当前条目在列表中的下标 |
+|  `self.row`   |   当前条目所在行   |
+| `self.column` |   当前条目所在列   |
+
+模板的下级控件可以通过 `self.parent.item{:aria}` 访问模板根控件上的数据。列表顺序变化时，`RepeatGrid` 会根据 `key` 复用已有控件并移动到新位置；只有数据新增或删除时，才会创建或移除对应控件。
+
+- 详细说明
+```yaml
+controls:
+  playerList:
+    type: RepeatGrid
+    attribute:
+      items: Player.getTabPlayers()
+      key: ~uuid
+      flow: ~column
+      row: 20
+      maxSize: 80
+      spaceBetweenX: 8
+      spaceBetweenY: 2
+    children:
+      player:
+        type: Texture
+        attribute:
+          width: 180
+          height: 20
+          normal: ~0,0,0,80
+          texts: "self.item['displayName'] + '  ' + self.item['latency'] + 'ms'"
+```
+
 ### 横向布局 `HStack` (别名`Stack`)
 - 横向布局用于将子组件横向排列
 - 该类型控件允许子控件增加一条新属性: level, 子控件 level越高，越靠前，其余顺序逻辑不变。
@@ -419,4 +471,3 @@ controls:
 |:------------:|:----:|:---:|:---------------------------:|
 | spaceBetween |  间距  |  0  |          子组件之间的间距           |
 |   maxSize    | 最大数量 |  3  | 一级子控件最大数量，如果超过该值，将移除最先加入的控件 |
-

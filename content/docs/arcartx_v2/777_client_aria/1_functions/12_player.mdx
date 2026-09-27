@@ -27,8 +27,33 @@ Player.getUUID() // 返回 "550e8400-e29b-41d4-a716-446655440000"
 ```
 </Callout>
 
+### `Player.getTabPlayers(){:aria}`
+- 获取原版 Tab 中实际显示的有序玩家列表
+<Callout type="info">
+- **参数**：无
+- **返回值**：列表类型，每个元素都是一名玩家的数据字典
+```aria
+players = Player.getTabPlayers()
+players[0]['name'] // 返回排在原版 Tab 第一位的玩家名称
+```
+</Callout>
+
+该函数沿用当前 Minecraft 版本的原版 Tab 筛选与排序规则，并与原版一致最多返回 80 名玩家。旁观者、队伍、玩家名称以及新版本中的 `listOrder` 都会参与原版排序。
+
+|     名称      | 类型  |              说明               |
+|:-----------:|:---:|:-----------------------------:|
+|    uuid     | 字符串 |            玩家 UUID            |
+|    name     | 字符串 |            玩家账户名称             |
+| displayName | 字符串 |    Tab 中显示的纯文本名称，包含队伍名称修饰     |
+|   latency   | 整数  |            延迟（毫秒）             |
+|  gameMode   | 字符串 |      游戏模式，例如 `SURVIVAL`       |
+|  spectator  | 布尔值 |            是否为旁观者             |
+|    team     | 字符串 |      计分板队伍名称，没有队伍时为空字符串       |
+|  listOrder  | 整数  | 原版玩家列表顺序值；不支持该原版字段的旧版本固定为 `0` |
+|    self     | 布尔值 |          是否为当前客户端玩家           |
+
 ### `Player.getOnlinePlayersDict(){:aria}`
-- 获取在线玩家列表
+- 获取在线玩家字典（旧接口）
 <Callout type="info">
 - **参数**：无
 - **返回值**：字典类型(Key为玩家名，Value为UUID)
@@ -36,6 +61,8 @@ Player.getUUID() // 返回 "550e8400-e29b-41d4-a716-446655440000"
 Player.getOnlinePlayersDict() // 返回 {"Steve": "uuid1", "Alex": "uuid2"}
 ```
 </Callout>
+
+该接口用于兼容旧配置。字典不提供可依赖的顺序，也不包含延迟等结构化数据；制作玩家列表时请使用 `Player.getTabPlayers(){:aria}`。
 
 ## 状态信息
 ### `Player.getHealth(){:aria}` / `Player.getMaxHealth(){:aria}`
