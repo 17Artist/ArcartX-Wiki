@@ -1,0 +1,176 @@
+---
+title: 界面协议
+description: Kleos 称号界面的快照、详情、结果与客户端动作
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+## 通讯总览
+
+| 方向       | 名称         | 参数或数据     | 用途               |
+|----------|------------|-----------|------------------|
+| 服务端 → UI | `init`     | 初始化配置     | 告知是否显示未拥有称号和每页数量 |
+| 服务端 → UI | `snapshot` | 完整列表快照    | 更新筛选、分页和称号卡片     |
+| 服务端 → UI | `detail`   | 称号对象      | 显示当前选择的称号详情      |
+| 服务端 → UI | `result`   | 操作结果      | 显示佩戴或取消佩戴结果      |
+| 服务端 → UI | `error`    | 错误提示      | 提示当前选择的称号不可查看    |
+| UI → 服务端 | `refresh`  | 无参数       | 刷新当前筛选结果         |
+| UI → 服务端 | `page`     | 页码        | 切换页面             |
+| UI → 服务端 | `filter`   | 范围、品质、搜索词 | 更新筛选并回到第 1 页     |
+| UI → 服务端 | `select`   | 称号 ID     | 打开称号详情           |
+| UI → 服务端 | `deselect` | 无参数       | 关闭详情             |
+| UI → 服务端 | `equip`    | 称号 ID     | 佩戴称号             |
+| UI → 服务端 | `unequip`  | 无参数       | 取消佩戴当前称号         |
+
+界面打开后，服务端先发送 `init`，再发送 `snapshot`。初始 `selectedId` 为空，`detail` 发送空对象。
+
+## 客户端动作
+
+```aria
+Packet.send('refresh')
+Packet.send('page', 1)
+Packet.send('filter', 'owned', 'legendary', '守望')
+Packet.send('select', 'night_watcher')
+Packet.send('deselect')
+Packet.send('equip', 'night_watcher')
+Packet.send('unequip')
+```
+
+### 筛选参数
+
+| 参数        | 可用值                      |
+|-----------|--------------------------|
+| `scope`   | `all`、`owned`、`unowned`  |
+| `quality` | 品质 ID 或 `*`              |
+| `search`  | 最长 48 个字符；空文本或 `*` 表示不搜索 |
+
+页码从 `0` 开始。客户端可以提交 `0..1000000`，修改任意筛选条件后页码会回到 `0`。
+
+
+## `init`
+
+```json
+{
+  "showUnowned": true,
+  "pageSize": 6
+}
+```
+
+## `snapshot`
+
+```json
+{
+  "page": 0,
+  "pageCount": 1,
+  "pageSize": 6,
+  "total": 1,
+  "ownedCount": 1,
+  "equippedId": "night_watcher",
+  "selectedId": "",
+  "showUnowned": true,
+  "qualities": [
+    { "id": "legendary", "name": "§6传说" }
+  ],
+  "entries": [
+    {
+      "id": "night_watcher",
+      "texture": "kleos/titles/night-watcher.gif",
+      "name": "§9黑夜守望者",
+      "description": ["§7守望漫长黑夜的证明"],
+      "quality": "legendary",
+      "qualityName": "§6传说",
+      "displayContent": "§9黑夜守望者",
+      "priority": 300,
+      "bonuses": ["§a最大生命值 +4", "§b移动速度 +3%"],
+      "status": "equipped",
+      "owned": true,
+      "equipped": true,
+      "expired": false,
+      "canEquip": true,
+      "expiresAt": -1,
+      "expiryText": "永久"
+    }
+  ]
+}
+```
+
+`snapshot` 是完整快照，界面每次收到后都应替换本地列表状态。没有结果时 `page = 0`、`pageCount = 1`，画面显示第 1 页，共 1 页。
+
+`qualities` 按 `qualities.yml` 的顺序发送，最多 15 项，暂时没有称号使用的品质也会保留。如果当前选择的品质已经被删除，客户端应退回 `*`。
+
+称号顺序固定为：佩戴中、已拥有、已过期、未拥有；同一状态内按 `priority` 降序，再按去除颜色码后的名称和称号 ID 升序。`entries[]` 与下方非空 `detail` 使用相同的称号数据结构。
+
+## `detail`
+
+```json
+{
+  "id": "night_watcher",
+  "texture": "kleos/titles/night-watcher.gif",
+  "name": "§9黑夜守望者",
+  "description": ["§7守望漫长黑夜的证明"],
+  "quality": "legendary",
+  "qualityName": "§6传说",
+  "displayContent": "§9黑夜守望者",
+  "priority": 300,
+  "bonuses": ["§a最大生命值 +4", "§b移动速度 +3%"],
+  "status": "equipped",
+  "owned": true,
+  "equipped": true,
+  "expired": false,
+  "canEquip": true,
+  "expiresAt": -1,
+  "expiryText": "永久"
+}
+```
+
+合法 `status` 为 `equipped`、`owned`、`expired` 或 `unowned`。`owned` 和 `canEquip` 只在称号仍有效时为 `true`；`equipped` 和 `expired` 分别对应当前佩戴与已过期状态。
+
+`expiresAt` 的含义：
+
+|    值 | 说明         |
+|-----:|------------|
+| `-1` | 永久称号       |
+|  `0` | 未拥有        |
+| 其他正数 | Unix 毫秒时间戳 |
+
+界面应直接显示 `expiryText`，不要在客户端重新格式化时间。没有选择或当前称号不可查看时，服务端发送 `{}`，界面应隐藏详情区域。
+
+## `result`
+
+```json
+{
+  "success": true,
+  "code": "equipped",
+  "message": "已佩戴称号 §9黑夜守望者",
+  "attributeApplied": true
+}
+```
+
+常用结果码：
+
+| code                 | success | 说明         |
+|----------------------|--------:|------------|
+| `equipped`           |    true | 称号已佩戴      |
+| `unequipped`         |    true | 已取消当前称号    |
+| `already_unequipped` |    true | 玩家原本没有佩戴称号 |
+| `not_ready`          |   false | 玩家数据尚未准备完成 |
+| `busy`               |   false | 上一个操作仍在处理  |
+| `unknown_title`      |   false | 称号不存在或不可用  |
+| `not_owned`          |   false | 玩家没有该称号    |
+| `expired`            |   false | 称号已经过期     |
+| `storage_error`      |   false | 数据保存未完成    |
+
+`attributeApplied = false` 表示佩戴状态已经保存，但属性提供器暂不可用或应用失败。界面应显示服务端 `message`。服务端会在 `result` 后发送最新 `snapshot`，并根据选择发送新的 `detail` 或空对象。
+
+## `error`
+
+```json
+{
+  "message": "该称号当前不可查看"
+}
+```
+
+`error` 用于提示所选称号当前不可查看，界面仍以最近一次完整快照为准。
+

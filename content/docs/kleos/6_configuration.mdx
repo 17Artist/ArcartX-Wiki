@@ -1,0 +1,81 @@
+---
+title: 配置与数据库
+description: 列表显示、时区、分页和存储设置
+---
+
+# 配置与数据库
+
+## 界面配置
+
+主配置位于 `plugins/Kleos/config.yml`：
+
+```yaml
+ui:
+  show-unowned: true
+  page-size: 6
+  time-zone: Asia/Shanghai
+  expiry-pattern: yyyy-MM-dd
+
+expiry:
+  scan-seconds: 5
+
+attributes:
+  reconcile-seconds: 300
+```
+
+| 配置项                            | 说明                           |
+|--------------------------------|------------------------------|
+| `ui.show-unowned`              | 是否让玩家看到未拥有和已过期的称号            |
+| `ui.page-size`                 | 每页称号数，范围 `1..6`；更大的值按 6 处理   |
+| `ui.time-zone`                 | 到期日期使用的时区                    |
+| `ui.expiry-pattern`            | 到期日期的显示格式                    |
+| `expiry.scan-seconds`          | 在线玩家当前称号的到期检查间隔，范围 `1..60` 秒 |
+| `attributes.reconcile-seconds` | 当前称号属性的重新应用间隔，范围 `10..300` 秒 |
+
+筛选后没有任何称号时，界面仍使用第 1 页，共 1 页。
+
+修改这些配置后可以执行 `/kleos reload` 生效。
+
+## SQLite
+
+默认使用 SQLite：
+
+```yaml
+type: sqlite
+sqlite-file: kleos.db
+worker-threads: 4
+```
+
+`sqlite-file` 必须位于 `plugins/Kleos/` 内。默认数据库文件是 `plugins/Kleos/kleos.db`。
+
+## MySQL
+
+```yaml
+type: mysql
+worker-threads: 4
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: arcartx
+  username: root
+  password: "change-me"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
+  pool-size: 6
+```
+
+| 配置项                | 说明                                |
+|--------------------|-----------------------------------|
+| `type`             | `sqlite` 或 `mysql`                |
+| `sqlite-file`      | SQLite 文件在插件目录内的相对路径              |
+| `worker-threads`   | 数据库工作线程数，范围 `2-8`                 |
+| `mysql.host`       | MySQL 地址                          |
+| `mysql.port`       | MySQL 端口，范围 `1-65535`             |
+| `mysql.database`   | 数据库名，只允许英文字母、数字、下划线和连字符，最长 64 个字符 |
+| `mysql.username`   | MySQL 用户名                         |
+| `mysql.password`   | MySQL 密码                          |
+| `mysql.parameters` | JDBC URL 参数，不要在开头添加 `?`           |
+| `mysql.pool-size`  | MySQL 连接池上限，范围 `2-32`             |
+
+
+数据库类型、连接参数、线程数或连接池大小变更后，需要完整重启服务器。切换数据库前请先停服并备份原数据库；Kleos 不会自动迁移 SQLite 与 MySQL 之间的数据。

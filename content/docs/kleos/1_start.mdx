@@ -1,0 +1,88 @@
+---
+title: 说明与安装
+description: Kleos 的用途、运行条件与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Kleos 为服务器提供称号库。玩家可以在界面中浏览、筛选和佩戴称号。服主可以配置品质、有效期、展示内容和属性加成。
+
+<Callout type="warn">
+**Kleos 是付费插件。** 使用时需要填写有效授权。
+</Callout>
+
+## 核心能力
+
+| 能力      | 说明                        |
+|---------|---------------------------|
+| 称号库     | 在同一界面中展示已拥有、未拥有和已过期的称号    |
+| 有效期     | 支持永久称号、限时称号和到期后续期         |
+| 品质与排序   | 自定义品质选项，并按佩戴状态、拥有状态和优先级排序 |
+| 属性加成    | 佩戴称号后通过 ArcartX 属性提供器应用加成 |
+| PAPI 变量 | 在聊天等位置显示当前称号              |
+
+## 运行条件
+
+- Java 17+；
+- Bukkit、Spigot 或 Paper 1.20.4 兼容服务端；
+- ArcartX 2.7.81；
+- PlaceholderAPI（可选，仅使用变量时需要）；
+- 可用的 ArcartX 属性提供器（可选，仅使用属性加成时需要）；
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装插件
+
+停止服务器，将 `Kleos-1.0.0.jar` 放入 `plugins/`，并确认 ArcartX 已经安装。
+
+</Step>
+
+<Step>
+
+### 填写许可证
+
+首次启动只会生成 `plugins/Kleos/license.yml`，称号功能暂不启动：
+
+```yaml
+licenseId: 0
+licenseKey: "XXX"
+```
+
+将 `0` 和 `XXX` 替换为 Kleos 的有效许可证 ID 与密钥，再完整重启服务器。
+
+</Step>
+
+<Step>
+
+### 检查生成文件
+
+授权成功后，确认以下文件已经生成：
+
+```text
+plugins/Kleos/
+├─ license.yml
+├─ config.yml
+├─ database.yml
+├─ language.yml              # 界面与玩家通知文字
+├─ qualities.yml
+├─ kleos.db
+├─ titles/
+│  └─ example.yml
+└─ ui/
+   └─ titles.yml
+```
+
+使用 MySQL 时不使用 `kleos.db`。
+
+
+</Step>
+
+
+</Steps>

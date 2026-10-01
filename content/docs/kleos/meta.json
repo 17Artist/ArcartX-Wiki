@@ -1,0 +1,29 @@
+{
+    "title": "Kleos — 荣耀",
+    "description": "称号、属性加成",
+    "icon": "logo/kleos-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "付费", "color": "#FF4500" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#6366F1",
+    "entry": "kleos/1_start",
+    "tagline": "称号库和属性加成",
+    "order": 22,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_commands",
+        "---称号配置---",
+        "4_qualities_titles",
+        "5_attributes_papi",
+        "6_configuration",
+        "---界面---",
+        "7_ui_protocol"
+    ]
+}

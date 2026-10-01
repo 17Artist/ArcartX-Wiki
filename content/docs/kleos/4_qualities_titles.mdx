@@ -1,0 +1,74 @@
+---
+title: 品质与称号
+description: 配置品质列表、称号展示和属性内容
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 品质与称号
+
+## 品质配置
+
+品质位于 `plugins/Kleos/qualities.yml`：
+
+```yaml
+qualities:
+  - id: legendary
+    name: "&6传说"
+  - id: epic
+    name: "&d史诗"
+  - id: rare
+    name: "&b稀有"
+```
+
+品质会按照文件中的顺序发送到界面筛选器。即使暂时没有称号使用，已配置的品质仍会显示。
+
+品质 ID 读取时会转为小写，建议在文件中直接使用小写字母、数字、下划线、点、冒号或连字符，最长 32 个字符。ID 不可重复，最多配置 15 个品质；`name` 支持 `&` 颜色代码。
+
+## 称号文件
+
+Kleos 会递归读取 `plugins/Kleos/titles/` 下的 `.yml` 文件。可以按活动、赛季或玩法拆分文件，但称号 ID 必须在所有文件中保持唯一。
+
+```yaml
+titles:
+  night_watcher:
+    enabled: true
+    texture: kleos/titles/night-watcher.gif
+    name: "&9黑夜守望者"
+    description:
+      - "&7守望漫长黑夜的证明"
+      - "&8来自夜幕活动"
+    quality: legendary
+    papi-content: "&9黑夜守望者"
+    priority: 300
+    attributes:
+      provider: Symphony
+      values:
+        - "symphony:max_health add 4"
+        - "symphony:movement_speed add 3%"
+    ui:
+      bonuses:
+        - "&a最大生命值 +4"
+        - "&b移动速度 +3%"
+```
+
+| 配置项                   | 说明                                       |
+|-----------------------|------------------------------------------|
+| `enabled`             | 是否启用该称号，默认 `true`                        |
+| `texture`             | 客户端 PNG 或 GIF 素材路径                       |
+| `name`                | 玩家看到的称号名称                                |
+| `description`         | 详情说明；启用的称号至少填写 1 行，最多 8 行                |
+| `quality`             | `qualities.yml` 中已经存在的品质 ID              |
+| `papi-content`        | `%kleos_title%` 返回的内容；省略时使用 `name`       |
+| `priority`            | 同一持有状态内的排序优先级，范围 `-10000..10000`，数值越大越靠前 |
+| `attributes.provider` | ArcartX 属性提供器 ID；默认 `Symphony`           |
+| `attributes.values`   | 交给属性提供器解析的属性表达式，最多 32 项；留空时不应用属性         |
+| `ui.bonuses`          | 界面“属性加成”区域显示的说明，最多 16 项                  |
+
+称号 ID 只能包含英文字母、数字、下划线、点、冒号和连字符，最长 64 个字符。
+
+<Callout type="warn">
+`ui.bonuses` 是玩家可见说明。
+</Callout>
+
+如果称号引用了不存在的品质，配置读取会失败。执行 `/kleos reload` 时会保留此前生效的设置；首次启动则需要修正配置后重新启动。
