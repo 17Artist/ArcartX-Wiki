@@ -8,10 +8,10 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # 说明与安装
 
-Chorus 通过 ArcartX 替换原版聊天栏，为服务器提供频道聊天、私聊、弹幕、手持物品展示、玩家操作菜单和 TPA。配合 BungeeCord 或 Velocity 组件，可在同一代理(BC/VC)下实现跨服聊天与跨服传送。
+Chorus 通过 ArcartX 替换原版聊天栏，提供频道聊天、私聊、弹幕、手持物品展示、玩家操作菜单和 TPA。安装 BungeeCord 或 Velocity 组件后，同一代理下的子服还可以使用跨服聊天与跨服传送。
 
 <Callout type="warn">
-**Chorus是付费插件。** 使用前需要填写购买后取得的许可证 ID 和密钥。
+**Chorus 是付费插件。** Bukkit 节点需要填写购买后取得的许可证 ID 和密钥。
 </Callout>
 
 ## 核心能力
@@ -23,7 +23,7 @@ Chorus 通过 ArcartX 替换原版聊天栏，为服务器提供频道聊天、�
 | 玩家互动 | 私聊与屏蔽、玩家操作菜单、`@` 提示音、手持物品卡片                      |
 | 弹幕   | 独立格式、字号、移动时间，支持跨服                                |
 | TPA  | 请求卡片、等待与冷却、支持跨服                                  |
-| 内容安全 | 使用 Redact 检测普通聊天、私聊、物品展示和弹幕内容                    |
+| 内容安全 | 使用 Redact 检测频道聊天、私聊和弹幕正文；内置发送频率控制                |
 | 开发接口 | 扩展频道、接收者、格式、消息处理、玩家动作和界面短提示                      |
 
 ## 运行条件
@@ -44,7 +44,7 @@ Chorus 通过 ArcartX 替换原版聊天栏，为服务器提供频道聊天、�
 
 ### 安装依赖与插件
 
-将 Chorus Bukkit、ArcartX 和 Redact 的 JAR 放入服务端 `plugins/`，然后完整启动一次服务器。
+将 Chorus Bukkit、ArcartX 和 Redact 的 JAR 放入服务端 `plugins/`，然后启动一次服务器。
 
 </Step>
 
@@ -84,16 +84,16 @@ proxy:
 ## 跨服安装
 
 1. 每个 Bukkit 子服都安装同一版本的 Chorus Bukkit、ArcartX 和 Redact，并填写有效许可证。
-2. 在代理(BC/VC)端安装 Chorus 组件：BungeeCord 或 Velocity。
+2. 在代理端安装对应的 Chorus BungeeCord 或 Velocity 组件。
 3. 所有 Bukkit 节点连接同一个 MySQL 数据库。
 4. 所有 Bukkit 节点设置 `proxy.enabled: true`。
-5. 启动代理(BC/VC)，让组件生成 `plugins/Chorus/config.yml`。
-6. 保持代理(BC/VC)端与 Bukkit 节点的 TPA 有效期、限次、等待、冷却和禁用子服列表一致。
+5. 启动代理，让组件生成代理端的 `plugins/Chorus/config.yml`。
+6. 保持代理端与 Bukkit 节点的 TPA 有效期、限次、等待、冷却和禁用子服列表一致；禁用子服名称应与代理中的子服名称一致。
+7. 启用代理的标准玩家身份转发，并阻止玩家绕过代理直连子服。
 
 
-代理模式开启时不能使用 SQLite，否则插件会拒绝启动。
+代理模式开启时不能使用 SQLite，否则 Bukkit 插件会拒绝启动。
 
 <Callout type="info">
-多个 Bukkit 子服可以接入同一个代理(BC/VC)，但不要让同一组玩家同时接入多个互不共享状态的代理(BC/VC)节点。
+多个 Bukkit 子服可以接入同一个代理。Chorus 按单代理节点设计，不要让同一组玩家同时接入多个互不共享状态的代理节点。
 </Callout>
-

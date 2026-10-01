@@ -22,7 +22,6 @@ depend:
   - Chorus
 ```
 
-能够处理 Chorus 不存在的插件也可以改用 `softdepend`。
 
 ## 取得服务
 
@@ -63,6 +62,17 @@ chorus.registerPlayerAction(this, 100, action);
 ## 自定义频道与接收者
 
 ```java
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import org.bukkit.entity.Player;
+import priv.seventeen.artist.chorus.api.ChannelProvider;
+import priv.seventeen.artist.chorus.api.ChannelFormat;
+import priv.seventeen.artist.chorus.api.ChannelScope;
+import priv.seventeen.artist.chorus.api.ChannelView;
+import priv.seventeen.artist.chorus.api.ChatMessage;
+import priv.seventeen.artist.chorus.api.RecipientResolver;
+
 ChannelView guild = new ChannelView(
     "guild",
     "公会",
@@ -82,6 +92,41 @@ ChannelView guild = new ChannelView(
 );
 ```
 
+将频道交给 `ChannelProvider`，并为它的 `recipientResolver` 注册同名解析器。例如：
+
+```java
+chorus.registerChannelProvider(this, 100, new ChannelProvider() {
+    @Override
+    public Collection<ChannelView> channels(Player viewer) {
+        return List.of(guild);
+    }
+
+    @Override
+    public Optional<ChannelView> find(String id) {
+        return guild.id().equals(id) ? Optional.of(guild) : Optional.empty();
+    }
+});
+
+chorus.registerRecipientResolver(this, 100, new RecipientResolver() {
+    @Override
+    public String id() {
+        return "guild-members";
+    }
+
+    @Override
+    public Collection<Player> resolveLocal(
+        ChatMessage message,
+        Collection<? extends Player> candidates
+    ) {
+        return candidates.stream()
+            .filter(player -> guildService.sameGuild(message.sourceId(), player.getUniqueId()))
+            .toList();
+    }
+});
+```
+
+示例中的 `guildService` 是附属插件自己的成员服务，跨服时每个子服都需要能读取正确的成员关系。
+
 `ChannelProvider.channels(viewer)` 决定该玩家可见的频道列表，`find(id)` 用于发送和接收时查找频道。`ChannelView.priority` 数值越大，频道在 UI 中越靠前。`RecipientResolver.resolveLocal()` 收到已经过接收权限初筛的本服在线玩家，只应返回其中的子集。
 
 这种方式已经完整提供频道，因此 `channels.yml` 不需要再出现 `guild`。如果希望由服主在 `channels.yml` 控制频道名称、图标、格式和排序，就不要注册 `ChannelProvider`，只注册配置中 `recipient-resolver` 对应的 `RecipientResolver`。
@@ -90,7 +135,7 @@ GLOBAL 频道不会自动同步外部插件的公会或队伍数据。每个 Buk
 
 ## 消息与格式
 
-`MessageProcessor` 可以修改正文或拒绝消息：
+`MessageProcessor` 可以修改频道聊天、私聊或弹幕的正文，也可以拒绝消息。
 
 ```java
 chorus.registerMessageProcessor(this, 200, message -> {
@@ -103,7 +148,7 @@ chorus.registerMessageProcessor(this, 200, message -> {
 
 拒绝说明会通过 Chorus 短提示显示给发送者。处理器不应修改消息 ID、来源和目标来绕过路由规则。
 
-`FormatResolver` 可根据玩家和频道返回自定义 `ResolvedFormat`。普通频道的 `fontSize` 可以为 0，弹幕格式必须在 `12..72` 之间。没有解析器命中时，Chorus 使用频道中无权限要求的默认格式。
+`FormatResolver` 可根据玩家和频道返回自定义 `ResolvedFormat`。普通频道的 `fontSize` 可以为 0，弹幕格式必须在 `12..72` 之间。如果外部解析器都未返回结果，Chorus 的内置解析器会按频道格式的 `priority` 选择玩家有权限使用的第一种；每个频道仍须提供无权限要求的默认格式。
 
 ## 玩家动作
 
@@ -128,7 +173,7 @@ chorus.registerPlayerAction(this, 100, new PlayerAction() {
 });
 ```
 
-需要一行额外输入时，可返回 `PlayerActionInput`。标题最多 32 字符，占位文字最多 128 字符，最大输入长度范围为 `1..4096`。目标 UUID 来自服务端保存的点击上下文，不由客户端提交。
+每个 `PlayerAction` 都需要实现 `input()`；不需要输入时返回 `Optional.empty()`。需要一行额外输入时，可返回 `PlayerActionInput`：标签最多 32 字符，占位文字最多 128 字符，最大输入长度范围为 `1..4096`。占位文字可使用 `{target}`，由服务端替换成目标玩家名。目标 UUID 来自服务端保存的点击上下文，不由客户端提交。对应按钮仍需在 `player-actions.yml` 中配置 `ACTION` 触发器，`trigger.value` 应与 `id()` 相同。
 
 ## 主动调用
 
@@ -141,5 +186,4 @@ chorus.registerPlayerAction(this, 100, new PlayerAction() {
 | `sendCard(target, cardId, data)`         | 向当前节点玩家发送已注册卡片           |
 | `showNotice(target, message, tone)`      | 在常驻聊天 HUD 显示短提示          |
 
-`NoticeTone` 支持 `INFO`、`SUCCESS`、`WARNING` 和 `ERROR`。
-
+`NoticeTone` 支持 `INFO`、`SUCCESS`、`WARNING` 和 `ERROR`。短提示不会受当前聊天频道的前缀过滤影响，适合显示队伍频道无人接收、操作失败等业务反馈。

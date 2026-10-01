@@ -87,6 +87,6 @@ buttons:
 | `trigger.value`  | API 动作 ID 或要执行的命令          |
 | `trigger.sender` | 命令发送者，`PLAYER` 或 `CONSOLE` |
 
-命令模板支持 `{viewer}`、`{viewer_uuid}`、`{target}` 和 `{target_uuid}`。
+`ACTION` 类型的 `trigger.value` 必须与附属插件通过 `registerPlayerAction` 注册的动作 ID 一致。未注册的动作不会出现在菜单中；需要玩家输入一行内容时，动作可通过 `PlayerActionInput` 声明输入标签和占位文字。`COMMAND` 类型由配置的 `PLAYER` 或 `CONSOLE` 执行，命令模板支持 `{viewer}`、`{viewer_uuid}`、`{target}` 和 `{target_uuid}`。
 
 按钮 ID 长度为 `1..64`，只能包含小写字母、数字、下划线、点和连字符。

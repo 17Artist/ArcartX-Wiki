@@ -69,6 +69,9 @@ licenseKey: "你的许可证密钥"
 
 各项 `rate-limit.*-cost` 必须大于 0，且不能超过 `capacity`。开启代理后，Bukkit 与代理(BC/VC)各自执行一层速率限制。
 
+代理端也会生成 `plugins/Chorus/config.yml`，其中只有 `tpa` 配置。跨服部署时，两端的 TPA 有效期、请求限次、等待时间、冷却和禁用子服列表应保持一致；`denied-servers` 填代理配置中的子服名称。
+
+
 ## `database.yml`
 
 ```yaml
