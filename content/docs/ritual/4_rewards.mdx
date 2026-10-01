@@ -7,6 +7,8 @@ description: 物品、货币、命令、邮件和占位符配置
 
 每个日期和七日全勤奖励都可以分别设置邮件内容，并组合物品、货币和命令附件。
 
+在奖励编辑页点击“邮件领取期限”可依次切换 1 天、7 天和 30 天；默认是 30 天。邮件正文输入中的 `\n` 会保存为换行。
+
 ## 物品奖励
 
 进入物品页面后，点击玩家背包中的物品即可复制一份奖励快照；点击上方已经添加的物品可以移除。
@@ -40,10 +42,10 @@ Vault|100|金币|
 执行方式可填写 `console`、`player`、`控制台` 或 `玩家`。命令开头不需要斜杠：
 
 ```text
-console|会员体验|ritual/crown.png|lp user {player} parent addtemp vip 1d
+console|会员体验|ritual/icons/icon-ticket.png|lp user {player} parent addtemp vip 1d
 ```
 
-使用 `player` 时，命令由领取邮件附件的玩家身份执行，受玩家权限限制。每份奖励最多保存 32 个命令附件。
+显示名称和图标路径可以留空，界面会使用“命令奖励”和默认命令图标。使用 `player` 时，命令由领取邮件附件的玩家身份执行，受玩家权限限制。每份奖励最多保存 32 个命令附件。
 
 ## 邮件占位符
 
@@ -58,5 +60,5 @@ console|会员体验|ritual/crown.png|lp user {player} parent addtemp vip 1d
 | `{date}`   | 当前奖励对应日期；全勤奖励使用周日 |
 | `{day}`    | 周一至周日或“七日全勤”      |
 
-发件人头像和非物品奖励图标使用客户端资源路径。留空时，货币和命令会分别使用 `ritual/icons/icon-coins.png` 与 `ritual/icons/icon-command.png`。
+发件人头像和非物品奖励图标使用客户端资源路径。
 
