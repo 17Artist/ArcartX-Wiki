@@ -23,7 +23,29 @@ description: 弹幕余额、发送规则和单服或跨服 TPA 流程
 /tpa send <玩家>
 ```
 
-目标服已满、容量无法确认、目标换服或连接失败时，传送会被取消并给出提示。
+目标收到带倒计时的请求卡片，选择接受后等待 `tpa.teleport-delay-seconds` 再传送。任一方所在子服关闭 TPA，或任一方位于受限世界时，不发送请求卡片。等待结束后会重新检查双方当前世界和子服开关；子服未能在 5 秒内回复检查结果时取消传送。跨服切换后还会检查目标子服开关与目标玩家当前世界，再传送到目标玩家的实时位置。
 
-跨服 TPA 要求代理和目标 Bukkit 节点都安装同一版本的 Chorus 组件，并保持 TPA 相关配置一致。
+目标服已满、容量无法确认、目标换服、世界受限或连接失败时，传送会被取消并提示。
+
+跨服 TPA 要求代理和所有相关 Bukkit 节点都安装同一版本的 Chorus 组件，并保持请求有效期、限次、等待、冷却和跨服禁用子服列表一致。
+
+## 本服与世界限制
+
+每个 Bukkit 子服在自己的 `config.yml` 设置本服限制，修改后执行 `/chorus reload`。这些选项不需要复制到代理配置：
+
+```yaml
+tpa:
+  enabled: true
+  world-restrictions:
+    denied-worlds:
+      - "arena"
+    denied-prefixes:
+      - "dungeon_"
+```
+
+此例只列出本服限制，请保留 `tpa` 下其他设置。`arena` 只匹配同名世界；`dungeon_` 匹配所有以它开头的世界，例如 `dungeon_001` 和 `dungeon_Player_UUID`。规则区分大小写，列表默认为空；前缀直接填写文字，不使用 `*`、`?` 或正则，也不允许空白条目。
+
+受限世界中的玩家不能发起 TPA，也不能成为传送目标。设置 `tpa.enabled: false` 会关闭该子服的服内 TPA 和跨服进出，不影响聊天或其他插件的传送。等待期间更换世界或重载配置后，按当前设置重新检查。
+
+已有配置需补齐上述三项与默认 `language.yml` 中的 `tpa.server-disabled`、`tpa.world-denied`、`tpa.check-unavailable` 文案。缺少必填项会使配置校验失败；重载失败时原设置继续使用。Bukkit 与 BC/VC 组件须一同更换，不能混用不同构建的包。
 

@@ -60,6 +60,9 @@ licenseKey: "你的许可证密钥"
 | `danmaku.charge-per-message`                     |                   `1` | 每条弹幕消耗的发射器数量                               |
 | `danmaku.maximum-balance`                        |             `1000000` | 弹幕余额上限                                     |
 | `danmaku.duration-millis`                        |               `12000` | 弹幕移动时间，范围 `1000..60000`                    |
+| `tpa.enabled`                                    |                `true` | 此 Bukkit 子服是否允许服内 TPA 和跨服进出                |
+| `tpa.world-restrictions.denied-worlds`           |                  `[]` | 禁止 TPA 的精确世界名，区分大小写                        |
+| `tpa.world-restrictions.denied-prefixes`         |                  `[]` | 禁止 TPA 的世界名前缀，区分大小写                        |
 | `tpa.request-expire-seconds`                     |                  `30` | 请求有效期，范围 `5..300`                          |
 | `tpa.request-limit.window-seconds`               |                  `30` | 请求限次统计窗口，范围 `1..3600`                      |
 | `tpa.request-limit.maximum`                      |                   `3` | 统计窗口内最多请求数，范围 `1..100`                     |
@@ -69,7 +72,7 @@ licenseKey: "你的许可证密钥"
 
 各项 `rate-limit.*-cost` 必须大于 0，且不能超过 `capacity`。开启代理后，Bukkit 与代理(BC/VC)各自执行一层速率限制。
 
-代理端也会生成 `plugins/Chorus/config.yml`，其中只有 `tpa` 配置。跨服部署时，两端的 TPA 有效期、请求限次、等待时间、冷却和禁用子服列表应保持一致；`denied-servers` 填代理配置中的子服名称。
+代理端也会生成 `plugins/Chorus/config.yml`，其中只有代理所需的 `tpa` 配置。跨服部署时，两端的 TPA 有效期、请求限次、等待时间、冷却和禁用子服列表应保持一致；`denied-servers` 填代理配置中的子服名称。`tpa.enabled`、`tpa.world-restrictions.denied-worlds` 和 `tpa.world-restrictions.denied-prefixes` 只在各 Bukkit 子服配置，可分别设置。任一方位于受限世界或关闭 TPA 的子服时拒绝请求；等待结束后会再次检查当前设置和世界。详见[本服与世界限制](./3_danmaku_tpa#本服与世界限制)。
 
 
 ## `database.yml`

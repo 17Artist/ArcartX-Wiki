@@ -58,6 +58,8 @@ Packet.send('unequip')
 }
 ```
 
+`pageSize` 取自 `ui.page-size`，范围为 `1..32`，默认 `6`。`snapshot.entries` 包含本页全部称号，数量不超过 `pageSize`；自定义 UI 应渲染完整数组
+
 ## `snapshot`
 
 ```json
