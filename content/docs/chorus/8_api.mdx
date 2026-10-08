@@ -7,7 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # 开发者 API
 
-外部插件需要编译依赖 `Chorus-Bukkit-<version>.jar`。
+外部插件只需编译依赖 `Chorus-API-<version>.jar`。
 
 ```kotlin
 dependencies {
@@ -26,6 +26,9 @@ depend:
 ## 取得服务
 
 ```java
+import priv.seventeen.artist.arcartx.chorus.api.ChorusAPI;
+import priv.seventeen.artist.arcartx.chorus.api.ChorusService;
+
 if (!ChorusAPI.isAvailable()) {
     return;
 }
@@ -66,12 +69,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.bukkit.entity.Player;
-import priv.seventeen.artist.chorus.api.ChannelProvider;
-import priv.seventeen.artist.chorus.api.ChannelFormat;
-import priv.seventeen.artist.chorus.api.ChannelScope;
-import priv.seventeen.artist.chorus.api.ChannelView;
-import priv.seventeen.artist.chorus.api.ChatMessage;
-import priv.seventeen.artist.chorus.api.RecipientResolver;
+import priv.seventeen.artist.arcartx.chorus.api.ChannelProvider;
+import priv.seventeen.artist.arcartx.chorus.api.ChannelFormat;
+import priv.seventeen.artist.arcartx.chorus.api.ChannelScope;
+import priv.seventeen.artist.arcartx.chorus.api.ChannelView;
+import priv.seventeen.artist.arcartx.chorus.api.ChatMessage;
+import priv.seventeen.artist.arcartx.chorus.api.RecipientResolver;
 
 ChannelView guild = new ChannelView(
     "guild",
