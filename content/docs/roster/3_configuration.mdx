@@ -1,0 +1,73 @@
+---
+title: 配置
+description: 玩家名称、列表上限、语言和界面刷新
+---
+
+# 配置
+
+## 主配置
+
+`plugins/Roster/config.yml` 默认内容：
+
+```yaml
+names:
+  enabled: true
+  format: '&b%player_name%'
+  refresh-ticks: 40
+
+network:
+  enabled: false
+  hidden-permission: roster.hidden
+
+title: 在线玩家
+display-limit: 80
+```
+
+| 配置项                         | 说明                            |
+|-----------------------------|-------------------------------|
+| `names.enabled`             | 是否由 Roster 更新玩家列表名称           |
+| `names.format`              | 名称格式，不能为空，最长 512 个 UTF-16 字符  |
+| `names.refresh-ticks`       | 名称解析间隔，范围 `20..1200` tick     |
+| `network.enabled`           | 安装代理插件后开启群组同步                 |
+| `network.hidden-permission` | 群组隐藏权限；空字符串关闭此权限判断            |
+| `title`                     | HUD 标题，不能为空，最长 64 个 UTF-16 字符 |
+| `display-limit`             | 必填整数，一屏显示上限，范围 `1..80`        |
+
+修改后执行 `/roster reload`。
+
+## 名称格式
+
+`%player_name%` 无需 PlaceholderAPI 即可使用。安装 PAPI、对应扩展和权限插件后，可以使用带前缀的格式：
+
+```yaml
+names:
+  enabled: true
+  format: '%vault_prefix% &f%player_name%'
+  refresh-ticks: 40
+```
+
+建议只让一个插件负责玩家列表名称。关闭 `names.enabled` 或正常停用 Roster 时，如果当前名称仍是 Roster 最后写入的值，插件会恢复之前的名称。
+
+## 刷新间隔
+
+服务端每 20 tick 检查一次名称刷新，因此 `names.refresh-ticks` 向上取整到 20 tick 的倍数。例如 `21` 实际按 `40` tick 刷新，默认 `40` tick 在正常 TPS 下约为 2 秒。名称变化时才更新 Bukkit 玩家列表。
+
+HUD 在 `plugins/Roster/ui/tab.yml` 的 `tasks.refresh-roster` 中设置客户端刷新周期：
+
+```yaml
+tasks:
+  refresh-roster:
+    type: loop
+    time: 10000
+    cycle: 10000
+```
+
+`time` 是首次执行前的延迟，`cycle` 是后续间隔，单位均为毫秒。修改现有任务时保留其刷新脚本。该周期与服务端名称解析分别运行。
+
+## 语言与界面
+
+`language.yml` 可以修改重载成功、失败和状态提示，每条消息最长 512 个 UTF-16 字符。状态文案中的 `{local}`、`{network}` 分别替换为本服人数与群组状态文字。
+
+修改 `ui/tab.yml` 可以调整面板、字号和颜色，随后执行 `/roster reload`。更换 JAR 会保留已有 UI；采用交付包的新默认界面时，将新的 `ui/tab.yml` 更新到插件目录再重载。
+
+自定义布局时保留协议使用的控件名称与字段，详见 [界面协议](/docs/roster/6_ui_protocol)。

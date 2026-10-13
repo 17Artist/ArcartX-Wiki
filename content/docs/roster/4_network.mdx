@@ -1,0 +1,76 @@
+---
+title: 群组接入
+description: BungeeCord、Velocity、隐藏规则与群组缓存
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 群组接入
+
+在同一个代理上安装对应的一种 Roster 插件，并在参与同步的子服开启 `network.enabled: true`。
+
+| 代理         | 插件文件                        | 配置位置                             |
+|------------|-----------------------------|----------------------------------|
+| BungeeCord | `Roster-Bungee-1.0.0.jar`   | `plugins/RosterProxy/config.yml` |
+| Velocity   | `Roster-Velocity-1.0.0.jar` | `plugins/roster/config.yml`      |
+
+Velocity 端以 4.2.0 为运行目标，其他版本未验证；该代理需要 Java 25 或更新版本。Bukkit 子服的 Java 要求仍为 17+。
+
+## 安装步骤
+
+1. 将对应 JAR 放入代理 `plugins/`，启动一次生成配置；
+2. 在参与的 Bukkit 子服完成 Roster 授权，并开启群组同步；
+3. 填写代理中的服务器键名，BungeeCord 对应代理 `config.yml`，Velocity 对应 `velocity.toml` 的 `[servers]`；
+4. 完成下述配置并重启代理；
+
+群组同步使用现有插件消息通道。多个独立代理或 RedisBungee 的名单不会自动合并。
+
+## 代理配置
+
+```yaml
+refresh-seconds: 5
+name-timeout-seconds: 30
+hidden-permission: roster.hidden
+excluded-servers: []
+managed-servers: []
+```
+
+| 配置项                    | 说明                                         |
+|------------------------|--------------------------------------------|
+| `refresh-seconds`      | 群组名单刷新间隔，范围 `1..30` 秒                      |
+| `name-timeout-seconds` | 展示名称有效期，至少为刷新间隔的两倍，最多 300 秒                |
+| `hidden-permission`    | 代理侧隐藏权限；空字符串关闭此权限判断                        |
+| `excluded-servers`     | 从公开群组名单与人数中排除的服务器                          |
+| `managed-servers`      | 已安装 Roster 且开启同步的子服，例如 `[lobby, survival]` |
+
+建议提前填写 `managed-servers`。代理会等待这些子服确认玩家可见状态，再将玩家加入公开名单。未填写的子服在首次发送 Roster 数据后自动识别，直到代理停止。
+
+未安装 Roster 的子服可使用代理记录的玩家名称、在线状态与延迟，隐藏规则仅使用代理侧信息。
+
+名称超时后改用玩家原名，已经确认的隐藏状态保留到切服、离线或新的子服更新。
+
+## 玩家信息转发
+
+BungeeCord 需要开启代理 `ip_forward` 与子服 `spigot.yml` 的 `settings.bungeecord`。
+
+Velocity 与 Paper 推荐使用 `modern` 转发，这里不做讲解，如果您不了解请使用BungeeCord。
+
+## 隐藏玩家
+
+以下玩家不计入公开群组人数，也不会显示为其他子服的远端玩家：
+
+- 拥有代理或子服 Roster 隐藏权限的玩家；
+- 带有 `vanished=true` 元数据的玩家；
+- 位于 `excluded-servers` 的玩家；
+
+同服名单继续遵循子服可见性规则。只设置 Roster 隐藏权限不会从同服列表移除玩家；需要同服隐藏时，由隐身插件调用 Bukkit `hidePlayer`。
+
+只调用 `hidePlayer` 也不会自动通知其他子服，仍需设置隐藏权限或 `vanished` 元数据。
+
+代理只补充其他子服的公开条目，同服玩家的皮肤、聊天资料和可见状态由所在子服提供。
+
+## 信息过期
+
+后端群组缓存有效期为 15 秒。过期后，群组人数变量返回 `0`，可用状态返回 `false`；HUD 提示“群组信息暂不可用”，继续显示客户端已有条目，不推算未知的未显示人数。
+
+代理恢复后会自动恢复统计。

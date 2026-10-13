@@ -1,0 +1,89 @@
+---
+title: 说明与安装
+description: 名册的用途、运行条件、授权与客户端资源
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Roster 为 ArcartX 提供玩家列表 HUD。玩家按住列表键即可查看自定义玩家列表。安装对应代理插件后，可显示整个群组的名单与在线人数。
+
+## 核心能力
+
+| 能力    | 说明                                    |
+|-------|---------------------------------------|
+| 玩家列表  | 卡片展示玩家名称、称号与延迟                        |
+| 名称格式  | 自定义颜色与前缀，可使用 PlaceholderAPI 变量        |
+| 群组名单  | 选装 BungeeCord 或 Velocity 插件，显示其他子服的玩家 |
+| 人数变量  | 查询本服、群组与指定服务器的在线人数                    |
+| 自定义界面 | 可修改 UI 面板、文字与配色                       |
+
+## 运行条件
+
+- Bukkit/Paper 1.18.2+；
+- 安装 ArcartX 服务端插件及匹配的客户端 MOD；
+- 使用其他插件的变量时，安装 PlaceholderAPI 与对应扩展；
+- 使用跨服名单时，Minecraft 版本需要为 1.19.3 或更新版本；
+
+
+<Callout type="warn">
+**Roster 为 ArcartX 高级会员专属插件。** 使用时需要填写有效授权。
+</Callout>
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装服务端插件
+
+停止子服，将 `Roster.jar` 放入 `plugins/`，确认 ArcartX 已安装。
+
+</Step>
+
+<Step>
+
+### 填写许可证
+
+启动一次，等待 `plugins/Roster/license.yml` 生成，再正常停止子服。填写自己的授权凭据：
+
+```yaml
+licenseId: 你的许可证ID
+licenseKey: "你的许可证密钥"
+```
+
+</Step>
+
+<Step>
+
+### 检查配置
+
+授权成功后会补齐以下文件：
+
+```text
+plugins/Roster/
+├─ license.yml
+├─ config.yml
+├─ language.yml
+└─ ui/
+   └─ tab.yml
+```
+
+</Step>
+
+
+<Step>
+
+### 检查玩家列表
+
+使用匹配的 ArcartX 客户端进入服务器，按住玩家列表键查看 HUD。默认键位为 Tab（复用原版查看玩家列表热键），可以在 Minecraft 的按键设置中修改。
+
+需要群组名单时，再按 [群组接入](/docs/roster/4_network) 安装代理插件。
+
+</Step>
+
+</Steps>
+

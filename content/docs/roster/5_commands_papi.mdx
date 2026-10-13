@@ -1,0 +1,35 @@
+---
+title: 命令与变量
+description: 重载、状态查询、权限与 PlaceholderAPI 变量
+---
+
+# 命令与变量
+
+## 命令与权限
+
+| 命令               | 权限                    | 说明                |
+|------------------|-----------------------|-------------------|
+| `/roster reload` | `roster.admin.reload` | 重载名称、群组开关、语言与界面配置 |
+| `/roster status` | `roster.admin.status` | 查看本服人数与群组信息状态     |
+
+`/roster reload` 不重读许可证，修改授权后需要完整重启子服。
+
+`roster.hidden` 是默认群组隐藏权限，Bukkit 侧默认不授予任何玩家。隐藏规则详见 [群组接入](/docs/roster/4_network)。
+
+## PlaceholderAPI
+
+授权成功且 PlaceholderAPI 已启用时，Roster 自动注册扩展。变量读取已同步数据。
+
+| 变量                             | 返回内容                             |
+|--------------------------------|----------------------------------|
+| `%roster_local_online%`        | 本服实际在线人数，包含仍连接本服的隐身玩家            |
+| `%roster_network_online%`      | 群组公开名单总人数；未开启或暂不可用时为 `0`         |
+| `%roster_network_available%`   | 群组信息是否可用，返回 `true` 或 `false`     |
+| `%roster_network_servers%`     | 群组公开人数大于零的服务器数量                  |
+| `%roster_server_online_lobby%` | 指定服务器公开人数，将 `lobby` 替换为准确服务器键名   |
+| `%roster_server%`              | 当前玩家在公开群组名单中的服务器；没有信息或未进入公开名单时为空 |
+| `%roster_display_name%`        | 当前在线玩家在本服的列表名称；玩家不在线时为空          |
+
+服务器键名区分大小写，支持下划线。指定服务器没有信息时，人数返回 `0`。
+
+HUD 的群组总数是当前观看者可见的本服人数加公开远端人数。本服与远端的隐藏规则可能不同，因此该数值可能与 `%roster_network_online%` 不同。

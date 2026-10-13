@@ -1,0 +1,28 @@
+{
+    "title": "Roster — 名册",
+    "description": "玩家列表 HUD、群组名单与在线人数",
+    "icon": "logo/roster-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#22D3EE",
+    "entry": "roster/1_start",
+    "tagline": "玩家列表、跨服名单与在线人数",
+    "order": 23,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "---配置与接入---",
+        "3_configuration",
+        "4_network",
+        "5_commands_papi",
+        "---界面---",
+        "6_ui_protocol"
+    ]
+}
