@@ -1,0 +1,103 @@
+---
+title: 界面协议
+description: Storehouse 原版容器槽位、界面动作与完整状态
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+## 原版槽位
+
+所有槽位均使用 `Slot` 的 `slotType: ~Container`，ID 对应原版容器的原始槽号：
+
+| 槽号       | 内容           |
+|----------|--------------|
+| `0..53`  | 仓库，9 列、6 行   |
+| `54..80` | 玩家背包，9 列、3 行 |
+| `81..89` | 快捷栏，9 列、1 行  |
+
+默认配置用 `load` 中的 `copy(name)` 和循环生成控件，运行时为 90 个槽位、5 行目录。保留以下控件命名：
+
+- `warehouseSlot1` 至 `warehouseSlot54`；
+- `backpackSlot1` 至 `backpackSlot27`；
+- `hotbarSlot1` 至 `hotbarSlot9`；
+- `warehouseRow1` 至 `warehouseRow5`；
+
+## 客户端动作
+
+`Packet.send` 首参直接使用动作名，其余参数按顺序发送。
+
+| 动作        | 参数                                                    | 用途                   |
+|-----------|-------------------------------------------------------|----------------------|
+| `refresh` | 无                                                     | 请求当前完整状态             |
+| `page`    | `listPage`                                            | 切换目录页，每页五个仓库         |
+| `select`  | `warehouseNumber`                                     | 打开已解锁仓库              |
+| `rename`  | `warehouseNumber`、`remark`                            | 修改当前仓库备注，首尾去空白后为空则清除 |
+| `unlock`  | `expectedUnlocked`、`expectedPrice`、`currencyProvider` | 按确认报价解锁下一个仓库         |
+| `close`   | 无                                                     | 关闭当前原版容器             |
+
+```aria
+Packet.send('refresh')
+Packet.send('page', '2')
+Packet.send('select', '3')
+Packet.send('rename', '3', '常用材料')
+Packet.send('unlock', '1', '1000.0', 'Vault')
+Packet.send('close')
+```
+
+上面分别展示各动作的参数，不要在一次操作中连续发送全部动作。
+
+### 备注
+
+`rename` 的编号必须等于当前仓库。打开备注输入框时保存该编号，防止切仓后改到其他仓库。
+
+字符数以 `remarkMaxLength` 为准。备注不允许控制字符、行或段落分隔符、无效 Unicode 代理项、`§` 及部分双向文字控制字符。
+
+## `state`
+
+服务端只发送 `state`，没有独立 `result`。物品由原版容器同步，不放入状态包。
+
+```json
+{
+  "warehouseNumber": 1,
+  "remark": "常用材料",
+  "unlocked": 1,
+  "maxWarehouses": 10,
+  "listPage": 1,
+  "listPages": 1,
+  "warehouses": [
+    { "number": 1, "remark": "常用材料", "selected": true }
+  ],
+  "nextNumber": 2,
+  "nextPrice": 1000.0,
+  "currencyProvider": "Vault",
+  "currencyName": "金币",
+  "canUnlock": true,
+  "busy": false,
+  "message": "",
+  "remarkMaxLength": 12
+}
+```
+
+| 字段                 | 类型      | 说明                                             |
+|--------------------|---------|------------------------------------------------|
+| `warehouseNumber`  | Number  | 当前仓库编号，从 1 开始                                  |
+| `remark`           | String  | 当前仓库完整备注                                       |
+| `unlocked`         | Number  | 已解锁数量                                          |
+| `maxWarehouses`    | Number  | 显示上限，不小于已解锁数量                                  |
+| `listPage`         | Number  | 当前目录页，从 1 开始                                   |
+| `listPages`        | Number  | 目录总页数                                          |
+| `warehouses`       | Array   | 当前页最多五项，含 `number`、完整 `remark` 与布尔值 `selected` |
+| `nextNumber`       | Number  | 下一个仓库编号                                        |
+| `nextPrice`        | Number  | 原始费用，达到上限时为 0，结合 `canUnlock` 判断                |
+| `currencyProvider` | String  | 货币提供器标识                                        |
+| `currencyName`     | String  | 供显示的货币名称                                       |
+| `canUnlock`        | Boolean | 满足解锁入口基本条件，不代表余额充足或已经扣费                        |
+| `busy`             | Boolean | 当前仓库交换操作是否暂停                                   |
+| `message`          | String  | 提示文本，空字符串表示无提示                                 |
+| `remarkMaxLength`  | Number  | 备注允许的字符数                                       |
+
+<Callout type="warn">
+仓库编号和目录页码都从 1 开始。编辑备注使用完整 `remark`，提交费用使用原始 `nextPrice`，不要从截断或格式化后的显示文字取值。
+</Callout>

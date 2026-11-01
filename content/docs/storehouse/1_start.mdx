@@ -1,0 +1,81 @@
+---
+title: 说明与安装
+description: 仓库的用途、运行条件、授权与客户端资源
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Storehouse 为玩家提供独立的物品仓库。每个仓库固定 54 格，玩家可以设置备注、按顺序解锁更多仓库。
+
+<Callout type="warn">
+**Storehouse 为 ArcartX 高级会员专属插件。** 需要填写有效许可证。
+</Callout>
+
+## 核心能力
+
+| 能力     | 说明                              |
+|--------|---------------------------------|
+| 多仓库    | 每个仓库 54 格，可配置初始数量与解锁上限          |
+| 备注与目录  | 为仓库添加备注，通过目录或编号切换               |
+| 货币解锁   | 使用 ArcartX 支持的货币提供器，设置递增费用或单独报价 |
+| 单服与跨服  | 单服使用 SQLite，多服共享 MySQL          |
+
+## 运行条件
+
+- Java 17+；
+- Paper 1.18+；
+- ArcartX 2.10.100+；
+- 使用付费解锁时，需要对应的 ArcartX 支持的货币提供器；
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装服务端插件
+
+正常停止服务器，将 `Storehouse.jar` 放入 `plugins/`。
+
+</Step>
+
+<Step>
+
+### 填写许可证
+
+创建 `plugins/Storehouse/license.yml`，或启动一次让插件生成，再正常停服。填写自己的许可证 ID 与密钥：
+
+```yaml
+licenseId: 0
+licenseKey: "XXX"
+```
+</Step>
+
+<Step>
+
+### 选择存储方式
+
+单服可以保留默认 SQLite。启用跨服则填写 MySQL 以及连接信息。
+
+具体设置见 [数据库与跨服](/docs/storehouse/5_database)。
+
+</Step>
+
+<Step>
+
+### 检查仓库
+
+启动服务器，授权成功后会生成缺少的默认配置
+
+```text
+/storehouse open
+```
+
+检查物品存取、仓库目录与客户端素材。修改仓库设置、提示文字或 UI 文件后执行 `/storehouse reload`；修改许可证或数据库连接后完整重启。
+
+</Step>
+
+</Steps>

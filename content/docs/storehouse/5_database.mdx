@@ -1,0 +1,66 @@
+---
+title: 数据库与跨服
+description: SQLite、MySQL、共享仓库与数据库切换
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 数据库与跨服
+
+数据库配置位于 `plugins/Storehouse/database.yml`，修改后完整重启生效。
+
+## 单服 SQLite
+
+默认 `type: sqlite`，数据库位于 `plugins/Storehouse/storehouse.db`。保留交付模板中的其他配置即可。
+
+一个数据库目录只能由一个服务端使用，不要放在多服共享目录或网络盘上。
+
+## MySQL
+
+跨服共享时，让各子服连接同一个 MySQL 可写主库：
+
+```yaml
+type: mysql
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: storehouse
+  username: storehouse
+  password: "填写自己的密码"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
+  pool-size: 6
+```
+
+`type` 必填；使用 MySQL 时需完整填写 `mysql` 配置段。连接池大小范围为 `2..32`。
+
+### 数据库要求
+
+当前使用 Connector/J `8.2.0`，已验证 MySQL `5.7.44` 和 `8.4.11`。
+
+- 表使用 InnoDB；
+- `max_allowed_packet` 至少为 64 MiB；
+- `innodb_flush_log_at_trx_commit=1`；
+- 启用二进制日志时，设置 `sync_binlog=1`；
+
+上面的连接参数用于本机或可信内网。经不可信网络连接时，根据部署证书设置并验证 TLS。各子服不能连接异步只读副本。
+
+仓库数据保存在固定的 `storehouse_` 前缀表中，不会为玩家、仓库或格子单独建表。备份时应包含该插件的全部表。
+
+## 跨服共享
+
+- 各子服连接同一个 MySQL 可写主库；
+- 玩家信息转发正确，同一玩家在各服使用相同 UUID；
+- 初始仓库数量、仓库上限、备注上限与解锁费用保持一致；
+- 每个子服都填写有效许可证；
+
+同一玩家同一时间只能在一个子服使用仓库。正常关仓保存完成后立即解除占用；源服崩溃时，占用在最后一次约 30 秒失效，其他子服随后读取已成功保存的内容。
+
+数据库无法访问时暂时不能开仓
+
+## 切换数据库
+
+修改类型或连接目标并重启后，插件直接使用目标数据库。原 SQLite 文件会保留，切回时仍读取原数据。
+
+<Callout type="warn">
+切换存储不会自动迁移或合并物品。目标库没有仓库记录时，会按初始配置创建新仓库。切换前先停服、备份并完成数据迁移核对。
+</Callout>

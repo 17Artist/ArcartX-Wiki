@@ -1,0 +1,28 @@
+{
+    "title": "Storehouse — 仓库",
+    "description": "个人仓库、付费扩容与跨服共享",
+    "icon": "logo/storehouse-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#F59E0B",
+    "entry": "storehouse/1_start",
+    "tagline": "个人仓库、解锁扩容与跨服共享",
+    "order": 24,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_commands",
+        "---配置与存储---",
+        "4_configuration",
+        "5_database",
+        "---界面---",
+        "6_ui_protocol"
+    ]
+}

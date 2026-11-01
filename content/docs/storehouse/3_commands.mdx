@@ -1,0 +1,42 @@
+---
+title: 命令与权限
+description: 玩家入口、配置与界面重载、未完成解锁的处理
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 命令与权限
+
+输入 `/storehouse` 查看帮助，`/sh` 是 `/storehouse` 的别名。
+
+| 命令或操作                              | 权限                                               | 执行者    |
+|------------------------------------|--------------------------------------------------|--------|
+| `/storehouse open [number]`        | `storehouse.use`，默认所有玩家                          | 玩家     |
+| 界面解锁按钮                             | `storehouse.unlock`，默认所有玩家；同时需要 `storehouse.use` | 玩家     |
+| `/storehouse reload`               | `storehouse.admin`，默认 OP                         | 玩家或控制台 |
+| `/storehouse recover`              | `storehouse.admin`                               | 仅控制台   |
+| `/storehouse recover <uuid> grant` | `storehouse.admin`                               | 仅控制台   |
+| `/storehouse recover <uuid> clear` | `storehouse.admin`                               | 仅控制台   |
+
+## 重载配置
+
+`/storehouse reload` 重新读取仓库设置、语言与 `ui/main.yml`，许可证和数据库连接修改后仍需完整重启。
+
+重载时自动关闭正在打开的仓库，并按正常关仓流程保存。重新打开仓库后使用新界面。
+
+存在未完成解锁、配置格式错误或 UI 必需字段缺失时，拒绝重载并保留原设置和界面。
+
+## 处理未完成解锁
+
+在控制台执行 `/storehouse recover` 查看仓库占用及待确认的解锁记录。源服崩溃后的占用会自动到期，无需用命令强行解除。
+
+处理前，让玩家退出并等待仓库保存结束，再核对经济插件记录：
+
+| 扣费情况        | 操作                                 | 结果            |
+|-------------|------------------------------------|---------------|
+| 已确认扣费       | `/storehouse recover <uuid> grant` | 补开仓库，不再次扣费    |
+| 已确认未扣费或已经退款 | `/storehouse recover <uuid> clear` | 清除待确认记录，不执行退款 |
+
+<Callout type="warn">
+先核对实际扣费，再选择处理方式。两个命令都不会强制解除物品会话，也不会自动退款。
+</Callout>
