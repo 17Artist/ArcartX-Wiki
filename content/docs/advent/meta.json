@@ -1,0 +1,28 @@
+{
+    "title": "Advent — 降临",
+    "description": "新人、回归签到奖励",
+    "icon": "logo/advent-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "基础玩法", "color": "#2563EB" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#2DD4BF",
+    "entry": "advent/1_start",
+    "tagline": "新人、回归签到奖励",
+    "order": 22,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---配置与数据---",
+        "4_configuration",
+        "5_database_delivery",
+        "---界面接入---",
+        "6_ui_protocol"
+    ]
+}

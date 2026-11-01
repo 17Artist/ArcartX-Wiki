@@ -1,0 +1,69 @@
+---
+title: 数据库与奖励投递
+description: SQLite、MySQL、数据表、多节点、SystemMail 与备份维护
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 数据库与奖励投递
+
+数据库配置位于 `plugins/Advent/database.yml`。
+
+## SQLite 单服
+
+SQLite 单服可填写以下配置，省略项使用默认值，无需填写 `mysql` 部分：
+
+```yaml
+type: "sqlite"
+sqlite-file: "advent.db"
+worker-threads: 4
+```
+
+SQLite 文件必须使用 `plugins/Advent/` 中的相对路径。不要让多个服务端进程同时打开同一个 SQLite 文件。
+
+## MySQL 多节点
+
+```yaml
+type: "mysql"
+worker-threads: 4
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  database: "arcartx"
+  username: "arcartx"
+  password: "替换为实际密码"
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
+  pool-size: 6
+```
+<Callout type="warn">
+这组默认参数适用于本机或可信内网中的非 TLS 连接。数据库位于不可信网络时，应按照数据库服务商的证书方案改用 TLS 参数，不要继续使用 `useSSL=false`。
+</Callout>
+
+`worker-threads` 的有效范围为 `1..32`，`mysql.pool-size` 的有效范围为 `2..50`。修改数据库连接后需要完整重启。
+
+多个 Advent 节点共享玩家状态时，必须：
+
+- 连接同一套 MySQL；
+- 使用相同的 `timezone`；
+- 使用相同的回归规则；
+- 保持系统时间同步；
+- 让 SystemMail 按其多服方案共享持久化设施。
+
+## 奖励投递
+
+签到进度和对应奖励内容一起保存到数据库。SystemMail 暂时不可用时，签到进度保留，后台继续尝试发送。
+
+服务器重启、处理超时或多个节点同时发送时，Advent 继续处理同一份奖励，不因此多发一封邮件。
+
+回归活动到期后不能再领取新奖励，但到期前已经领取、仍待发送的奖励继续处理。人工重试沿用领取时保存的奖励内容，之后修改奖励方案不会改变它。
+
+- 临时失败按配置延迟重试；
+- 无效请求等无法自动恢复的错误将暂停；
+- 其他错误达到 `delivery.max-attempts` 后暂停；
+- 修复原因后，可用 `/advent retry <奖励记录ID>` 恢复处理。
+
+
+## 备份与切换
+
+- Advent 不自动在 SQLite 与 MySQL 之间迁移数据，切换前应停服并完成迁移与校验。

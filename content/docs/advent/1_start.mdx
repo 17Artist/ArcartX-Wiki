@@ -1,0 +1,86 @@
+---
+title: 说明与安装
+description: Advent的用途、运行条件、授权与首次安装
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Advent为新玩家和回归玩家提供两套独立的七日签到。首次在 Advent 建档的当天为新人第 1 天；符合回归资格的玩家离线达到门槛后再次入服，当天开启新一轮签到。
+
+<Callout type="warn">
+**Advent 为 ArcartX 高级会员专属插件。** 。
+</Callout>
+
+
+## 核心能力
+
+| 能力     | 说明                                 |
+|--------|------------------------------------|
+| 新人七日签到 | 玩家首次在 Advent 建档的当天开启第 1 天          |
+| 回归七日签到 | 符合回归资格的玩家连续离线达到门槛后再次入服时开启，并受领取期限限制 |
+| 奖励编辑器  | 在游戏内编辑七份日奖励和一份连续七日奖励               |
+| 组合奖励   | 每份奖励可包含物品、ArcartX 支持的货币提供者与命令      |
+| 系统邮箱投递 | 通过 SystemMail 发送                   |
+
+## 运行环境与依赖
+
+- Java 17；
+- Paper 1.18+；
+- ArcartX 2.5.36+；
+- SystemMail 1.0.0；
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装服务端依赖
+
+停止服务器，确认 ArcartX 与 SystemMail 已安装，并按 [SystemMail 安装说明](/docs/systemmail/1_start) 完成授权和启动配置，再把 `Advent-1.0.0.jar` 放入 `plugins/`。
+
+</Step>
+
+<Step>
+
+### 填写授权并启动
+
+首次启动会生成 `plugins/Advent/license.yml`。未填写有效许可时，Advent 会停用。
+
+停止服务端，填入自己的客户许可，再重新启动：
+
+```yaml
+licenseId: 0
+licenseKey: "XXX"
+```
+
+授权成功后才注册签到命令、初始化数据库，并生成以下业务文件。
+
+```text
+plugins/Advent/
+├─ license.yml
+├─ config.yml
+├─ database.yml
+├─ language.yml
+├─ advent.db
+└─ ui/
+   ├─ newcomer.yml
+   └─ returning.yml
+```
+
+</Step>
+
+<Step>
+
+### 调整奖励并检查界面
+
+执行 `/advent gui` 编辑新人和回归奖励，保存后使用 `/advent open` 检查当前玩家界面与邮箱投递。
+
+修改数据库、时区或回归规则后，需要重启服务端再检查。
+
+</Step>
+
+</Steps>

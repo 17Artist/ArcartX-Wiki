@@ -1,0 +1,79 @@
+---
+title: 配置与提示文字
+description: 时区、回归条件、投递、历史保留与重载
+---
+
+# 配置与提示文字
+
+授权成功、业务初始化后，主配置位于 `plugins/Advent/config.yml`：
+
+```yaml
+timezone: "Asia/Shanghai"
+
+returning:
+  inactive-days: 30
+  claim-window-days: 14
+
+delivery:
+  check-interval-seconds: 20
+  batch-size: 32
+  processing-timeout-seconds: 30
+  max-attempts: 50
+  retry-delay-seconds: 2
+
+history:
+  cleanup-interval-hours: 12
+  retention-days: 730
+  audit-retention-days: 90
+```
+
+## 签到与回归
+
+| 配置项                           | 说明                                          |
+|-------------------------------|---------------------------------------------|
+| `timezone`                    | 计算自然日、零点刷新与回归到期时刻的时区                        |
+| `returning.inactive-days`     | 开启下一轮回归活动所需的连续离线天数，每天按 24 小时计算，范围 `1..3650` |
+| `returning.claim-window-days` | 回归活动从开启日起可领取的自然日数，范围 `7..365`               |
+
+玩家使用 `/advent open` 或 `/adv open` 手动打开界面。
+
+修改回归规则后需要完整重启。已记录的回归截止时间和下一次回归资格时间不因修改配置而重算；之后需要重新计算资格或开启活动时，才使用新的规则。
+
+## 奖励投递
+
+| 配置项                                   |       有效范围 | 说明                        |
+|---------------------------------------|-----------:|---------------------------|
+| `delivery.check-interval-seconds`     |   `1..300` | 扫描待发送奖励的间隔                |
+| `delivery.batch-size`                 |   `1..256` | 每批最多处理的奖励数                |
+| `delivery.processing-timeout-seconds` |  `10..300` | 单次处理超时后允许其他任务继续尝试         |
+| `delivery.max-attempts`               | `1..10000` | 达到次数后暂停自动发送               |
+| `delivery.retry-delay-seconds`        |   `1..300` | 第一次重试的等待秒数，后续逐步延长，最长 1 小时 |
+
+## 历史保留
+
+| 配置项                              |       有效范围 | 说明                                |
+|----------------------------------|-----------:|-----------------------------------|
+| `history.cleanup-interval-hours` |   `1..168` | 历史数据清理间隔                          |
+| `history.retention-days`         | `30..3650` | 非当前活动的已送达奖励，以及可清理的已结束活动和签到记录的保留天数 |
+| `history.audit-retention-days`   | `30..3650` | 签到与管理操作审计记录的保留天数                  |
+
+待发送和已经暂停的奖励不被历史清理删除。有未处理奖励的活动及其签到记录也保留。
+
+当前活动不参与历史清理，玩家身份记录也一直保留。保留天数不是所有数据的统一到期时间。
+
+工作线程、连接池、投递及历史清理数值超出范围时，取最近的边界值。无效时区、回归天数或数据库类型阻止启动，建议按文档范围填写。
+
+
+## `language.yml`
+
+`plugins/Advent/language.yml` 管理签到、连续奖励、过期、投递状态和界面错误等玩家提示。占位符名称必须保持不变，否则重载拒绝新文件。
+
+执行 `/advent reload` 重新读取：
+
+- 两类奖励方案；
+- `language.yml`；
+- `ui/newcomer.yml` 与 `ui/returning.yml`。
+
+重载将结束正在进行的奖励编辑，未保存的修改不生效。
+
+`config.yml`、`database.yml`、`license.yml`、工作线程与数据库连接不通过重载生效，修改后需要完整重启服务器。授权配置见[说明与安装](/docs/advent/1_start)。

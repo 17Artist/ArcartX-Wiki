@@ -1,0 +1,133 @@
+---
+title: 界面协议
+description: 客户端资源、UI 标识、状态快照、奖励展示
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# 界面协议
+
+## 通讯总览
+
+下表与后续玩家状态字段适用于 `Advent:newcomer` 和 `Advent:returning`。
+
+| 方向       | 名称        | 参数或数据  | 用途            |
+|----------|-----------|--------|---------------|
+| 服务端 → UI | `state`   | 完整状态对象 | 首次绘制或整体替换界面状态 |
+| 服务端 → UI | `result`  | 操作结果   | 展示领取结果或读取错误   |
+| UI → 服务端 | `refresh` | 无参数    | 请求最新状态        |
+| UI → 服务端 | `claim`   | 无参数    | 领取当前活动的下一份日奖励 |
+| UI → 服务端 | `bonus`   | 无参数    | 领取连续七日额外奖励    |
+
+`state` 是完整快照，界面收到新快照后应替换旧状态。
+
+客户端动作均不带参数：
+
+```aria
+Packet.send('refresh')
+Packet.send('claim')
+Packet.send('bonus')
+```
+
+
+## `state`
+
+以下示例只保留第一份日奖励，实际 `days` 固定包含七项：
+
+```json
+{
+  "programType": "newcomer",
+  "title": "新人七日签到",
+  "timezone": "Asia/Shanghai",
+  "serverEpochMillis": 1789358400000,
+  "nextDayStartsAtEpochMillis": 1789401600000,
+  "startedDate": "2026-09-14",
+  "expiresAtEpochMillis": 0,
+  "claimCount": 0,
+  "streak": 0,
+  "completed": false,
+  "expired": false,
+  "claimedToday": false,
+  "canClaimToday": true,
+  "days": [
+    {
+      "slot": 1,
+      "day": "第1天",
+      "claimedDate": "",
+      "name": "初来乍到",
+      "description": "领取第一份签到奖励",
+      "enabled": true,
+      "state": "available",
+      "rewardCount": 1,
+      "rewards": [
+        {
+          "id": "slot-1-currency-example",
+          "type": "currency",
+          "name": "金币 × 100",
+          "icon": "advent/icons/coins.png"
+        }
+      ]
+    }
+  ],
+  "bonus": {
+    "slot": 8,
+    "name": "连续七日额外奖励",
+    "description": "连续七个自然日签到后可领取",
+    "enabled": true,
+    "state": "locked",
+    "rewardCount": 0,
+    "rewards": []
+  }
+}
+```
+
+### 根字段
+
+| 字段                           | 类型      | 含义                       |
+|------------------------------|---------|--------------------------|
+| `programType`                | String  | `newcomer` 或 `returning` |
+| `title`                      | String  | 当前签到名称                   |
+| `timezone`                   | String  | 服务端计算自然日的时区              |
+| `serverEpochMillis`          | Long    | 生成快照时的服务端时间              |
+| `nextDayStartsAtEpochMillis` | Long    | 下一个本地自然日开始时刻             |
+| `startedDate`                | String  | 活动开始日期，格式 `yyyy-MM-dd`   |
+| `expiresAtEpochMillis`       | Long    | 回归活动到期时刻；新人活动为 `0`       |
+| `claimCount`                 | Number  | 已完成的日签到数量                |
+| `streak`                     | Number  | 当前连续签到天数                 |
+| `completed`                  | Boolean | 七份日奖励是否完成                |
+| `expired`                    | Boolean | 当前回归活动是否到期               |
+| `claimedToday`               | Boolean | 当前自然日是否已经签到              |
+| `canClaimToday`              | Boolean | 服务端当前是否允许领取下一份奖励         |
+| `days`                       | Array   | 固定七项的日奖励状态               |
+| `bonus`                      | Object  | 连续七日额外奖励状态               |
+
+每日对象包含 `slot`、`day`、`claimedDate`、`name`、`description`、`enabled`、`state`、`rewardCount` 和 `rewards`。`slot` 为 `1..7`，`claimedDate` 未领取时为空。`days.length` 固定为 7，连续奖励固定为 `slot = 8`。`rewardCount` 表示附件数量，不表示已经送达。
+
+`bonus` 包含 `slot`、`name`、`description`、`enabled`、`state`、`rewardCount` 和 `rewards`，不包含 `day` 与 `claimedDate`。
+
+日奖励状态包括 `available`、`claimed`、`waiting`、`pending`、`failed`、`expired` 和 `locked`。
+连续奖励状态包括 `available`、`claimed`、`pending`、`failed`、`expired`、`locked`、`ineligible` 和 `disabled`，不使用 `waiting`。
+
+## 奖励展示
+
+| `type`     | 可见字段                      | 显示方式                                               |
+|------------|---------------------------|----------------------------------------------------|
+| `item`     | `id`、`type`、`content`     | 由物品槽显示图标并读取名称与数量；槽位尚未取得物品时名称留空，物品自身的自定义名称保留在快照中    |
+| `currency` | `id`、`type`、`name`、`icon` | 显示服务端生成的货币名称与配置图标；空图标路径使用 `advent/icons/coins.png` |
+| `command`  | `id`、`type`、`name`、`icon` | 只显示管理员设置的标题与图标；空图标路径使用 `advent/icons/command.png`  |
+
+`rewards[].id` 由奖励位置、类型及保存的附件标识组成
+
+## `result`
+
+```json
+{
+  "code": "claimed",
+  "success": true,
+  "message": "签到成功，第 1 天奖励已发送到系统邮箱。"
+}
+```
+
+界面应直接显示服务端 `message`，再用随后收到的 `state` 更新最终状态。
+
+`success` 表示操作是否受理，不表示附件已经进入背包。
