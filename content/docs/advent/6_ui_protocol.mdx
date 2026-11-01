@@ -1,133 +1,114 @@
 ---
 title: 界面协议
-description: 客户端资源、UI 标识、状态快照、奖励展示
+description: 读取奖励、状态摘要、日期请求与客户端回包校验
 ---
-
-import { Callout } from 'fumadocs-ui/components/callout';
 
 # 界面协议
 
-## 通讯总览
+## 客户端发往服务端
 
-下表与后续玩家状态字段适用于 `Advent:newcomer` 和 `Advent:returning`。
+客户端可发送以下四个动作：
 
-| 方向       | 名称        | 参数或数据  | 用途            |
-|----------|-----------|--------|---------------|
-| 服务端 → UI | `state`   | 完整状态对象 | 首次绘制或整体替换界面状态 |
-| 服务端 → UI | `result`  | 操作结果   | 展示领取结果或读取错误   |
-| UI → 服务端 | `refresh` | 无参数    | 请求最新状态        |
-| UI → 服务端 | `claim`   | 无参数    | 领取当前活动的下一份日奖励 |
-| UI → 服务端 | `bonus`   | 无参数    | 领取连续七日额外奖励    |
+| 动作        | 参数                          | 用途               |
+|-----------|-----------------------------|------------------|
+| `refresh` | 无                           | 重新读取当前活动状态摘要     |
+| `claim`   | 无                           | 领取当前活动的下一天奖励     |
+| `bonus`   | 无                           | 领取连续七日额外奖励       |
+| `rewards` | `viewId`、`slot`、`requestId` | 请求选中日期或连续奖励的附件列表 |
 
-`state` 是完整快照，界面收到新快照后应替换旧状态。
+`rewards` 的三个参数按上表顺序传递，均为字符串：`viewId` 原样取自当前 `state`；`slot` 为 `1` 至 `7`，连续奖励为 `8`；`requestId` 为 `1..2147483647` 的十进制整数，每次请求递增。数字不带正负号、小数点、空格或前导零。
 
-客户端动作均不带参数：
+例如在 UI 初始化时将 `var.reward_request_id` 设为 `0`，收到 `state` 后保存其 `viewId` 到 `var.view_id`，请求第 3 天：
 
 ```aria
-Packet.send('refresh')
-Packet.send('claim')
-Packet.send('bonus')
+var.reward_request_id++
+Packet.send('rewards', var.view_id, '3', var.reward_request_id.round())
 ```
 
+## 服务端发往客户端
 
-## `state`
+### `state`
 
-以下示例只保留第一份日奖励，实际 `days` 固定包含七项：
+`state` 发送完整的签到状态摘要，客户端每次收到后按快照更新界面。七份日奖励和连续奖励都只包含名称、介绍、状态和附件数量，不携带附件列表或物品快照。
 
-```json
-{
-  "programType": "newcomer",
-  "title": "新人七日签到",
-  "timezone": "Asia/Shanghai",
-  "serverEpochMillis": 1789358400000,
-  "nextDayStartsAtEpochMillis": 1789401600000,
-  "startedDate": "2026-09-14",
-  "expiresAtEpochMillis": 0,
-  "claimCount": 0,
-  "streak": 0,
-  "completed": false,
-  "expired": false,
-  "claimedToday": false,
-  "canClaimToday": true,
-  "days": [
-    {
-      "slot": 1,
-      "day": "第1天",
-      "claimedDate": "",
-      "name": "初来乍到",
-      "description": "领取第一份签到奖励",
-      "enabled": true,
-      "state": "available",
-      "rewardCount": 1,
-      "rewards": [
-        {
-          "id": "slot-1-currency-example",
-          "type": "currency",
-          "name": "金币 × 100",
-          "icon": "advent/icons/coins.png"
-        }
-      ]
-    }
-  ],
-  "bonus": {
-    "slot": 8,
-    "name": "连续七日额外奖励",
-    "description": "连续七个自然日签到后可领取",
-    "enabled": true,
-    "state": "locked",
-    "rewardCount": 0,
-    "rewards": []
-  }
-}
-```
+| 字段                           | 类型      | 含义                                   |
+|------------------------------|---------|--------------------------------------|
+| `viewId`                     | String  | 当前打开会话的标识，打开新界面或重载定义后改变，用于排除已关闭会话的回包 |
+| `rewardVersion`              | Long    | 当前类型奖励方案的保存编号，管理员保存奖励后改变             |
+| `programType`                | String  | `newcomer` 或 `returning`             |
+| `title`                      | String  | 当前签到名称                               |
+| `timezone`                   | String  | 计算自然日的 IANA 时区                       |
+| `serverEpochMillis`          | Long    | 生成本次快照时的服务端时间                        |
+| `nextDayStartsAtEpochMillis` | Long    | 下一个本地自然日开始时刻                         |
+| `startedDate`                | String  | 活动开始日期，格式 `yyyy-MM-dd`               |
+| `expiresAtEpochMillis`       | Long    | 回归活动到期时刻；新人活动为 `0`                   |
+| `claimCount`                 | Int     | 已完成的日签到数量                            |
+| `streak`                     | Int     | 当前连续签到天数                             |
+| `completed`                  | Boolean | 是否已完成七份日签到                           |
+| `expired`                    | Boolean | 当前回归活动是否到期                           |
+| `claimedToday`               | Boolean | 当前自然日是否已签到                           |
+| `canClaimToday`              | Boolean | 服务端当前是否允许领取下一天                       |
+| `days`                       | List    | 七份日奖励状态                              |
+| `bonus`                      | Map     | 连续七日额外奖励状态                           |
 
-### 根字段
 
-| 字段                           | 类型      | 含义                       |
-|------------------------------|---------|--------------------------|
-| `programType`                | String  | `newcomer` 或 `returning` |
-| `title`                      | String  | 当前签到名称                   |
-| `timezone`                   | String  | 服务端计算自然日的时区              |
-| `serverEpochMillis`          | Long    | 生成快照时的服务端时间              |
-| `nextDayStartsAtEpochMillis` | Long    | 下一个本地自然日开始时刻             |
-| `startedDate`                | String  | 活动开始日期，格式 `yyyy-MM-dd`   |
-| `expiresAtEpochMillis`       | Long    | 回归活动到期时刻；新人活动为 `0`       |
-| `claimCount`                 | Number  | 已完成的日签到数量                |
-| `streak`                     | Number  | 当前连续签到天数                 |
-| `completed`                  | Boolean | 七份日奖励是否完成                |
-| `expired`                    | Boolean | 当前回归活动是否到期               |
-| `claimedToday`               | Boolean | 当前自然日是否已经签到              |
-| `canClaimToday`              | Boolean | 服务端当前是否允许领取下一份奖励         |
-| `days`                       | Array   | 固定七项的日奖励状态               |
-| `bonus`                      | Object  | 连续七日额外奖励状态               |
+每个 `days` 元素包含：
 
-每日对象包含 `slot`、`day`、`claimedDate`、`name`、`description`、`enabled`、`state`、`rewardCount` 和 `rewards`。`slot` 为 `1..7`，`claimedDate` 未领取时为空。`days.length` 固定为 7，连续奖励固定为 `slot = 8`。`rewardCount` 表示附件数量，不表示已经送达。
+| 字段                   | 含义                                                                      |
+|----------------------|-------------------------------------------------------------------------|
+| `slot`               | 1 至 7 的奖励位置                                                             |
+| `day`                | 玩家可读的天数名称                                                               |
+| `claimedDate`        | 实际领取日期；未领取时为空                                                           |
+| `name`、`description` | 奖励名称与介绍                                                                 |
+| `enabled`            | 该份日奖励是否启用；关闭时签到仍会推进                                                     |
+| `state`              | `available`、`claimed`、`waiting`、`pending`、`failed`、`expired` 或 `locked` |
+| `rewardCount`        | 附件数量                                                                    |
 
-`bonus` 包含 `slot`、`name`、`description`、`enabled`、`state`、`rewardCount` 和 `rewards`，不包含 `day` 与 `claimedDate`。
+`bonus` 包含 `slot`、`name`、`description`、`enabled`、`state` 和 `rewardCount`；`slot` 固定为 `8`，不包含 `day`、`claimedDate` 或附件列表。状态为 `available`、`claimed`、`pending`、`failed`、`ineligible`、`expired`、`disabled` 或 `locked`，不使用日奖励的 `waiting`。
 
-日奖励状态包括 `available`、`claimed`、`waiting`、`pending`、`failed`、`expired` 和 `locked`。
-连续奖励状态包括 `available`、`claimed`、`pending`、`failed`、`expired`、`locked`、`ineligible` 和 `disabled`，不使用 `waiting`。
+### `rewards`
 
-## 奖励展示
+服务端只在收到有效的明细请求后发送该包，且每包只有一份日奖励或连续奖励的附件列表。
 
-| `type`     | 可见字段                      | 显示方式                                               |
-|------------|---------------------------|----------------------------------------------------|
-| `item`     | `id`、`type`、`content`     | 由物品槽显示图标并读取名称与数量；槽位尚未取得物品时名称留空，物品自身的自定义名称保留在快照中    |
-| `currency` | `id`、`type`、`name`、`icon` | 显示服务端生成的货币名称与配置图标；空图标路径使用 `advent/icons/coins.png` |
-| `command`  | `id`、`type`、`name`、`icon` | 只显示管理员设置的标题与图标；空图标路径使用 `advent/icons/command.png`  |
+| 字段              | 类型      | 含义                              |
+|-----------------|---------|---------------------------------|
+| `viewId`        | String  | 与请求相同的当前会话标识                    |
+| `slot`          | Int     | 本次返回的奖励位置，`1..7` 为日奖励，`8` 为连续奖励 |
+| `requestId`     | Int     | 与请求相同的递增序号                      |
+| `rewardVersion` | Long    | 本次列表对应的奖励方案保存编号；失败时为 `-1`       |
+| `success`       | Boolean | 本次明细是否读取成功                      |
+| `message`       | String  | 失败时的玩家提示，成功时为空                  |
+| `rewards`       | List    | 该位置的附件条目；空奖励或读取失败时为空列表          |
 
-`rewards[].id` 由奖励位置、类型及保存的附件标识组成
+客户端切换选择后立即移除上一选择的列表，只在 `viewId`、`slot`、`requestId` 与当前请求都匹配时处理回包。成功回包的 `rewardVersion` 也必须与当前 `state` 相同；不一致时每个保存编号最多自动请求一次轻量 `refresh`，随后重新读取当前选择。再次不一致时等待玩家手动重试，避免持续请求大列表。
 
-## `result`
+读取成功后才根据 `rewards` 创建物品槽和列表行。读取中显示“加载中…”，失败或等待超过 15 秒时可点击提示或日期重试。空列表在成功后显示“暂无奖励内容”。界面只保留当前选择的附件列表，不缓存其他七份奖励。
 
-```json
-{
-  "code": "claimed",
-  "success": true,
-  "message": "签到成功，第 1 天奖励已发送到系统邮箱。"
-}
-```
+### 奖励展示
 
-界面应直接显示服务端 `message`，再用随后收到的 `state` 更新最终状态。
+- 物品：仅发送 `id`、`type=item` 和 ArcartX Icon Slot 所需的 `content`，不发送独立的 `name` 字段。初始化时调用 `setItemIcon(content)`，名称和数量分别从槽位的 `getSlotItemStack().getName()` 与 `getSlotItemStack().getCount()` 读取；槽位尚未取得物品时名称留空。物品自身的自定义名称保留在快照中。
+- 货币：发送 `id`、`type=currency`、业务显示名与图标路径。未配置显示名时使用 ArcartX 注册的货币名称；仍不可用时只显示“货币”。配置的图标直接用于该条目，空路径使用 `advent/icons/coins.png`。
+- 命令：发送 `id`、`type=command`、管理员配置的显示名称与图标路径。空图标路径使用 `advent/icons/command.png`。
 
-`success` 表示操作是否受理，不表示附件已经进入背包。
+### `result`
+
+| 字段        | 类型      | 含义                         |
+|-----------|---------|----------------------------|
+| `code`    | String  | 稳定的业务结果码                   |
+| `success` | Boolean | 操作是否按预期受理                  |
+| `message` | String  | 服务端 `language.yml` 生成的玩家提示 |
+
+客户端应直接显示 `message`，不要复制一套结果文案。
+
+命令用法见[管理命令与奖励编辑器](/docs/advent/3_admin)。`success` 表示本次操作是否受理，不表示玩家已在邮箱中领取附件。异常包可能直接忽略，不保证返回结果。
+
+## 刷新行为
+
+- 界面打开后由服务端立即发送一次 `state`。
+- 客户端默认选中下一份日奖励，七份日奖励完成时选中连续奖励，再单独请求这一份的 `rewards`；不会预取其他日期。
+- 客户端跨过配置时区的本地零点后发送 `refresh`。
+- `claim` 或 `bonus` 完成后，服务端先发送 `result`，再发送新的 `state`。
+- 已领取的奖励卡片和按钮显示“已领取”，待发送奖励显示“发放中”，下一天未开放时显示“明日开放”。点击卡片时立即更新标题和按钮，再请求该位置的奖励列表。
+- 仅签到或投递状态变化时保留已加载的当前列表；奖励方案保存编号变化时清空并重新请求当前选择。
+- 后台邮件从待发送转为成功或暂停时，服务端会刷新仍然打开的对应玩家界面。
+- 同一玩家同一时间只执行一次领取或状态刷新；明细读取独立合并。
