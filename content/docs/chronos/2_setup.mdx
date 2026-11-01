@@ -10,7 +10,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 ## 安装须知
 
 <Callout type="info">
-Chronos 是**纯服务端插件**，只需在服务端安装，玩家客户端不需要为它单独装任何东西。但要前提是玩家客户端必须存在ArcartX Mod。
+Chronos 是**服务端插件**，客户端玩家仍须安装 ArcartX Mod。
 </Callout>
 
 Chronos 的一个动作横跨两套状态机，安装前先记住它们的分工：
@@ -35,12 +35,13 @@ flowchart LR
 
 ## 前置要求
 
-| 要求                 | 说明                                         |
-|--------------------|--------------------------------------------|
-| **ArcartX**        | 硬前置                                        |
-| **Minecraft 服务端**  | Spigot / Paper 及其分支                        |
-| **授权码**            | 在 [ArcartX 社区](https://arcartx.com/) 购买后获取 |
-| **PlaceholderAPI** | 可选。仅当你要用 PAPI 触发器切换控制器时才需要，未安装不影响其它功能      |
+| 要求                 | 说明                                                                              |
+|--------------------|---------------------------------------------------------------------------------|
+| **ArcartX**        | 硬前置                                                                             |
+| **Java**           | 17 或更高版本；需同时满足 ArcartX 与服务端自身的要求                                                |
+| **Minecraft 服务端**  | Spigot / Paper 及其分支                                                             |
+| **授权码**            | 在 [ArcartX 社区](https://arcartx.com/) 购买后获取                                      |
+| **PlaceholderAPI** | 可选。PAPI 触发器需要它；未安装或未启用时会跳过 PAPI 条件，仍判断其余条件，详见[职业配置](/docs/chronos/5_profession) |
 
 ---
 
@@ -51,7 +52,7 @@ flowchart LR
 ### 获取插件文件
 
 购买后，在**许可证**页面可以：
-- 下载 `Chronos_Plugin-<版本号>.jar`
+- 下载发布版 Chronos  JAR
 - [查询你的授权码 ID 和 KEY](https://arcartx.com/resources/market-place-user/licenses)
 
 <Callout type="info">
@@ -64,7 +65,7 @@ flowchart LR
 
 1. 把 `Chronos_Plugin-<版本号>.jar` 放进服务端 `plugins` 目录
 2. 重启服务器
-3. 插件会自动生成 `plugins/Chronos/` 配置文件夹
+3. 插件自动生成 `plugins/Chronos/` 配置文件夹
 
 <Callout type="warn">
 如果没有出现 `Chronos` 文件夹，依次检查：插件是否真的上传成功、控制台有没有报错、ArcartX 本体插件是否已正确安装。
@@ -86,7 +87,7 @@ licenseKey: KEY-xXxxXXx    # 替换为你的授权码 KEY
 <Step>
 ### 重启验证
 
-在后台执行 `stop` 重启服务器，观察控制台。出现下面这段 Banner 且以「加载完成」结尾，即为成功：
+在服务端控制台执行 `stop`，正常停服后再启动服务器，并观察控制台。业务初始化会输出下面这段 Banner 和「加载完成」日志：
 
 ```log
 [03:13:26 INFO]:    ___           _ _____ _        _   _     _
@@ -99,6 +100,7 @@ licenseKey: KEY-xXxxXXx    # 替换为你的授权码 KEY
 [03:13:26 INFO]: ♦ ArcartX-Chronos | 信息: 开始加载
 [03:13:26 INFO]: ♦ ArcartX-Chronos | 信息: 加载完成
 ```
+
 </Step>
 </Steps>
 
@@ -108,7 +110,7 @@ licenseKey: KEY-xXxxXXx    # 替换为你的授权码 KEY
 
 ### 看控制台加载了什么
 
-加载过程中，控制台会逐条打印按键分类、按键数量、注册的控制器等信息，可以用来确认配置是否被读到：
+加载过程中，控制台会打印按键分类、按键数量和注册的控制器。下面是已配置按键和控制器时的日志示例。全新安装的 `common.yml` 使用 `EXTERNAL` 模式，允许的控制器列表和默认控制器均为空；添加控制器文件后，还需将其加入职业的 `controllers.allowed`，并按需设置 `controllers.default`，或通过 API 分配：
 
 ```log
 [11:54:02 INFO]: ♦ ArcartX-Chronos | INFO: 开始加载
@@ -138,5 +140,4 @@ licenseKey: KEY-xXxxXXx    # 替换为你的授权码 KEY
 3. 仍不行则联系社区管理员确认授权状态
 4. 服务器时钟非标准时间
 </Callout>
-
 

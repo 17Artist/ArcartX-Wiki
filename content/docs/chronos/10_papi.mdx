@@ -3,10 +3,13 @@ title: PlaceholderAPI 占位符
 description: Chronos 注册的占位符
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
 
 ## PlaceholderAPI 占位符
 
-装了 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) 后，Chronos 会自动注册 `chronos` 扩展，可在任何支持 PAPI 的地方（记分板、HUD、聊天格式、条件插件）读取玩家的实时动作信息。
+Chronos 初始化后的下一 tick 会检查 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) 是否已启用，并尝试注册 `chronos` 扩展。注册成功后，可在支持 PAPI 的地方（记分板、HUD、聊天格式、条件插件）读取玩家的实时动作信息。
+
+PAPI 是可选依赖。扩展注册不成功时不会输出「已注册 PlaceholderAPI 扩展」；`/ac reload` 只重载 Chronos 配置，不会重试注册扩展。请在启动服务器前安装并启用 PAPI，再正常启动服务器。
 
 | 占位符                            | 返回               | 说明                   |
 |--------------------------------|------------------|----------------------|
@@ -22,13 +25,15 @@ description: Chronos 注册的占位符
 | `%chronos_cooldown_<组名>%`      | 毫秒数              | 指定冷却组的剩余冷却（无冷却为 `0`） |
 
 <Callout type="info">
-    玩家未挂控制器时，除 `cooldown_` 外的占位符统一返回 `none`。`%chronos_cooldown_攻击%` 这类是**动态后缀**：`cooldown_` 后面直接跟冷却组名即可，无需预先声明。
+    玩家没有 Chronos 数据时，识别到的占位符返回 `none`。已有数据但没有当前控制器/状态时，对应 ID 返回 `none`，状态/窗口判断返回 `false`，无蓄力记录及无冷却时返回 `0`。`%chronos_cooldown_攻击%` 这类是**动态后缀**：`cooldown_` 后面直接跟冷却组名即可，无需预先声明。
 </Callout>
 
 **记分板显示当前动作：**
 
 ```
-职业: %chronos_controller%
+控制器: %chronos_controller%
 动作: %chronos_state%
 闪避CD: %chronos_cooldown_闪避%
 ```
+
+`%chronos_controller%` 是当前生效控制器 ID，不是职业 ID。当前扩展没有职业/技能槽占位符；外部职业框架可通过 [Java API](/docs/chronos/9_api) 读取职业信息并提供自己的占位符。

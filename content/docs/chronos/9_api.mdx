@@ -1,266 +1,108 @@
 ---
-title: API 与事件
-description: 用 Java 读写玩家的控制器与状态、监听状态事件，以及 MythicMobs / PlaceholderAPI 对接
+title: Java API
+description: API-only 制品、能力探测、状态操作、扩展 SPI 与事件
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Card, Cards } from 'fumadocs-ui/components/card';
 
-## 概述
+Chronos 3.0.0 的稳定 ABI 位于 `priv.seventeen.artist.arcartx.chronos.api`。
 
-Chronos 本身是一套由配置驱动的状态机：玩家的攻击、闪避、受击都跑在 `controllers/*.yml` 里。但真实的服务器可能不会只有 Chronos——你往往需要**让别的系统和它对接**：
+## 获取 API 与探测能力
 
-- 职业插件切换职业时，顺手给玩家换一套动作控制器；
-- 怪物的技能命中玩家时，把玩家打进"受击"状态；
-- 记分板 / HUD 上实时显示玩家当前在放什么招、冷却还剩多久；
-- 你自己的插件在玩家进入某个状态时播个音效、加个 buff。
-
-利用 **Java API**、**Bukkit 事件**、**MythicMobs 机制**和 **PlaceholderAPI 占位符**就能接进来。本章按"我要做什么"来组织，而不是单纯罗列方法签名。
-
-<Callout type="info">
-本章的所有 Java 方法都对**未建档的玩家**（离线、重载空窗期、过早调用）做了统一判空——返回 `null` / `0` / 无操作，不会抛 `NullPointerException`。所以你可以放心调用，不必每次都先判断玩家是否已注册。
-</Callout>
-
----
-
-## 拿到 API 入口
-
-一切从这一行开始，它是个静态方法，任何地方都能调：
+必须依赖 Chronos 的附属插件，在 `plugin.yml` 中声明 `depend: [Chronos]`，然后在 `onEnable` 获取：
 
 ```java
 ChronosAPI api = ChronosAPI.getInstanceAPI();
-```
+if (api == null) {
+    throw new IllegalStateException("Chronos API unavailable");
+}
 
-拿到 `api` 之后，就可以调用下面这些方法了。完整接口如下（与源码一致）：
-
-```java
-public interface ChronosAPI {
-
-    static ChronosAPI getInstanceAPI() {
-        return ChronosPlugin.getChronosAPI();
-    }
-
-    Context getPlayerContext(Player player);                 // 玩家的 Aria 脚本上下文
-    long    getPlayerCooldown(Player player, String group);  // 某冷却组剩余冷却[ms]
-
-    @Nullable String getPlayerControllerId(Player player);   // 当前控制器ID
-    void    setPlayerController(Player player, String id);    // 设置控制器
-    void    removePlayerController(Player player);            // 移除控制器
-
-    @Nullable String getPlayerStateId(Player player);         // 当前状态ID
-    @Nullable String getPlayerStateGroupId(Player player);    // 当前状态所属组ID
-
-    boolean tryEnterState(Player player, String stateId);                          // 尝试进入状态（走校验）
-    void    tryEnterControlledState(Player player, String stateId, double duration); // 进入受控状态
-    void    forceEnterStateFromRootChain(Player player, String stateId);           // 强制进入根节点状态
+if (!api.getCapabilities().contains("chronos:profession-runtime/1")) {
+    throw new IllegalStateException("Chronos profession runtime is too old");
 }
 ```
 
----
+可选联动时使用 `softdepend: [Chronos]`，并先通过 Bukkit `PluginManager` 确认 Chronos 存在且已启用，再加载或调用引用 Chronos API 的独立接入类。`softdepend` 只安排加载顺序，不保证 Chronos 已安装、授权通过或业务初始化成功；不要在主插件入口中无条件引用它的 API 类型。
 
-## 管理玩家的控制器
+停用清理会终止待决释放、结束动作与状态、清空输入和临时覆盖，并尝试解除在线玩家的客户端控制器、恢复原版使用。外部资源预留仍按 Provider 的回滚契约处理，不能把引擎清理等同于外部存储补偿成功。
 
-**控制器**就是玩家当前挂载的那套动作规则（对应 `controllers/` 下的一个 yml，也就是[服务端控制器](/docs/chronos/7_controller)）。切换控制器 = 换一整套动作、模型、动画。
+若关闭回调已经启用新实例并发布新的 API，旧实例的后续清理不会再清空新实例的客户端状态或控制器。
 
-| 方法                                | 作用                  | 返回                  |
-|-----------------------------------|---------------------|---------------------|
-| `getPlayerControllerId(player)`   | 玩家现在挂的是哪个控制器        | `String`，没有则 `null` |
-| `setPlayerController(player, id)` | 给玩家挂上指定控制器          | `void`              |
-| `removePlayerController(player)`  | 卸掉玩家的控制器（回到无动作系统状态） | `void`              |
+`getInstanceAPI()` 先读兼容的静态入口，再从 Bukkit `ServicesManager` 查找。当前能力 ID：
 
-最常见的用法：玩家切职业时，同步换一套动作。
+- `chronos:profession-runtime/1`
+- `chronos:action-instance/1`
+- `chronos:controller-override/1`
+- `chronos:target-selector/1`
+- `chronos:target-selector-cancel/1`
+- `chronos:execute-loop/1`
 
-```java
-public void applyClass(Player player, String className) {
-    ChronosAPI api = ChronosAPI.getInstanceAPI();
-    switch (className) {
-        case "战士"   -> api.setPlayerController(player, "warrior");
-        case "法师"   -> api.setPlayerController(player, "mage");
-        case "弓箭手" -> api.setPlayerController(player, "archer");
-        default        -> api.removePlayerController(player); // 无职业时卸掉
-    }
-}
-```
+## 基础状态 API
 
-<Callout type="info">
-`setPlayerController` 传入的 `id` 就是 `controllers/` 里的文件名（不含 `.yml`）。如果这个 id 不存在，玩家的控制器会被设为空（等同移除），不会报错——所以传参前最好确认 id 拼写正确。
+| 方法                                           | 语义                                                                                 |
+|----------------------------------------------|------------------------------------------------------------------------------------|
+| `getPlayerContext`                           | 返回当前控制器的 Aria `Context`；玩家未就绪时为 `null`                                             |
+| `getPlayerCooldown`                          | 冷却组剩余毫秒；不存在或玩家未就绪时为 `0`                                                            |
+| `getPlayerControllerId`                      | 当前生效控制器 ID，可能为 `null`                                                              |
+| `setPlayerController`                        | 设置 API 来源的基础控制器；仍受当前职业 `controllers.allowed` 限制                                    |
+| `removePlayerController`                     | 移除基础控制器                                                                            |
+| `getPlayerStateId` / `getPlayerStateGroupId` | 当前状态及状态组，可能为 `null`                                                                |
+| `tryEnterState`                              | 检查目标状态的 conditions 和冷却后尝试进入，返回是否成功；不匹配按键或连招节点                                      |
+| `tryEnterControlledState`                    | 检查当前霸体窗口后直接进入受控状态，不执行目标状态的 conditions 和冷却检查；`duration` 单位为毫秒，大于 0 时覆盖配置时长，否则使用配置时长 |
+| `forceEnterStateFromRootChain`               | 跳过目标状态的 conditions 和冷却检查，携带默认连招链中该状态的节点强制进入；目标不必是根节点。已有控制器但目标状态或节点不存在时，会终止当前动作与状态  |
 
-如果你想让"手持某物品"或"某 PAPI 值"自动切控制器，通常不需要写 Java，用 [setting.yml 的 triggers](/docs/chronos/5_setting) 就够了，它是配置驱动、会周期性重判的。API 更适合"由事件精确触发一次切换"的场景。
-</Callout>
+传给 `setPlayerController` 的 ID 不存在时等价于移除基础控制器。存在但不属于当前职业时请求被忽略。设置或移除基础控制器时，若当前状态仍在运行，实际切换会等到状态结束；若存在临时覆盖，则只更新基础目标，当前覆盖继续生效。`getPlayerControllerId` 返回当前实际生效的控制器，不是尚未生效的基础目标。若需要可观察的结果与自动恢复，请使用[定时控制器覆盖](/docs/chronos/9_controller_override)。
 
----
+受控状态的 `duration` 与配置时长一样，最终仍除以该状态的 `speed`；例如传入 `1000` 且 `speed = 2` 时，计算出的时长为 500ms。
 
-## 查询玩家现在的状态
-
-想知道玩家此刻在干什么（在放招？在受击？某个技能冷却好了没？），用这三个只读方法。它们不改变任何东西，适合放在条件判断、HUD 刷新里。
-
-| 方法                                 | 作用                   | 返回                  |
-|------------------------------------|----------------------|---------------------|
-| `getPlayerStateId(player)`         | 当前**状态**ID（如 `近战1段`） | `String`，空闲时 `null` |
-| `getPlayerStateGroupId(player)`    | 当前状态所属的**组**（如 `攻击`） | `String`，空闲时 `null` |
-| `getPlayerCooldown(player, group)` | 指定冷却组还剩多少毫秒          | `long`，无冷却返回 `0`    |
-
-判断"玩家是不是正在攻击"时，**优先看组而不是看具体状态ID**——组更稳定，加了新攻击动作也不用改判断逻辑：
+## 职业与技能
 
 ```java
-public boolean isAttacking(Player player) {
-    ChronosAPI api = ChronosAPI.getInstanceAPI();
-    return "攻击".equals(api.getPlayerStateGroupId(player));
-}
+String professionId = api.getPlayerProfessionId(player);
+ProfessionSnapshot snapshot = api.getPlayerProfessionSnapshot(player);
 
-// 冷却还剩几秒
-public double dashCooldownSeconds(Player player) {
-    long ms = ChronosAPI.getInstanceAPI().getPlayerCooldown(player, "闪避");
-    return ms / 1000.0;
-}
+boolean switched = api.setPlayerProfession(player, "example:warrior");
+SkillCastResult cast = api.castSkill(player, "primary");
+api.invalidateProfession(player);
 ```
 
----
+`getPlayerProfessionSnapshot` 在玩家未就绪时返回 `null`；玩家就绪后只读取已缓存的外部快照，尚无缓存或缓存已失效时，返回当前职业的本地默认装配快照，职业等级为 1。这个 getter 不会调用 Provider，也不能用来主动刷新外部数据。`setPlayerProfession` 只切换 Chronos 的运行时职业，不修改外部框架的数据或持久化记录；外部 Provider 下次返回的快照仍可能把玩家切换到它声明的职业。
 
-## 主动让玩家进入某个状态
+`castSkill` 接受任意非空槽位 ID，不限定名称或数量。返回状态包括 `STARTED`、`PENDING_PROFESSION`、`PENDING_ADMISSION`、`SELECTING`、`REJECTED` 与 `NO_SKILL_IN_SLOT`。它返回的是本次调用所进入的处理阶段，而不是等待整个流程结束的 future；即使 Provider 返回已完成的任务，流程已同步推进，也可能仍返回 `PENDING_PROFESSION` 或 `PENDING_ADMISSION`。`NO_SKILL_IN_SLOT` 既可能表示槽位未装配技能，也可能表示技能的触发阶段与本次输入不符。
 
-这三个方法会**主动改变玩家的状态**，是外部系统"推玩家一把"的核心手段。它们的区别在于**校验强度**，按从严到松排列：
+`SkillCastResult.instanceId()` 随状态变化：`STARTED` 携带动作实例 ID，`SELECTING` 携带选择实例 ID，`PENDING_ADMISSION` 携带本次释放尝试的 attempt ID；其余状态为 `null`。入口 conditions 或冷却在检查阶段拒绝时，不会产生新动作的 Start/End 事件。外部框架还可记录自己的 selection/admission/lease 结果，但不能把 Provider 完成或 commit 成功单独视为动作已开始。
 
-| 方法                                                   | 会检查什么                         | 用途                                                               |
-|------------------------------------------------------|-------------------------------|------------------------------------------------------------------|
-| `tryEnterState(player, stateId)`                     | 条件表达式、冷却、`blocked_group` 全走一遍 | 让玩家"合法地"触发一个动作，能被规则拦下（不进任何链，比如进入attack1，就算这个状态在连招链，玩家输入也不会进入下一段） |
-| `tryEnterControlledState(player, stateId, duration)` | 只看**霸体**：玩家处于霸体窗口时会失败         | 打玩家进受击/硬直，且尊重霸体保护（同上）                                            |
-| `forceEnterStateFromRootChain(player, stateId)`      | 什么都不查，直接进                     | 无视一切强行触发；状态**必须**是连招树根节点（进入链，输入可进行下一段）                           |
+当前 Java API 的 `castSkill` 固定发送 `PRESS` 阶段，因此槽位应装配 `trigger: PRESS` 的技能；`HOLD` 与 `RELEASE` 技能由客户端对应输入阶段触发。Java API 没有独立的长按/松开重载。
 
-### tryEnterState — 走完整校验
-
-返回 `boolean` 告诉你有没有成功。比如给玩家一个"外部触发的技能键"，但你希望它照样受冷却和条件约束：
+扩展注册方法：
 
 ```java
-boolean ok = ChronosAPI.getInstanceAPI().tryEnterState(player, "战吼");
-if (!ok) {
-    player.sendMessage("§c战吼还在冷却或当前无法施放");
-}
+Registration profession = api.registerProfessionProvider(plugin, provider);
+Registration selector = api.registerTargetSelector(plugin, selectorProvider);
+Registration execute = api.registerExecutionHandler(plugin, "myplugin:pulse", handler);
+
+// 可提前撤销；插件禁用时 Chronos 也会自动撤销。
+profession.close();
 ```
 
-### tryEnterControlledState — 打玩家进受控状态
+同一时刻只允许一个权威 `ProfessionProvider`；selector 按 provider ID 注册；execute handler 按命名空间 ID 注册。具体契约见[外部职业框架](/docs/chronos/9_external_profession)、[特殊目标选择器](/docs/chronos/9_target_selector)和[execute 循环](/docs/chronos/7_execute_loop)。
 
-**受控状态**指受击、硬直、击飞这类"被动挨打"的状态。`duration` 是持续毫秒数（传 `-1` 用状态自带的时长）。关键点：**玩家正处于霸体窗口时，这次调用会被忽略**——这正是霸体的意义（放大招时不被小怪打断）。
+`Registration.close()` 可重复调用。主动关闭、所属插件卸载或 Chronos 停用后，句柄的 `isActive()` 为 `false`；关闭旧句柄不会撤销后来注册的同名扩展。
 
-```java
-// 怪物近战命中玩家，让玩家硬直 500ms（霸体时自动无效）
-public void onMonsterHit(Player player) {
-    ChronosAPI.getInstanceAPI().tryEnterControlledState(player, "受击", 500);
-}
-```
+## Bukkit 事件
 
-### forceEnterStateFromRootChain — 无视一切强制进入
+以下事件均为只读通知，不实现 `Cancellable`：
 
-不检查条件、冷却、组——直接把玩家扔进指定状态。**约束：该状态必须是某条连招树的根节点**（`combo.<状态ID>` 顶层声明过），否则找不到入口。适合"过场处决""剧情强制动作"这种不容拒绝的场合。
+- `PlayerControllerChangeEvent`
+- `PlayerEnterStateEvent` / `PlayerLeaveStateEvent`
+- `PlayerProfessionChangeEvent`
+- `PlayerSkillActionStartEvent` / `PlayerSkillActionEndEvent`
+- `PlayerControllerOverrideStartEvent` / `PlayerControllerOverrideEndEvent`
 
-```java
-// 剧情杀：无视玩家当前在做什么，强制播放处决动作
-ChronosAPI.getInstanceAPI().forceEnterStateFromRootChain(player, "处决");
-```
+技能动作事件携带动作开始时确定的 `actionInstanceId`、职业 ID、槽位 ID、技能 ID 和技能等级；动作结束事件另有 `reason`。这里提供的是实例 ID，不暴露内部 `ActionInstance` 对象。覆盖结束事件携带结束原因与事件发出时实际生效的控制器 ID。
+
+`PlayerSkillActionStartEvent` 在入口检查通过、新动作元数据激活后发出，随后才尝试进入入口状态，因此它不等同于 `PlayerEnterStateEvent`。事件本身不可取消，但监听器同步调用职业/控制器等 API 可能中断动作；若后续入口启动失败，也可能紧接着发出 End。需要确认状态已进入时，观察 EnterState，而不是只看 Start 或资源 commit。
 
 <Callout type="warn">
-**三者怎么选：**
-- 想让规则说了算（该冷却就冷却、该被 block 就 block）→ `tryEnterState`
-- 是"外界伤害/控制"打到玩家身上，且要尊重霸体 → `tryEnterControlledState`
-- 就是要它发生、不接受失败 → `forceEnterStateFromRootChain`（记得把目标状态挂成连招根节点）
+所有会改变 Chronos/Bukkit 状态的 API 都应在服务器主线程调用。Provider 可以异步读取数据库，但返回给 Chronos 的必须是不可变快照；不要从异步线程操作玩家、状态、控制器或 Bukkit 事件。
 </Callout>
-
----
-
-## 读写玩家的脚本上下文
-
-每个玩家挂上控制器时，Chronos 会给他建一个独立的 **Aria 上下文**（就是 [Aria 脚本](/docs/chronos/8_aria/1_overview)里 `var.` 命名空间背后的东西）。`getPlayerContext(player)` 把这个上下文取出来，让你的 Java 代码和玩家的动作脚本**共享同一份变量**。
-
-```java
-Context ctx = ChronosAPI.getInstanceAPI().getPlayerContext(player);
-if (ctx != null) {
-    // ctx 就是玩家动作脚本读写 var. 变量所用的同一个上下文，
-    // 你可以往里写数据，供 state 的 conditions/execute 表达式读取，
-    // 反过来也能读脚本里存进去的值。
-}
-```
-
-<Callout type="info">
-玩家未挂控制器时 `ctx` 为 `null`。
-</Callout>
-
----
-
-## 监听状态事件
-
-Chronos 通过标准 Bukkit 事件广播玩家的状态变化，一共**三个**，用 `@EventHandler` 监听即可。
-
-<Callout type="warn">
-这三个事件**都只能观测、不能取消**（它们不实现 `Cancellable`）。它们是"通知你发生了什么"，不是"让你否决它"。想阻止某个状态发生，请用 `conditions` / `blocked_group` / 冷却在配置层拦截，而不是在事件里。
-</Callout>
-
-### PlayerEnterStateEvent — 进入状态
-
-```java
-@EventHandler
-public void onEnter(PlayerEnterStateEvent e) {
-    Player player = e.getPlayer();
-    String stateId = e.getStateId();
-    if ("处决".equals(stateId)) {
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
-    }
-}
-```
-
-### PlayerLeaveStateEvent — 离开状态
-
-```java
-@EventHandler
-public void onLeave(PlayerLeaveStateEvent e) {
-    Player player = e.getPlayer();
-    String stateId = e.getStateId(); // 可能为 null
-}
-```
-
-<Callout type="info">
-**Leave 与 Enter 严格成对。** 无论状态是自然播完、被打断、被强制清空，离开时都会补发一次 `PlayerLeaveStateEvent`。哪怕一个动作被另一个动作**打断覆盖**，Chronos 也会先给旧状态发 Leave、再给新状态发 Enter——所以你可以安心地用"Enter 时加特效、Leave 时清特效"这种配对逻辑，不用担心漏配对导致特效残留。`getStateId()` 可能为 `null`（例如控制器被移除时的收尾清空）。
-</Callout>
-
-```mermaid
-sequenceDiagram
-    participant P as 玩家
-    participant C as Chronos
-    Note over C: 近战1段 播放中
-    P->>C: 输入被打断（如闪避）
-    C-->>C: Leave(近战1段)
-    C-->>C: Enter(闪避)
-    Note over C: 打断也保证 Leave→Enter 成对
-```
-
-### PlayerControllerChangeEvent — 切换控制器
-
-```java
-@EventHandler
-public void onControllerChange(PlayerControllerChangeEvent e) {
-    Player player = e.getPlayer();
-    String controllerId = e.getControllerId(); // null = 控制器被移除
-    if (controllerId != null) {
-        player.sendMessage("§a已进入动作系统：" + controllerId);
-    } else {
-        player.sendMessage("§7已退出动作系统");
-    }
-}
-```
-
-`controllerId` 为 `null` 表示玩家的控制器被移除了（回到无动作系统状态）。
-
----
-
-## 特别注意
-
-Chronos 状态机的内部状态（当前状态、冷却表、上下文）**不是线程安全的**。所有 API 调用都必须在服务器主线程执行。如果你在异步任务里拿到了要处理的玩家，先回投主线程：
-
-
-
-
-
-
-
-
-
-

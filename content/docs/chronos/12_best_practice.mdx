@@ -17,6 +17,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 本章用一把「横刀」从零搭起：基础姿态 → 四段连击 → 近战吸附 → 强化模式（强化普攻 + 蓄力斩）。跟着做一遍，你就能举一反三。
 
+本章用控制器的 `combo` 制作普通连招。需要可装配的独立技能时，还应配置职业技能定义、route 和技能槽，见[职业与技能配置](/docs/chronos/5_profession)与[注册按键与技能槽](/docs/chronos/6_key)。
+
 <Callout type="info">
 本章的示例模型来自社区成员 [阿肆](https://arcartx.com/members/490/)。
 </Callout>
@@ -44,10 +46,11 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ![插件目录结构](/chronos/p3.png)
 
-三个 `.yml` 文件在[配置目录结构](/docs/chronos/3_config)已经讲过，这里只关注两个文件夹：
+完整目录见[配置目录结构](/docs/chronos/3_config)。本章会用到三个文件夹：
 
 - **`client/`** — 放**客户端状态机**（定义每个状态下客户端播什么动画、有什么行为）
 - **`controllers/`** — 放**服务端控制器**（定义状态逻辑、输入、连招）
+- **`professions/`** — 配置职业允许使用的控制器与选择规则
 
 <Callout type="warn">
 动手前，请确保你已经读过 [客户端状态机](/docs/chronos/7_client) 和 [服务端控制器](/docs/chronos/7_controller) 两章——本章默认你已经理解这两套状态机的分工。
@@ -162,7 +165,39 @@ setting:
 这里走的是 `model` 路径（直接换模型）。如果你用的是 ArcartX 内置玩家渲染器、想走动画包路径，则改用 `animation` 字段、并把 `model` 留空（详见 [服务端控制器 · model 与 animation](/docs/chronos/7_controller#model-与-animation-是二选一的)）。这套动作没有需要初始化的触发器变量，所以先不写 `action`。
 </Callout>
 
-地基打好后，就可以用指令或物品 tag 把这个控制器设给玩家了。**进客户端重载，先测一遍基础姿态动画是否符合预期**——不对就继续精调，对了再往下加连招。
+### 把控制器加入职业允许列表
+
+新安装时 `professions/common.yml` 的控制器允许列表为空。先在该职业文件中配置下面的 `controllers` 节点，保留原有 `schema_version`、`id` 等其他字段：
+
+```yaml title="professions/common.yml"
+controllers:
+  mode: EXTERNAL
+  allowed:
+    - "横刀"
+  default: "横刀"
+```
+
+本章用 `EXTERNAL` 模式手动测试：重载后可执行 `/ac set 横刀 <玩家>`。`setting.yml.default_profession` 应指向这个职业（默认是 `chronos:common`）；如果玩家已经由外部职业框架分配到其他职业，则应修改那个职业的允许列表。
+
+如果要按主手物品 NBT 自动切换，改用 `ROUTED`，并在同一职业的 `controllers` 下配置自己的路由器：
+
+```yaml
+controllers:
+  mode: ROUTED
+  allowed:
+    - "横刀"
+  default: "横刀"
+  router:
+    main_hand:
+      enabled: true
+      path: "controller"
+    triggers:
+      enable: false
+```
+
+主手物品的 `controller` NBT 值应为 `横刀`，并且该值必须在职业允许列表中。`EXTERNAL` 不会自动读取物品 tag；两种模式的完整说明见[职业配置](/docs/chronos/5_profession)。
+
+完成职业配置后重载，再测试基础姿态动画是否符合预期；不对就继续精调，对了再往下加连招。
 
 ---
 
@@ -198,7 +233,7 @@ state:
   近战1段:
     controller: main            # 客户端子控制器名
     state_name: attack1         # 对应客户端刚定义的状态
-    duration: 700               # 动画时长，直接按动画秒数填
+    duration: 700               # 动画时长（毫秒），0.7 秒写 700
     # 预输入落地时机 = 挥砍收手点，让下一段接得跟手
     buffer_at: 450              # [!code highlight]
     speed: 1
@@ -227,16 +262,16 @@ state:
 
 逐字段说明这些数值从哪来：
 
-| 字段               | 怎么定                                           |
-|------------------|-----------------------------------------------|
-| `controller`     | 客户端子控制器 ID（这里是 `main`）。                       |
-| `state_name`     | 该子控制器下、刚才定义的状态名（`attack1`）。                   |
-| `duration`       | 动画时长，按动画实际秒数填。                                |
-| `buffer_at`      | 预输入的落地时机——一般设在**挥砍收手**那一刻（本例 450ms），让下一段接得跟手。 |
-| `speed`          | 整段状态的速度，会缩放所有时间线。可用 Aria 表达式实现「攻速」。           |
-| `windows.cancel` | 可被打断的时机：在此窗口内输入别的连招链（如闪避），会中断当前链、转入那条。        |
-| `windows.derive` | 接收下一段输入的时机：要打击感就设 `0 ~ 动画结束`；要严格就在收手前关掉。      |
-| `execute`        | 在指定时间点跑脚本，是状态的「实际内容」。上例在 350ms 对面前扇形做一次范围伤害。  |
+| 字段               | 怎么定                                                       |
+|------------------|-----------------------------------------------------------|
+| `controller`     | 客户端子控制器 ID（这里是 `main`）。                                   |
+| `state_name`     | 该子控制器下、刚才定义的状态名（`attack1`）。                               |
+| `duration`       | 动画时长（毫秒），例如 0.7 秒填 `700`。                                 |
+| `buffer_at`      | 预输入的落地时机——一般设在**挥砍收手**那一刻（本例 450ms），让下一段接得跟手。             |
+| `speed`          | 缩放状态时长、窗口和 STATE execute 时间线；REAL 循环除外。可用 Aria 表达式实现「攻速」。 |
+| `windows.cancel` | 可被打断的时机：在此窗口内输入别的连招链（如闪避），会中断当前链、转入那条。                    |
+| `windows.derive` | 接收下一段输入的时机：要打击感就设 `0 ~ 动画结束`；要严格就在收手前关掉。                  |
+| `execute`        | 在指定时间点跑脚本，是状态的「实际内容」。上例在 350ms 对面前扇形做一次范围伤害。              |
 
 <Callout type="warn">
 `execute` 的时间点是「相对状态生命周期」的。如果状态在 250ms 被取消，那么 **250ms 之后的所有执行点都不会触发**——这也是为什么伤害判定点要放在挥砍真正生效的那一刻，而不是一进状态就结算。
@@ -321,7 +356,7 @@ attack1:
 execute:
   step0:
     at: 0
-    # 出手前吸附朝向最近目标（3 格内，强度 1 = 直接对准）
+    # 从各轴 3 格的周围候选中取最近目标，强度 1 = 直接对准
     expression: |-              # [!code highlight]
       self.turnToNearby(3, 1)   # [!code highlight]
   step1:
@@ -470,7 +505,7 @@ setting:
 ```
 
 <Callout type="info">
-第一段必须开 `charge: true`，第二段才能用 `self.getChargeTime(){:aria}` 读到蓄力时长（单位毫秒）。`buffer_at` 大于 0 会抬高蓄力最小读数——想要精确的松手时长，把蓄力段的 `buffer_at` 设成 `-1`。蓄力强度怎么用（分档、乘伤害）由脚本自行决定；也可以用「不同蓄力等级进入不同状态」做多级蓄力。
+第一段配置 `charge: true` 后，释放状态可用 `self.getChargeTime(){:aria}` 读取上一段冻结的蓄力时长（毫秒）。`buffer_at` 大于 0 时，最早释放时长约为 `buffer_at / speed`，并受服务器 tick 调度影响。需要在服务端处理松手输入时立即衔接，可把蓄力段的 `buffer_at` 设成 `-1`。蓄力结果如何分档、换算伤害由脚本决定，也可以按不同蓄力等级进入不同状态。
 </Callout>
 </Step>
 
@@ -529,4 +564,3 @@ combo:
 ## P8 · 结语
 
 以上就是一套基础战斗机制的完整实战流程。在此之上还能做更多——闪避、格挡、处决、多级蓄力……但它们的思路都和本章一致：**客户端管表现、服务端管逻辑，用状态 + 窗口 + 连招 + 脚本拼出你想要的手感。** 跟着上面走一遍，相信你已经能融会贯通了。
-

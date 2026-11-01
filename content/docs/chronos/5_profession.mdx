@@ -1,0 +1,131 @@
+---
+title: 职业与技能配置
+description: professions/*.yml 的控制器隔离、路由、技能定义和默认装配
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+每个 `professions/*.yml` 定义一个 Chronos 职业的运行规则。它不保存玩家成长数据，只定义：
+
+- 这个职业允许哪些控制器；
+- 控制器是由职业路由器自动选择，还是由 API 设置；
+- 这个职业允许哪些技能；
+- 技能在不同控制器下进入哪条具名连招链；
+- 没有外部职业 Provider 时使用的默认装配。
+
+## 完整示例
+
+```yaml
+schema_version: 1
+id: "example:warrior"
+display_name: "战士"
+
+controllers:
+  # ROUTED：由本职业 router 自动选择
+  # EXTERNAL：由 API 设置基础控制器
+  mode: ROUTED
+  allowed:
+    - "warrior_sword"
+    - "warrior_greatsword"
+  default: "warrior_sword"
+
+  router:
+    main_hand:
+      enabled: true
+      path: "controller"
+
+    # main_hand.enabled=true 时，triggers 不参与路由。
+    triggers:
+      enable: false
+      list:
+        巨剑姿态:
+          controller: "warrior_greatsword"
+          main_hand:
+            path: "weapon_type"
+            value: "greatsword"
+          off_hand:
+            path: "stance_item"
+            value: "heavy"
+          papi: "%example_stance%"
+          papi_value: "heavy"
+
+skills:
+  allowed:
+    - "example:whirlwind"
+    - "example:charge"
+
+  # 仅供未注册外部 ProfessionProvider 时使用。
+  # 槽位键任意、数量任意。
+  loadout:
+    primary:
+      skill: "example:whirlwind"
+      level: 1
+    mobility:
+      skill: "example:charge"
+      level: 1
+
+  definitions:
+    "example:whirlwind":
+      trigger: PRESS
+      routes:
+        warrior_sword:
+          chain: "skill_whirlwind"
+          entry: "旋风斩准备"
+        warrior_greatsword:
+          chain: "skill_whirlwind_heavy"
+          entry: "重旋风准备"
+
+    "example:charge":
+      trigger: HOLD
+      selector:
+        provider: "perseus:targeting"
+        type: "GROUND_RECT"
+        interaction: HOLD_RELEASE
+        timeout_ticks: 160
+        parameters:
+          max_distance: "24"
+          width: "3"
+      routes:
+        "*":
+          chain: "skill_charge"
+          entry: "冲锋准备"
+```
+
+## 控制器隔离
+
+`controllers.allowed` 是强边界。职业路由器、控制器 API、技能 route、临时控制器覆盖都不能绕过它。`controllers.default` 非空时也必须出现在允许列表中。
+
+控制器定义仍统一存放在 `controllers/` 中，ID 在整个插件内共享。职业分别维护允许列表、路由器和技能映射；多个职业可以引用同一个控制器，但不能用相同 ID 定义两份不同的控制器。
+
+### ROUTED
+
+路由顺序与旧选择器一致：
+
+1. `main_hand.enabled=true` 时，只读取主手物品指定 NBT；
+2. 否则在 `triggers.enable=true` 时按列表顺序取第一个命中项；
+3. 没命中、值不存在或控制器不在允许列表时回退 `controllers.default`。
+
+同一触发器中有效的 `main_hand`、`off_hand` 和 PAPI 条件是 AND 关系，必须全部满足。手持条件同时配置非空 `path`、`value` 才生效，使用 `path` 读取 NBT，并与 `value` 比较；PAPI 条件同时配置非空的 `papi` 和 `papi_value` 才生效。未安装或未启用 PlaceholderAPI 时，PAPI 条件会被跳过，其他条件仍参与判断，因此不要仅用 PAPI 条件作为权限限制。
+
+含 PAPI 的触发器每 秒 重新求值。路由器属于当前职业，职业之间不共享选择器。
+
+### EXTERNAL
+
+Chronos 不自动求值主手或触发器。初始化时，如果玩家尚无控制器，会先使用本职业的 `controllers.default`；此后由外部插件使用 `setPlayerController` 设置基础控制器。临时覆盖采用 `AUTO` 策略时，到期会尝试恢复最新的 API 基础控制器。其他恢复策略见[定时控制器覆盖](/docs/chronos/9_controller_override)。
+
+## 技能与槽位
+
+`skills.loadout` 和外部 `ProfessionSnapshot.loadout` 都按槽位 ID 映射技能，槽位数量不限。通过客户端按键释放时，槽位 ID 必须与 `keybinding.yml.skill_slots` 中已注册的按键 ID 一致；通过 API 的 `castSkill(player, slotId)` 释放时，只需在当前职业快照中存在该槽位。该 API 使用 `PRESS` 触发阶段，技能定义仍须允许这一阶段。
+
+每个技能必须：
+
+- 同时出现在 `skills.allowed` 和 `skills.definitions`；
+- `trigger` 是 `PRESS`、`HOLD` 或 `RELEASE`；
+- 每个 route 的控制器属于 `controllers.allowed`，或使用 `"*"`；
+- route 指向的控制器、具名连招链和入口根节点在加载时真实存在。
+
+`"*"` route 会对职业允许的每个控制器做加载期校验，因此它只适合同名链/入口在全部控制器中都存在的情况。
+
+<Callout type="warn">
+职业等级、技能升级、解锁、装备方案、数据库、mana 和持久冷却不由 Chronos 保存。正式职业服应注册 [外部职业 Provider](/docs/chronos/9_external_profession)；本页的 `loadout` 是无 Provider 时的配置后备。
+</Callout>

@@ -7,6 +7,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 - 以下语句均由 **Chronos 插件**提供，目标对象为**玩家**（`Player{:aria}`）。
 - 这组语句让你**用脚本主动驱动状态机**——在表达式里直接让玩家进入某个状态，而不必等待玩家输入。常用于「满足条件时自动接一段动作」「被击中时强制进入受击状态」等场景。
+- 玩家尚未建立 Chronos 运行数据时，这三个语句会忽略本次调用，不自行创建玩家运行数据。
 
 ## `tryEnterState(stateId){:aria}`
 - **尝试**让玩家进入指定状态。会照常走该状态的 `conditions` 与冷却校验，不满足则不进入。
@@ -21,8 +22,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 ## `tryEnterControlledState(stateId, duration){:aria}`
-- 让玩家进入一个**受控状态**（如硬直、被击退），并指定持续时长。
-- 与普通进入不同：如果玩家此刻正处于 `super_armor`（霸体）窗口，这次进入会**失败**——霸体正是用来抗住这类受控效果的。
+- 让玩家进入一个**受控状态**（如硬直、被击退），并指定持续时长。正数 `duration` 覆盖状态定义的时长，但仍会除以该状态的 `speed`；小于或等于 0 时使用状态定义的时长。
+- 此方法检查 `super_armor`（霸体）窗口，但跳过目标状态的 `conditions` 与冷却校验，也不写入该状态的冷却。当前处于霸体窗口时不进入；允许进入时，会打断当前技能动作并以无连招节点的方式启动受控状态。
 <Callout type="info">
     - **对象**：Player
     - **参数**：
@@ -36,11 +37,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 ## `forceEnterStateFromRoot(stateId){:aria}`
-- **强制**让玩家进入指定状态，**无视进入条件与冷却**。目标状态必须是某条连招链的根节点（在 `combo` 顶层声明过）。
+- **强制**让玩家进入指定状态，**无视进入条件与冷却**。目标必须是当前控制器默认连招链中的节点，可以是根节点或派生节点；它不会搜索其他具名链。
 - 对应 Java API 的 `forceEnterStateFromRootChain`（脚本里与 Java 里名字略有差异，功能一致）。
 <Callout type="info">
     - **对象**：Player
-    - **参数**：`stateId` — 目标根状态 ID
+    - **参数**：`stateId` — 默认连招链中的目标状态 ID
     - **返回值**：无
     - **调用示例**
     ```aria
@@ -49,5 +50,5 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 <Callout type="warn">
-`forceEnterStateFromRoot` 会绕过一切条件强行触发，请谨慎使用；一般情况下优先用 `tryEnterState`，把「能不能进」交给状态自己的 `conditions` 去判断。
+`forceEnterStateFromRoot` 跳过目标状态的进入条件和冷却校验。当前控制器中找不到目标状态或默认连招链节点时，会结束正在运行的技能动作与状态。调用前请核对状态与连招链配置；需要条件校验时使用 `tryEnterState`。
 </Callout>

@@ -1,0 +1,117 @@
+---
+title: execute 循环与外部处理器
+description: 状态内单次/循环执行、卡顿补偿、错误策略与 ExecutionHandler
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 单次执行
+
+没有 `loop` 时仍只执行一次，并继续随状态 speed 缩放：
+
+```yaml
+execute:
+  dash:
+    at: 300
+    expression: "self.dash(1.5, 0.3)"
+```
+
+同一状态允许多个具名 execute 使用同一个 `at`，这些步骤分别执行。
+
+## Aria 循环
+
+```yaml
+execute:
+  aura:
+    at: 500
+    expression: "var.pulse = var.pulse + 1"
+    loop:
+      interval: 250
+      count: 8
+      time_domain: STATE
+      catch_up: COALESCE
+      max_per_tick: 1
+      on_error: CANCEL_LOOP
+```
+
+| 字段             | 约束与语义                                              |
+|----------------|----------------------------------------------------|
+| `at`           | 第一次计划执行时间，默认 0，必须 ≥ 0                              |
+| `interval`     | 循环间隔，默认 0；`count > 1` 时必须 ≥ 50ms                   |
+| `count`        | 配置 `loop` 后必须填写；总计划次数包含第一次，范围 1..10000             |
+| `time_domain`  | 默认 `STATE`：`at/interval` 都除以状态 speed；`REAL` 使用真实毫秒 |
+| `catch_up`     | 默认 `COALESCE`，也可选 `RUN_MISSED` / `SKIP_MISSED`     |
+| `max_per_tick` | 单任务在一次状态 tick 中的最大调用次数，默认 1，范围 1..32               |
+| `on_error`     | 默认 `CANCEL_LOOP`，也可选 `END_STATE` / `CONTINUE`      |
+
+### 卡顿补偿
+
+- `COALESCE`：多个已到期计划点合并为一次调用，并把下一次推进到未来。
+- `RUN_MISSED`：保留遗漏次数，但受 `max_per_tick` 和状态总预算限制。
+- `SKIP_MISSED`：跳过较旧的计划点，只调用当前最新的到期点。
+
+每个玩家同时只有一个当前状态；状态内每 tick 总执行预算为 32。所有任务保存在状态实例自己的优先队列中，不为每一次 loop 建计划。`REAL` 只改变计划时间的计算方式，仍由当前状态的 tick 驱动；状态结束或被打断后，剩余执行不再继续。
+
+`at` 和 `interval` 的单位都是毫秒，但到期任务由 Chronos tick 执行，不保证精确到某一毫秒。`at: 0` 表示首次 tick 即可到期，不是在进入状态的调用栈中立即执行。
+
+## 外部 ExecutionHandler
+
+`expression` 与 `handler` 必须且只能配置一个：
+
+```yaml
+execute:
+  downed_tick:
+    at: 0
+    handler: "myplugin:downed_tick"
+    args:
+      damage: "1"
+      effect: "bleed"
+    loop:
+      interval: 1000
+      count: 20
+      time_domain: REAL
+```
+
+注册：
+
+```java
+Registration registration = api.registerExecutionHandler(
+    plugin,
+    "myplugin:downed_tick",
+    context -> {
+        Player player = context.player();
+        String damage = context.args().get("damage");
+        return context.last()
+            ? ExecutionResult.CANCEL_THIS_LOOP
+            : ExecutionResult.CONTINUE;
+    }
+);
+```
+
+handler ID 必须是小写命名空间 ID。返回值可为：
+
+- `CONTINUE`：继续本循环；
+- `CANCEL_THIS_LOOP`：取消本循环剩余计划点，不影响其他步骤；
+- `END_STATE`：提前结束当前状态，仍走正常结束流程，可能处理预输入或 AUTO 衔接；
+- `END_ACTION`：中断当前技能动作、清空其状态与预输入，不继续该动作的 AUTO 衔接。用于非技能状态时也会停止当前状态。
+
+`ExecutionContext` 是只读上下文，包含 player、execute ID/索引/总次数、elapsed、state instance、controller、chain、action instance、职业/技能等级、目标结果和 args。其中 `controllerId()` 当前返回客户端子控制器名（例如 `main`），`stateId()` 返回服务端状态 ID，`chainId()` 返回具名连招链 ID；不要把 `controllerId()` 当作服务端控制器 ID。`index` 从 0 开始，按实际调用递增；合并或跳过计划点时，实际调用数可能少于 `planned`。`elapsedMillis` 是本次状态已经运行的实际毫秒数。args 会被复制，目标结果仍是 Provider 提供的不可变接口对象；不要把 player 引用带到异步任务中操作。外部插件卸载时注册自动移除。
+
+## Aria 注入变量
+
+每次执行前更新：
+
+```text
+chronos_execution_id
+chronos_execution_index
+chronos_execution_planned
+chronos_execution_elapsed
+chronos_execution_last       # 1 或 0
+chronos_state_instance_id
+```
+
+技能动作还会冻结并注入 `chronos_profession_id`、`chronos_profession_level`、`chronos_skill_id`、`chronos_skill_level` 和 `chronos_action_instance_id`。
+
+<Callout type="warn">
+handler 在 Chronos 主 tick 线程执行，不得阻塞数据库。异步工作只能复制纯数据；回投后必须由外部插件自行确认原 action/state instance 仍有效。
+</Callout>

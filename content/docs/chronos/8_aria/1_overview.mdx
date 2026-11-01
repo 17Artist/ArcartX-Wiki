@@ -14,23 +14,23 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 <Callout type="info">
 - 本章只收录 **Chronos 插件自己提供**的语句（实体选择器、蓄力信息、朝向吸附、状态控制）。你在配置里还会用到大量通用语句（如 `getFood`、`dash`、`castMythicMobSkill`、`teleport` 等）——它们由 **ArcartX 本体**提供，请查阅本体文档的 [服务端 Aria](/docs/arcartx_v2/888_server_aria/1_player/1_info)。
-- 此外，Chronos注册的全是 **服务端Aria脚本** 而非客户端Aria脚本，请注意不要混淆。
+- 此外，Chronos 注册的全是 **服务端 Aria 脚本**，而非客户端 Aria 脚本，请注意不要混淆。
 </Callout>
 
 ---
 
-## 一些Aria用于Chronos的说明
+## Aria 在 Chronos 中的一些说明
 
 Aria 表达式散落在服务端控制器（`controllers/<控制器ID>.yml`）的多个字段里。不同字段对「表达式算出来是什么」有不同要求：
 
-| 配置位置                                 | 期望结果   | 典型用途                               |
-|--------------------------------------|--------|------------------------------------|
-| `state.<状态>.speed`                   | 数字     | 比如用攻速属性缩放动作播放速度（会同时缩放所有窗口时间与执行时间线） |
-| `state.<状态>.duration`                | 数字（毫秒） | 动态设置状态持续时间                         |
-| `state.<状态>.conditions.expression`   | 布尔     | 能否进入这个状态的门槛                        |
-| `state.<状态>.cooldown.time`           | 数字（毫秒） | 动态冷却时间                             |
-| `state.<状态>.execute.<步骤>.expression` | 语句     | 到达某个时间点时执行的动作                      |
-| `setting.action`                     | 语句     | 触发器                                |
+| 配置位置                                 | 期望结果   | 典型用途                                              |
+|--------------------------------------|--------|---------------------------------------------------|
+| `state.<状态>.speed`                   | 数字     | 缩放动作播放速度、状态时长、窗口及 STATE 时间域的 execute；REAL 循环不随它缩放 |
+| `state.<状态>.duration`                | 数字（毫秒） | 动态设置状态持续时间                                        |
+| `state.<状态>.conditions.expression`   | 布尔     | 能否进入这个状态的门槛                                       |
+| `state.<状态>.cooldown.time`           | 数字（毫秒） | 动态冷却时间                                            |
+| `state.<状态>.execute.<步骤>.expression` | 语句     | 到达某个时间点时执行的动作                                     |
+| `setting.action`                     | 语句     | 触发器                                               |
 
 <Callout type="warn">
 `speed` 与 `duration` 期望的是数字，`conditions.expression` 期望的是布尔（`true`/`false`），别把类型写反。这些字段在 YAML 里都写成字符串，例如 `speed: "1 + var.attackSpeedBonus"`。
@@ -38,12 +38,12 @@ Aria 表达式散落在服务端控制器（`controllers/<控制器ID>.yml`）�
 
 ---
 
-## 关于Aria的一些使用说明
-- 本文并不会讲解过于深度的Aria语法问题，关于Aria详细语法，你应该系统性阅读 [Aria文档](/docs/aria)，这是 ArcartX生态嵌入最深的脚本语言，也是完全深度使用ArcartX生态插件的关键要素
-- 这里只讲解一些关于 Chronos 联动 Aria 的一些简单说明
+## 关于 Aria 的一些使用说明
+- 本文不会讲解过于深入的 Aria 语法问题。关于 Aria 的详细语法，建议系统阅读 [Aria 文档](/docs/aria)，它是 ArcartX 生态中嵌入最深的脚本语言，也是深度使用 ArcartX 生态插件的关键要素。
+- 这里只讲解一些与 Chronos 联动 Aria 的简单说明。
 ### self：当前玩家
 
-- `self{:aria}` 就是正在运行这段脚本的玩家对象。Chronos的绝大多数语句都是在它身上调用的：
+- `self{:aria}` 就是正在运行这段脚本的玩家对象。Chronos 的绝大多数语句都是在它身上调用的：
 - 一些例子
 
 ```aria
@@ -52,9 +52,9 @@ self.isOnGround()     # 是否踩在地面（本体语句）
 self.getChargeTime()  # 读本次蓄力时长（Chronos 语句）
 ```
 
-### var.：玩家级自定义变量
+### var.：当前控制器内的自定义变量
 
-用 `var.` 前缀可以存取你自己的变量。这些变量**跟着玩家走、跨状态保持**，直到玩家被移除控制器或服务端 `reload`。常见做法是在 `setting.action.init` 里把它们初始化好，再在各个状态里读写：
+用 `var.` 前缀可以存取自定义变量。每名玩家的当前控制器都有自己的脚本上下文，变量可以跨状态保持；更换、移除控制器或重载时通常会重新初始化。临时控制器覆盖结束时是否恢复保存的变量，取决于[恢复策略](/docs/chronos/9_controller_override)。常见做法是在 `setting.action.init` 里初始化，再在各个状态里读写：
 
 ```yaml
 setting:
@@ -74,7 +74,9 @@ state:
 
 ---
 
-## 最小示例：蓄力斩
+## 状态配置示例：蓄力斩
+
+以下展示蓄力和释放两个状态；还需在连招链中用长按和松开输入把它们连接起来。
 
 ```yaml
 state:
@@ -82,6 +84,7 @@ state:
   蓄力开始:
     controller: main
     state_name: charge_hold
+    duration: "3000"
     charge: true
     buffer_at: 200
     conditions:
@@ -104,9 +107,9 @@ state:
         expression: |-
           var.power = self.getChargeTime() / 1000     # 毫秒转秒，当作威力倍率
           self.turnToNearby(6.0, 0.6)                 # 出手前吸附朝向最近目标
-          for(e in self.getLivingEntitiesInCone(4.0, 120)){
-            self.castMythicMobSkill("charge_slash", var.power)
-          }
+          self.castMythicMobSkill("charge_slash", var.power)
 ```
 
-关于 `self.getChargeTime(){:aria}` 的取值时机：它读到的是**上一次离开蓄力状态时冻结的那段时长**（毫秒），详见 [玩家信息](/docs/chronos/8_aria/2_player_info) 与控制器文档的蓄力小节。
+示例中的 `charge_slash` 需要在 MythicMobs 中定义，目标范围由该 MythicMobs 技能配置决定；这里以玩家为施法者调用一次。
+
+`self.getChargeTime(){:aria}` 在蓄力状态中返回实时蓄力时长，离开后返回冻结的时长（毫秒）。本例在释放状态读到的是上一段蓄力结果，详见 [玩家信息](/docs/chronos/8_aria/2_player_info) 与控制器文档的蓄力小节。

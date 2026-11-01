@@ -3,6 +3,8 @@ title: MythicMobs 词条
 description: Chronos MythicMobs 词条
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 ## MythicMobs 词条
 
 Chronos 会在 MythicMobs 加载时自动注册两个技能机制。它们都是**面向目标实体**的机制，只对玩家目标生效。
@@ -26,5 +28,9 @@ Chronos 会在 MythicMobs 加载时自动注册两个技能机制。它们都是
 ```
 
 <Callout type="info">
-    这两个机制内部对应 `tryEnterControlledState` 和 `tryEnterState`，语义完全一致：前者尊重霸体，后者走冷却与条件校验。MythicMobs 技能可能在异步线程施放，机制内部已自动把操作回投主线程，你无需操心线程问题。
+    这两个机制内部对应 `tryEnterControlledState` 和 `tryEnterState`：前者检查霸体，但跳过目标状态的条件与冷却校验，也不写入该状态的冷却；后者执行条件与冷却校验。异步施放时，状态变更会调度回主线程。机制返回 `SUCCESS` 表示已调用或已调度状态变更，不保证状态已经进入。
 </Callout>
+
+状态 ID 在目标玩家当前生效的控制器内解析。这两个机制直接操作状态，不会按技能槽发起技能释放，也不会经过目标选择或外部职业资源准入。
+
+`chronosControlledState` 的正数 `duration` 覆盖状态定义时长，但仍按该状态的 `speed` 缩放；小于或等于 0 时使用状态定义时长。例如 `duration=800`、状态 `speed=2` 时，计划持续时间为 400ms。

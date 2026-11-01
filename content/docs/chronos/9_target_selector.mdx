@@ -1,0 +1,142 @@
+---
+title: 特殊目标选择器接入
+description: PRESS_CONFIRM、HOLD_RELEASE 与客户端选择结果的服务端校验
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+特殊选择器可由外部插件实现。Chronos 只负责把技能释放挂起、转发确认/松开信号、等待服务端校验后的结果，然后重新校验职业快照与动作入口。
+
+Provider ID 必须是小写命名空间 ID，例如 `eg:targeting`；同一 ID 只能注册一次。
+
+## 配置
+
+以下内容写在某个技能定义中：
+
+```yaml
+trigger: HOLD
+selector:
+  provider: "eg:targeting"
+  type: "GROUND_RECT"
+  interaction: HOLD_RELEASE
+  timeout_ticks: 160
+  parameters:
+    max_distance: "24"
+    width: "3"
+```
+
+交互模式：
+
+- `PRESS_CONFIRM`：技能配置 `trigger: PRESS` 时，第一次短按释放后开始选择，再次短按同一槽位时发送 `CONFIRM`；
+- `HOLD_RELEASE`：技能配置 `trigger: HOLD` 时，按住并达到客户端长按阈值后开始选择，松开同一槽位时发送 `RELEASE`；未达到阈值的短按不会启动该技能；
+- `PRESS_AUTO`：开始后由 Provider 自行决定何时完成，不等待第二个输入信号。
+
+`interaction` 决定选择期间如何确认，开始选择的输入阶段仍由技能的 `trigger` 决定。Chronos 的 `PRESS` 对应客户端短按释放消息，不是物理按键刚按下的瞬间。
+
+超时至少 1 tick，默认 160 tick。`parameters` 的直接子项会转换为字符串，再以 `Map<String, String>` 交给 Provider；建议像示例一样使用字符串值，不要把嵌套配置当作结构化参数传入。
+
+## SPI
+
+以下示例中的 `bridge` 是外部插件自己的客户端协议桥，不是 Chronos 提供的类：
+
+```java
+public final class EGSelector implements TargetSelectorProvider {
+    @Override
+    public String getId() {
+        return "eg:targeting";
+    }
+
+    @Override
+    public SelectionHandle start(SelectionRequest request, SelectionCallback callback) {
+        UUID id = request.selectionInstanceId();
+        bridge.openClientSelector(request.player(), id, request.spec(), callback);
+
+        return new SelectionHandle() {
+            @Override public UUID selectionInstanceId() { return id; }
+
+            @Override
+            public boolean signal(SelectionSignal signal) {
+                return bridge.signal(request.player(), id, signal);
+            }
+
+            @Override
+            public boolean cancel(SelectionCancellation cancellation) {
+                if (!id.equals(cancellation.selectionInstanceId())) {
+                    return false;
+                }
+                // Chronos -> 桥接：幂等清理，禁止在这里再次调用 callback.cancel。
+                return bridge.close(
+                    request.player(),
+                    id,
+                    cancellation.reason()
+                );
+            }
+        };
+    }
+}
+```
+
+Provider 收到客户端位置包后必须在服务端完成世界、距离、形状、射线/碰撞、权限和玩家状态校验，再构造自己的不可变 `TargetSelection` 并调用：
+
+```java
+callback.complete(selection);
+```
+
+返回 `true` 只表示这次结果已取得提交资格，准入处理仍会延后到服务器主线程执行；它不表示资源已提交或技能已开始。Provider 应在提交路径自行结束预览、释放选择会话，不能等待取消回调来清理。正常进入准入流程后，Chronos 不再取消这个选择句柄；但结果提交后、主线程处理前若发生失效或取消，仍可能调用 `SelectionHandle.cancel`，因此清理必须幂等。
+
+`selection.selectionInstanceId()` 必须等于请求 ID。`worldKey` 和 `properties` 是供 admission 与 execute handler 使用的业务结果；不要把未经验证的客户端坐标直接视为合法目标。Chronos 保留这个接口对象的引用，不会替 Provider 深拷贝；提交后不得修改对象或其 `properties`。
+
+## ESC 与取消拖动
+
+ESC 不是 Chronos 技能槽输入，也不能当成 `CONFIRM` 或 `RELEASE`。客户端组件在活动
+选择期间捕获 ESC，向 Paper 桥发送独立的取消包：
+
+以下包名及 `sequence`、`tokenProof` 是建议的外部桥接协议示例，不是 Chronos 或 ArcartX
+已经内置的消息。外部客户端与桥插件自行实现 begin/signal/result/cancel/end 消息和会话校验；
+Chronos 提供的稳定接口是 `SelectionRequest`、`SelectionCallback` 与 `SelectionHandle` 等 SPI。
+
+```text
+C2S_SELECTION_CANCEL
+  selectionInstanceId   # 来自 S2C_SELECTION_BEGIN
+  sequence
+  tokenProof
+```
+
+ArcartX 的长按输入在切换界面时也会发送松开包。外部选择器客户端处理 ESC 时，应先把
+本地选择会话标为取消、停止结果提交，再发送取消包并切换界面；随后到达的 `RELEASE`
+不能让该会话重新提交。桥接也应拒绝已取消会话的释放/结果消息。这是外部组件的实现义务，
+Chronos 不会自行拦截 ESC 或判断某个松开包是否由打开菜单产生。
+
+Paper 桥使用收包玩家校验实例归属、token、顺序和超时，并在服务器主线程调用：
+
+```java
+callback.cancel(new SelectionCancellation(
+    selectionInstanceId,
+    SelectionCancelReason.PLAYER_CANCELLED,
+    "ESC"
+));
+```
+
+完整时序：
+
+```text
+ESC
+  -> 客户端停止提交并发送 C2S_SELECTION_CANCEL
+  -> 桥接校验后调用 SelectionCallback.cancel
+  -> Chronos 原子终止待选择技能
+  -> Chronos 调用 SelectionHandle.cancel
+  -> 桥接幂等删除会话并发送 S2C_SELECTION_END(CANCELLED)
+  -> 客户端清除范围预览和输入捕获，回到 IDLE
+```
+
+`SelectionCallback.cancel` 是“外部组件 -> Chronos”，`SelectionHandle.cancel` 是
+“Chronos -> 外部组件清理”。handle **不得**反调 callback。错误 ID、跨玩家 ID、迟到或重复取消
+不能影响当前其他实例；重复 ESC、提交、超时竞速时只有一个终态成功。
+
+`SelectionCallback.cancel` 只终止仍在选择中的实例。取消先于有效结果完成时，不会调用职业资源
+`prepare`、创建 ActionInstance、进入技能本地冷却或产生技能动作事件。结果已经被接受后，迟到的
+ESC 不能再通过这个接口撤销准入或已启动动作。取消包丢失时，服务端选择超时仍会调用 handle 清理预览。
+
+撤销某个 selector Provider 只会取消仍属于该 Provider 实例的选择会话，不会连带取消其他 Provider 的选择。结果已提交并进入准入后，不再属于等待选择的会话；后续取消遵循准入阶段的规则。
+
+

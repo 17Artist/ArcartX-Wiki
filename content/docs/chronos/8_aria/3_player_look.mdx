@@ -7,8 +7,9 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 - 以下语句均由 **Chronos 插件**提供，目标对象为**玩家**（`Player{:aria}`）。
 - 这组语句用于**近战吸附**：出手前把玩家朝向自动转向目标，让攻击更容易命中。
-- 三个语句都带一个 `strength{:aria}` 吸附强度参数，取值范围 **0 ~ 1**（超出会被自动钳制）：`0` 表示完全不转，`1` 表示瞬间对准目标，中间值按比例插值。想要「柔和地拧过去」就用 `0.5` 左右。
+- 三个语句只调整水平朝向（yaw），不调整俯仰角（pitch）。`strength{:aria}` 的取值范围为 **0 ~ 1**（超出会被自动钳制）：`0` 保持当前水平朝向，`1` 将目标水平朝向发给客户端，中间值按比例插值。
 - 常见用法是放在攻击状态的 `execute` 里、在挥砍判定之前调用。
+- 三个方法还接受末尾的可选 `camera` 参数，默认 `0`，作为相机跟随强度原样发给 ArcartX，由匹配客户端的自由相机实现处理。它与玩家朝向的 `strength` 参数独立；`turnToCone` 中应放在第四个参数，例如 `self.turnToCone(5.0, 120, 0.7, 0.4){:aria}`。
 
 ## `turnToTarget(target, strength){:aria}`
 - 把玩家朝向吸附到**指定的目标生物**。
@@ -26,11 +27,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 ## `turnToNearby(radius, strength){:aria}`
-- 自动吸附到**半径范围内最近的生物**。范围内没有生物时不做任何操作。
+- 从 `radius` 指定的周围包围盒候选中，按三维位置距离寻找最近生物并吸附朝向；没有候选时不做操作。没有额外的球形距离过滤。
 <Callout type="info">
     - **对象**：Player
     - **参数**：
-        - `radius` — 搜索半径（方块）
+        - `radius` — 各轴周围搜索范围（方块）
         - `strength` — 吸附强度（0 ~ 1）
     - **返回值**：无
     - **调用示例**
@@ -40,11 +41,11 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 ## `turnToCone(radius, angle, strength){:aria}`
-- 在**面前的扇形范围内**寻找最近的生物并吸附朝向。相比 `turnToNearby`，它只锁定「视线前方一定角度内」的目标，不会把你拧向背后的敌人。
+- 从周围包围盒候选中，按水平面上的朝向夹角筛选，再取三维位置距离最近的生物并吸附。这里忽略俯仰角，与实体选择器 `getLivingEntitiesInCone` 的三维夹角判定不同；同样没有额外球形距离过滤。
 <Callout type="info">
     - **对象**：Player
     - **参数**：
-        - `radius` — 搜索半径（方块）
+        - `radius` — 各轴周围候选范围（方块）
         - `angle` — 扇形总角度（度数，例如 `120` 表示正前方左右各 60°）
         - `strength` — 吸附强度（0 ~ 1）
     - **返回值**：无

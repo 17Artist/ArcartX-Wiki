@@ -1,0 +1,67 @@
+---
+title: 定时控制器覆盖
+description: 倒地等限时控制器、嵌套覆盖与到期恢复策略
+---
+
+临时控制器覆盖适合倒地、处决、剧情控制等限时状态。它不会改写职业配置，而是在玩家基础控制器上压入一个可嵌套的覆盖帧。
+
+## 开始与提前结束
+
+```java
+ControllerOverrideResult result = api.pushControllerOverride(
+    new ControllerOverrideRequest(
+        player,
+        "downed",
+        20L * 20L,
+        ControllerRestorePolicy.AUTO,
+        "",
+        "myplugin:downed"
+    )
+);
+
+if (result.status() == ControllerOverrideStatus.STARTED) {
+    UUID handle = result.overrideId();
+    // 需要提前解除时：
+    api.endControllerOverride(player, handle);
+}
+```
+
+`durationTicks` 必须大于 0 且不能造成时间戳溢出。目标控制器及显式恢复控制器都必须存在，并属于当前职业的 `controllers.allowed`。
+
+持续时间按 `durationTicks * 50ms` 换算为服务器时钟到期时间，在到期后的首次 Chronos tick 检查中尝试结束。它不随状态 `speed` 缩放，也不是每 tick 累加计数；示例的 `20L * 20L` 对应 20 秒。
+
+开始覆盖会结束当前技能动作，取消待决快照请求、目标选择和释放准入，清空状态与输入，再应用临时控制器。覆盖按玩家栈式嵌套；结束非栈顶句柄不会打断当前栈顶，结束栈顶才恢复下一帧或基础控制器。保存的运行帧包含控制器、Aria Context 和冷却，不包含原来的状态或技能动作，因此恢复控制器不会续播被打断的技能。每层覆盖独立计时，被上层覆盖遮住时仍会到期，不会暂停或重新计时。
+
+若控制器初始化或切换回调在 Start 通知前已移除本次覆盖，请求返回 `PLAYER_NOT_READY`、原因 `OVERRIDE_SUPERSEDED`，不会为尚未开始的覆盖发送 Start/End 事件。
+
+## 恢复策略
+
+下列策略只在最后一层覆盖结束、需要恢复基础控制器时使用。若仍有下层覆盖，先恢复该层保存的运行帧；结束非栈顶覆盖时不执行恢复策略。
+
+| 策略                   | 结束后的行为                                                                                             |
+|----------------------|----------------------------------------------------------------------------------------------------|
+| `AUTO`               | 当前职业为 `ROUTED` 时重新运行该职业路由器；为 `EXTERNAL` 时回到最新的 API 基础控制器。基础目标未变、保存帧对应它且仍被职业允许时，才复用覆盖前的 Context 与冷却 |
+| `PREVIOUS_EFFECTIVE` | 恢复覆盖前实际生效的控制器、Aria Context 与冷却；若已不被当前职业允许则回退基础控制器                                                  |
+| `RESELECT_BASE`      | 当前职业为 `ROUTED` 时强制重新路由；否则回到基础控制器                                                                   |
+| `EXPLICIT`           | 把 `explicitRestoreControllerId` 设为新的 API 基础控制器并恢复它                                                 |
+
+例如覆盖期间 API 把基础控制器从 `sword` 改成 `bow`，`AUTO` 到期后会应用 `bow`，不会把基础目标改回 `sword`。需要明确恢复覆盖前的有效帧时，使用 `PREVIOUS_EFFECTIVE`。
+
+职业切换和插件重载会清空覆盖栈。覆盖事件：
+
+- `PlayerControllerOverrideStartEvent`：句柄、控制器、持续 tick、策略和 source；
+- `PlayerControllerOverrideEndEvent`：句柄、结束原因与事件发出时实际生效的控制器 ID；结束非栈顶覆盖时，该 ID 仍可能是原栈顶控制器。
+
+玩家退出或 Chronos 停用时，会直接结束覆盖并清空控制器，不再按覆盖的恢复策略重新装载上一层。临时覆盖不会跨退出或重启持久化。
+
+## 退出回调中的重入
+
+`endControllerOverride(player, handle)` 返回 `false`，可以表示句柄不存在，也可以表示清理过程中回调替换了原运行帧，本次结束未完成。Chronos 不会继续用旧恢复覆盖回调新建的状态。
+
+如果回调只新建了状态，原覆盖层会暂时保留，到期时间不重置。自动到期处理会在下一次 Chronos tick 重试，不会在当前 tick 无限循环。因此，20 秒表示到期时间，并不保证在任意监听器行为下都能立即恢复。退出事件监听器应避免每次都无条件重建旧状态，否则可能持续阻止恢复。
+
+如果回调新建了覆盖层，新层会保留；结束中的旧层按实例移除，并重接后续覆盖层保存的 `previous` 链。新层结束后仍可恢复合法的下一层或基础控制器，不会恢复已经移除的旧层。
+
+## 倒地示例
+
+`downed` 控制器可把爬行、静止做成自己的 raw combo/状态链，再用 [execute.loop](/docs/chronos/7_execute_loop) 每秒运行一次流血或求救处理器。20 秒持续时间属于控制器覆盖；循环任务属于具体状态，状态提前退出时循环也立即取消。

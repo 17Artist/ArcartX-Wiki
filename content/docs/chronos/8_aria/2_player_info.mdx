@@ -10,7 +10,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ## `getChargeTime(){:aria}`
 - 读取玩家**本次蓄力时长**（毫秒）。
-- 取值时机：`charge: true` 的状态从进入开始实时计时，**离开该状态时**（被派生 / 被打断 / 自然结束）把时长冻结下来；此后一直返回这个冻结值，直到下一次再进入某个蓄力状态才清零。因此在「蓄力开始 → 蓄力释放」这类结构里，你在释放状态的 `execute` 里读到的就是玩家实际蓄了多久。
+- 取值时机：`charge: true` 的状态从进入开始实时计时，**离开该状态时**（被派生 / 被打断 / 自然结束）把时长冻结下来；之后返回这个冻结值，下一次进入蓄力状态重新计时。控制器切换等路径若强制清空状态，也会重置蓄力记录。因此在「蓄力开始 → 蓄力释放」这类结构里，释放状态的 `execute` 可以读取上一段的蓄力时长。
 <Callout type="info">
     - **对象**：Player
     - **参数**：无
@@ -22,12 +22,12 @@ import { Callout } from 'fumadocs-ui/components/callout';
 </Callout>
 
 <Callout type="warn">
-若蓄力状态配了 `buffer_at >= 0`，松手会走预输入、到点才落地衔接，蓄力的最小读数会被抬高到约等于 `buffer_at`。想精确读到松手瞬间的时长，就把蓄力状态的 `buffer_at` 设为 `-1`。
+若蓄力状态配了 `buffer_at >= 0`，松手会走预输入、到点才衔接，最早释放时长约为 `buffer_at / speed`，并受服务器 tick 调度影响。想在松手输入被服务端处理时立即衔接，就把蓄力状态的 `buffer_at` 设为 `-1`。
 </Callout>
 
 ## `isInvincibleTag(){:aria}`
 - 判断玩家当前是否处于**「完美闪避」标签**有效期内。
-- 当玩家在 `invincible` 无敌窗口期内成功免掉一次伤害，Chronos 会给他挂上一个持续 `invincible_tag_duration` 毫秒的标签。用这个语句就能在标签有效期内判定「刚才这一下是完美闪避」，从而派生出闪避反击 / 处决等动作。
+- 处理玩家的伤害事件时，若当前状态记录的窗口集合包含 `invincible`，Chronos 会取消该事件，并把标签有效期更新为 `invincible_tag_duration` 毫秒后。这个标签可用于闪避反击等条件；已被其他插件取消的伤害事件也会刷新它。该时长默认为 `0`，需要在无敌窗口配置中设为正数才有持续有效期。
 <Callout type="info">
     - **对象**：Player
     - **参数**：无

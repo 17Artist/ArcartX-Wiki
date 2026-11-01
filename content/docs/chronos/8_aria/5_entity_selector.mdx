@@ -6,24 +6,24 @@ description: Chronos 提供的范围选取生物语句（EntitySelector）
 import { Callout } from 'fumadocs-ui/components/callout';
 
 - 以下语句均由 **Chronos 插件**提供，目标对象为**生物**（`LivingEntity{:aria}`）——玩家本身也是生物，所以 `self{:aria}` 可以直接调用；通过选择器拿到的其它生物也能继续调用。
-- 这组语句**以调用者为中心、按几何范围选取周围的生物**，用来做范围攻击、群体判定。除 `getNearestLivingEntity` 返回单个生物外，其余都返回**生物列表**，通常配合 `for` 循环逐个处理：
+- 这组语句以调用者为中心选取周围生物，用来做范围攻击、群体判定。各方法的几何判定不同：`Radius` 与 `Nearest` 使用周围包围盒候选；`Cone` 再筛选三维视线夹角；`Box` 筛选面前长方体；`Ring` 筛选三维距离。除 `getNearestLivingEntity` 返回单个生物外，其余都返回生物列表，通常配合 `for` 循环逐个处理：
 
 ```aria
-# 对面前扇形范围内的每个敌人各打一下（attack 为本体语句）
+# 对视线夹角范围内的每个生物各攻击一次（attack 为本体语句）
 for(e in self.getLivingEntitiesInCone(4.0, 120)){
     self.attack(e)
 }
 ```
 
 <Callout type="info">
-选取结果**不包含调用者自己**。
+选取结果不包含调用者自己。这些方法不分敌我、队伍或攻击权限，也不做视线遮挡校验；需要这些限制时，由脚本或外部系统继续过滤。
 </Callout>
 
 ## `getLivingEntitiesInRadius(radius){:aria}`
-- 选取**球形半径**内的所有生物。
+- 选取周围包围盒中的生物，X/Y/Z 各轴的搜索范围均使用 `radius`，没有再按球形距离过滤，因此角落处的目标也可能被选中。
 <Callout type="info">
     - **对象**：LivingEntity
-    - **参数**：`radius` — 半径（方块）
+    - **参数**：`radius` — 各轴周围搜索范围（方块），不是严格球形半径
     - **返回值**：生物列表（`List<LivingEntity>`）
     - **调用示例**
     ```aria
@@ -32,12 +32,12 @@ for(e in self.getLivingEntitiesInCone(4.0, 120)){
 </Callout>
 
 ## `getLivingEntitiesInCone(radius, angle){:aria}`
-- 选取**面前扇形范围**内的生物，适合做朝向性的横扫攻击。
+- 先取 `radius` 指定的周围包围盒候选，再按与完整视线方向的三维夹角筛选生物。玩家的俯仰角会影响结果；它不是只在水平面判断的扇形，也没有额外球形距离过滤。
 <Callout type="info">
     - **对象**：LivingEntity
     - **参数**：
-        - `radius` — 半径（方块）
-        - `angle` — 扇形总角度（度数，例如 `180` 表示正前方半圆）
+        - `radius` — 各轴周围候选范围（方块）
+        - `angle` — 总夹角（度数），目标与视线的夹角须不超过 `angle / 2`
     - **返回值**：生物列表
     - **调用示例**
     ```aria
@@ -46,7 +46,7 @@ for(e in self.getLivingEntitiesInCone(4.0, 120)){
 </Callout>
 
 ## `getLivingEntitiesInBox(width, length, height){:aria}`
-- 选取**面前的矩形（长方体）区域**内的生物，适合做直线突刺、长条形范围。
+- 以调用者的水平朝向为前方，按生物的位置点筛选面前长方体内的目标，适合做直线突刺、长条形范围。该判定忽略俯仰角；高度以调用者的位置高度为中心向上、向下各延伸 `height / 2`，不会按目标的整个碰撞箱判断是否相交。
 <Callout type="info">
     - **对象**：LivingEntity
     - **参数**：
@@ -62,7 +62,7 @@ for(e in self.getLivingEntitiesInCone(4.0, 120)){
 </Callout>
 
 ## `getLivingEntitiesInRing(innerRadius, outerRadius){:aria}`
-- 选取**环形范围**（内圈到外圈之间）的生物，适合做「只打远处一圈、不打贴身」的冲击波类效果。
+- 按生物位置到调用者位置的三维距离，选取内外半径之间的生物，包含半径边界。它是球壳距离判定，不是忽略高度的水平圆环。
 <Callout type="info">
     - **对象**：LivingEntity
     - **参数**：
@@ -76,10 +76,10 @@ for(e in self.getLivingEntitiesInCone(4.0, 120)){
 </Callout>
 
 ## `getNearestLivingEntity(maxDistance){:aria}`
-- 选取**最近的单个生物**，找不到时返回空。常用来配合 [朝向吸附](/docs/chronos/8_aria/3_player_look) 或单体技能。
+- 从 `maxDistance` 指定的周围包围盒候选中，按三维位置距离取最近生物，找不到时返回空。不会额外排除直线距离超过 `maxDistance` 的包围盒角落候选。常用来配合 [朝向吸附](/docs/chronos/8_aria/3_player_look) 或单体技能。
 <Callout type="info">
     - **对象**：LivingEntity
-    - **参数**：`maxDistance` — 最大搜索距离（方块）
+    - **参数**：`maxDistance` — 各轴周围搜索范围（方块）
     - **返回值**：单个生物（`LivingEntity{:aria}`），范围内无生物时返回空
     - **调用示例**
     ```aria

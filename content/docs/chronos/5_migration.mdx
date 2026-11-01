@@ -1,0 +1,67 @@
+---
+title: 旧配置自动迁移
+description: 从全局控制器选择器迁移到 chronos:common 职业
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 识别条件
+
+启动时、正式加载 `Setting` 之前，Chronos 检查 `setting.yml`。当 schema 小于 3，且存在以下任一旧字段时开始迁移：
+
+- `default_controller`
+- `switch_by_main_hand`
+- `triggers`
+
+
+## 转换结果
+
+旧的全局控制器规则被转换成普通职业 `chronos:common`：
+
+| 旧字段                               | 新位置                                             |
+|-----------------------------------|-------------------------------------------------|
+| `default_controller`              | `professions/common.yml -> controllers.default` |
+| `switch_by_main_hand.enable/path` | `controllers.router.main_hand.enabled/path`     |
+| `triggers.enable/list`            | `controllers.router.triggers.enable/list`       |
+| `controllers/*.yml` 文件名           | `controllers.allowed`                           |
+
+如果旧主手选择器已启用，迁移后仍保持它优先，复合触发器被关闭；否则保留旧触发器开关。
+
+旧主手选择器或有效的触发器开关已启用时，`controllers.mode` 转为 `ROUTED`；两者均关闭时转为 `EXTERNAL`，保留由 API 设置基础控制器的用法。生成的 `common.yml` 是普通职业文件，不是插件内置的全局选择器。
+
+新的根设置为：
+
+```yaml
+schema_version: 3
+default_profession: "chronos:common"
+```
+
+因此迁移后的默认职业是 `chronos:common`。这个默认值由 `setting.yml` 指定，不是 `common` 文件名或职业 ID 带来的特殊行为。
+
+本次迁移只转换旧 `setting.yml` 中的全局控制器规则，不改写已有控制器、客户端状态机或按键文件。生成的职业技能列表、装配和定义为空；需要独立技能槽时，再按[职业与技能配置](/docs/chronos/5_profession)补齐技能定义与装配。旧控制器中的 `combo` 仍由控制器解析器识别为 `legacy` 连招链，详见[服务端控制器](/docs/chronos/7_controller)。
+
+## 备份与失败处理
+
+检测到旧格式后会先创建备份：
+
+```text
+migration-backups/
+  <UTC时间>-legacy-v1-to-v3-<随机后缀>/
+    original/setting.yml
+    manifest.yml       # 成功迁移后写入
+    COMPLETED          # 成功迁移后写入
+```
+
+迁移器校验原文件与备份的 SHA-256，再在暂存目录生成新文件，验证默认控制器属于发现到的控制器列表，最后替换：
+
+```text
+setting.yml
+professions/common.yml
+migration-state.yml
+```
+
+若 `professions/common.yml` 已存在，迁移器仍先备份旧 `setting.yml`，然后停止，不覆盖已有职业配置。
+
+<Callout type="warn">
+这不是“兼容读取旧配置”。成功后运行时只读新文件；提交或元数据写入失败会尝试恢复旧 `setting.yml`、撤回本次生成的职业文件，随后停止插件启用，不会继续使用旧选择器运行。若恢复本身也失败，请根据异常和原文件备份人工恢复；解决冲突后再启动。
+</Callout>

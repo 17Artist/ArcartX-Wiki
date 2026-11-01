@@ -1,0 +1,107 @@
+---
+title: 外部职业框架接入
+description: 可配置技能槽、快照版本、释放准入与数据所有权
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Chronos 管理动作执行，外部职业框架管理玩家数据。外部框架应持久化职业等级、技能等级、解锁、装配、资源和长期冷却，并通过一个权威 `ProfessionProvider` 把当前状态投影给 Chronos。
+
+## 数据所有权
+
+| 数据                     | 所有者                         |
+|------------------------|-----------------------------|
+| 职业/技能定义、允许控制器、技能 route | Chronos `professions/*.yml` |
+| 玩家职业等级、技能等级、解锁与任意槽位装配  | 外部职业框架                      |
+| mana、道具消耗、数据库冷却和事务     | 外部职业框架                      |
+| 当前状态、连招、动作实例、临时控制器覆盖   | Chronos                     |
+
+## 注册 Provider
+
+```java
+public final class CareerProvider implements ProfessionProvider {
+    @Override
+    public String getId() {
+        return "mycareer:main";
+    }
+
+    @Override
+    public CompletionStage<ProfessionSnapshot> snapshot(Player player) {
+        return repository.readSnapshot(player.getUniqueId()).thenApply(data ->
+            new ProfessionSnapshot(
+                data.professionId(),
+                data.revision(),
+                data.generation(),
+                data.professionLevel(),
+                data.loadout(),
+                data.numericAttributes()
+            )
+        );
+    }
+
+    @Override
+    public CompletionStage<SkillAdmission> prepare(SkillAdmissionRequest request) {
+        return resourceService.reserve(request).thenApply(reservation ->
+            reservation.accepted()
+                ? SkillAdmission.accept(reservation.lease())
+                : SkillAdmission.reject(reservation.reason())
+        );
+    }
+}
+
+Registration handle = api.registerProfessionProvider(plugin, new CareerProvider());
+```
+
+Provider ID 必须是小写命名空间 ID。Chronos 只接受一个权威 Provider，避免多个数据源争夺同一玩家快照。
+
+## 任意槽位快照
+
+```java
+Map<String, EquippedSkill> loadout = Map.of(
+    "primary",      new EquippedSkill("mycareer:slash", 7),
+    "mobility",     new EquippedSkill("mycareer:dash", 3),
+    "utility-left", new EquippedSkill("mycareer:ward", 2),
+    "ultimate",     new EquippedSkill("mycareer:meteor", 1)
+);
+```
+
+`loadout` 是 `Map<String, EquippedSkill>`，不是固定长度数组。职业可以配置 1、4、8 个或更多槽位，也可以让不同职业拥有不同槽位集合。通过客户端按键释放时，槽位 ID 必须同时出现在 `keybinding.yml` 的 `keys` 和 `skill_slots` 中；Java API 的 `castSkill` 可直接使用快照中的槽位 ID。Chronos 不保存玩家装配，也没有“三槽”常量。
+
+快照约束：
+
+- `professionId` 必须对应已加载的 Chronos 职业；
+- `professionLevel >= 1`，技能等级均 `>= 1`；
+- 槽位和技能 ID 非空，技能必须属于该职业 `skills.allowed`；
+- `revision` 表示装配/等级版本，`generation` 表示职业会话世代；
+- map 会被复制，不能携带数据库连接或随后变动的可变实体。
+
+`ProfessionSnapshot` 和 `EquippedSkill` 都可携带 `numericAttributes`。这些数值作为快照数据保留，可由外部准入逻辑读取；Chronos 不会自动把它们应用为伤害、玩家属性或 Aria 变量。
+
+外部数据更新并提交成功后调用：
+
+```java
+api.invalidateProfession(player);
+```
+
+`invalidateProfession` 会立即取消待决快照请求、目标选择和释放准入，并清空外部快照缓存；它不会直接结束已经开始的技能动作。下一次释放会重新请求快照，等待期限为 5000ms。外部装配或等级变化后必须主动调用此方法，Chronos 不会轮询外部存储；被取消或已失效的异步回调不能继续启动动作。
+
+## 两阶段释放准入
+
+`prepare` 在目标选择完成后调用，`SkillAdmissionRequest` 已包含玩家、attempt ID、冻结快照、槽位、技能等级、当前控制器和可选目标。
+
+若需要扣 mana/道具：
+
+1. `prepare` 原子预留资源，返回 `SkillAdmission.accept(lease)`；
+2. Chronos 在主线程确认快照、职业、控制器和 route 仍有效，再调用 `lease.commit(actionInstanceId)`；
+3. commit 成功后再次回到主线程复核，通过后才尝试启动动作；
+4. 启动前的失败、超时、玩家失效、插件卸载或释放被替换会终止待决准入；已取得 lease 时调用 `lease.rollback(reason)`，迟到的 prepare/commit 结果也会触发清理。
+
+prepare 与 commit 共用 5000ms 期限，不是各自等待 5 秒；这与目标选择器自己的 `timeout_ticks` 是两个阶段的期限。
+
+`snapshot`、`prepare`、`commit` 都在主线程调用，必须立即返回非空 `CompletionStage`，不得阻塞等待存储。`rollback` 可能在完成回调线程执行，包括 Chronos 已禁用之后，因此必须线程安全、非阻塞，不能依赖 Chronos 的调度器。commit 与 rollback 必须幂等；取消后的并发或迟到 commit 必须被拒绝或补偿，多次 rollback 不能重复退回。不要在 `snapshot` 阶段直接扣资源。
+
+Chronos 会请求回滚并记录回滚异常，但不保证外部数据库或执行器故障时补偿一定成功；持久化恢复由职业框架负责。Start 监听器同步中断新动作时，该动作按已开始处理，不再按“待决释放取消”自动退回资源；Start 后若引擎自身启动入口失败，则仍按启动失败请求回滚。Start 通知不代表入口状态已经进入，事件顺序见 [Java API](/docs/chronos/9_api)。
+
+<Callout type="warn">
+外部职业框架必须先完成数据库事务，再失效 Chronos 快照。Chronos 不替职业框架管理升级、解锁、技能点、经济或持久冷却，也不会从 `professions/*.yml` 反写玩家数据。
+</Callout>
