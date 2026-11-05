@@ -1,0 +1,74 @@
+---
+title: 界面协议
+description: 市集的界面注册、客户端动作和商品数据
+---
+
+# 界面协议
+
+每间商店使用 `shops/<商店ID>/ui.yml`注册UI。Agora 按目录名注册界面，例如 `provisioner` 对应 `Agora:shop_provisioner`。
+
+## 客户端动作
+
+| 动作         | 参数                     | 用途                                    |
+|------------|------------------------|---------------------------------------|
+| `browse`   | `page`                 | 请求页码，从 0 开始，范围 `0..999999`，服务端限制到实际页数 |
+| `purchase` | `productId`、`quantity` | 购买指定商品，份数为 `1..64` 的整数，需满足单次上限与个人额度   |
+
+```aria
+Packet.send('browse', '0')
+Packet.send('purchase', 'bread', '2')
+```
+
+
+| 处理器      | 字段                                   | 界面行为                                 |
+|----------|--------------------------------------|--------------------------------------|
+| `sync`   | `title`, `page`, `pages`, `products` | 更新标题、页码和整页商品。                        |
+| `result` | `success`, `message`                 | 显示购买结果并解除购买等待。成功后再次发送 `sync` 刷新个人额度。 |
+| `error`  | `message`                            | 显示操作失败原因并解除购买等待。                     |
+
+`products` 最多包含该店 `page-size` 项，详情随该页一起下发。只计已启用且通过提供者检查的商品，末页可不足一页，空商店返回第 0 页和 `pages: 1`。
+
+```json
+{
+  "title": "补给商人",
+  "page": 0,
+  "pages": 1,
+  "products": []
+}
+```
+
+### 商品字段
+
+| 字段                                                 | 类型             | 说明                                  |
+|----------------------------------------------------|----------------|-------------------------------------|
+| `id`                                               | String         | 商品 ID，动态卡片名为 `product_<id>`         |
+| `name`、`description`                               | String         | 名称与说明，说明用 `</n/>` 分行                |
+| `priceText`                                        | String         | 单份价格显示文本                            |
+| `priceDigits`、`priceScale`                         | String、Integer | 单价数字串与小数位数，例如 `125` 和 `1` 表示 `12.5` |
+| `currencyName`                                     | String         | 结算货币显示名称                            |
+| `remainingText`、`remainingShort`、`remainingNarrow` | String         | 详情、宽卡片、窄卡片的个人额度文案                   |
+| `itemJson`                                         | String         | `itemjson` 输出，交给 `Slot.setItemIcon` |
+| `contents`                                         | Array          | 商品内容                                |
+| `maxQuantity`                                      | Integer        | 单次上限与个人剩余额度的较小值，0 表示不能购买            |
+
+### 内容字段
+
+| 字段                           | 类型             | 说明                            |
+|------------------------------|----------------|-------------------------------|
+| `key`                        | String         | 稳定展示键，用于动态控件命名                |
+| `kind`                       | String         | `item`、`currency` 或 `command` |
+| `name`                       | String         | 仅货币和命令有此字段                    |
+| `description`                | String         | 内容说明，以 `</n/>` 分行             |
+| `amountDigits`、`amountScale` | String、Integer | 单份内容数量，命令组为 `1` 和 `0`         |
+| `itemJson`                   | String         | 仅物品有此字段                       |
+| `icon`                       | String         | 仅货币和命令有此字段，值为辅助图标路径           |
+
+物品槽调用 `setItemIcon(itemJson)` 后，用 `getSlotItemStack().getName()` 读取名称。
+
+## 操作状态与控件
+
+合计与内容数量按十进制数字串乘以份数计算，支持最多 6 位小数。
+
+`ICON` 模式使用带 `url` NBT 的展示用 PAPER
+
+重载通过配置检查后关闭旧窗口，重新打开使用新界面。

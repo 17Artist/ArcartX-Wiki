@@ -1,0 +1,31 @@
+---
+title: 命令与 NPC 接入
+description: 商店命令、权限与 NPC 点击配置
+---
+
+# 命令与 NPC 接入
+
+主命令为 `/agora`，也可以使用 `/npcshop`。
+
+| 命令                                | 权限                             | 用途                 |
+|-----------------------------------|--------------------------------|--------------------|
+| `/agora open <shop>`              | `agora.use`                    | 打开自己的商店界面          |
+| `/agora open <shop> <player>`     | `agora.use`、`agora.admin.open` | 为指定在线玩家打开商店        |
+| `/agora reload`                   | `agora.admin.reload`           | 重载全局设置、商店、商品、语言和界面 |
+| `/agora orders [order]`           | `agora.admin.orders`           | 查看待核对列表或指定购买       |
+| `/agora resolve <order> complete` | `agora.admin.resolve`          | 确认商品已全部交付，登记完成     |
+| `/agora resolve <order> cancel`   | `agora.admin.resolve`          | 核对后取消记录，释放占用的额度    |
+
+指定玩家时，目标必须在线，并拥有 `agora.use` 和商店 `permission` 指定的权限。执行者只要填写了目标参数，就需要 `agora.admin.open`，即使填写的是自己。控制台执行时必须指定玩家。
+
+## 绑定 NPC
+
+NPC 的创建、外观和点击动作由所用的 NPC 插件管理。在 NPC 的点击配置中，让点击者以玩家身份执行：
+
+```text
+agora open provisioner
+```
+
+如果 NPC 插件使用控制台执行命令，则配置 `agora open provisioner <玩家名>`，并使用该插件的玩家名变量替换目标参数。点击者仍需拥有商店访问权限，无需授予管理权限。
+
+默认示例配置中补给商人使用 `provisioner`，铁匠使用 `armory`，奇物商人使用 `curios`。自建商店使用自己的文件夹名称。

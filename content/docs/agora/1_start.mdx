@@ -1,0 +1,63 @@
+---
+title: 说明与安装
+description: 市集的用途、运行条件、授权与客户端资源
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Agora 为可创建多个不同UI的商店，适用于一些NPC商店之类的需求。
+
+<Callout type="warn">
+**Agora 为 ArcartX 高级会员专属插件。** 使用需要有效授权。
+</Callout>
+
+| 能力   | 说明                     |
+|------|------------------------|
+| 独立商店 | 按商店配置界面、商品与访问权限        |
+| 组合商品 | 一件商品可包含物品、货币和命令        |
+| 多种货币 | 每件商品使用一种货币，不同商品可使用不同货币 |
+| 个人限购 | 支持每日、每周与累计限购，多服可共享购买额度 |
+
+## 运行条件
+
+- Java 17；
+- Paper 1.18+；
+- ArcartX；
+- 已注册到 ArcartX 的货币提供者。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 配置货币
+
+默认商品使用 `Vault`，如需使用请安装 Vault 和提供经济服务的插件。使用 Rondo 等其他货币时，按 [商品配置](/docs/agora/4_catalog) 填写实际注册的币种。
+
+</Step>
+
+<Step>
+
+### 安装与授权
+
+将 `Agora.jar` 放入 `plugins/`，启动一次生成 `plugins/Agora/license.yml`。正常停服，填入自己的 `licenseId` 与 `licenseKey` 后重启。
+
+</Step>
+
+<Step>
+
+### 打开补给商店
+
+控制台提示商店就绪后，为玩家授予 `agora.use`，再以玩家身份执行：
+
+```text
+/agora open provisioner
+```
+
+</Step>
+
+</Steps>

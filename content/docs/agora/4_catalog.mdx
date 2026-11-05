@@ -1,0 +1,136 @@
+---
+title: 商店与商品配置
+description: 自建商店、组合商品、货币、限购和展示图标
+---
+
+# 商店与商品配置
+
+## 创建商店
+
+在 `plugins/Agora/shops/` 下为每间商店建立一个目录：
+
+```text
+blacksmith/
+├─ shop.yml
+├─ ui.yml
+└─ products/
+   └─ catalog.yml
+```
+
+`shop.yml` 示例：
+
+```yaml
+name: 山城铁匠
+enabled: true
+permission: ''
+```
+
+`permission` 留空时，具有 `agora.use` 的玩家即可访问。需要单独限制访问时，可填写 `shops.blacksmith` 等权限节点。
+
+`ui.yml` 可从示例复制。三套模板分别为 `provisioner`（补给商人）、`armory`（铁匠铺）和 `curios`（奇物货栈）
+
+商店 ID 为文件夹名，商品 ID 为 `products:` 下的键名。两者均以小写字母开头，只能使用小写字母、数字、短横线和下划线，最多 32 个字符。一个商店内的商品 ID 不能重复；不同商店可以使用同一 ID，限购分别计算。
+
+最多配置 100 间商店，停用项也计入上限。至少保留一个商店文件夹。
+
+## 配置商品
+
+在 `products/` 的直接子文件中配置商品。一个 `.yml` 文件可放多件商品，也可拆成多个文件。
+
+```yaml
+products:
+  bread:
+    name: 旅途面包
+    description:
+      - 每份包含 8 个面包
+    enabled: true
+    order: 10
+    max-quantity: 8
+    price:
+      provider: Vault
+      amount: '24.00'
+    limit:
+      period: DAILY
+      amount: 16
+    rewards:
+      items:
+        - id: BREAD
+          amount: 8
+  expedition_bundle:
+    name: 商队远行礼盒
+    order: 20
+    max-quantity: 2
+    price:
+      provider: Vault
+      amount: '120.00'
+    limit:
+      period: WEEKLY
+      amount: 4
+    display:
+      mode: ICON
+      icon: agora/icons/expedition_bundle.png
+    rewards:
+      items:
+        - id: BREAD
+          amount: 8
+        - id: IRON_INGOT
+          amount: 2
+      currencies:
+        - provider: Vault
+          amount: '5.00'
+          display: 金币补贴
+      commands:
+        - display: 商人的祝福
+          description:
+            - 商人会送上远行祝福
+          commands:
+            - 'tell <player> 物资已备齐，祝你一路顺风。'
+```
+
+| 字段             | 说明                     |
+|----------------|------------------------|
+| `order`        | 数值较小的商品排在前面，相同值按 ID 排序 |
+| `max-quantity` | 单次可买份数，范围 `1..64`      |
+| `price`        | 每份商品使用的货币及价格           |
+| `limit`        | 个人限购周期与份数              |
+| `display`      | 商品卡片和详情主图的展示方式         |
+| `rewards`      | 每份商品发放的内容              |
+
+原版物品省略 `provider`，`id` 填写 Bukkit 材料名称。外部物品需填写已在 ArcartX 注册的提供者与物品 ID，例如 `provider: NeigeItems`、`id: starter_blade`。
+
+命令由控制台执行，开头不加斜杠，`<player>` 替换为玩家名。每买一份执行一次组内命令；使用其他插件的命令时，请确认重复执行的效果。
+
+商品名称与内容行的 `display` 最长 128 个字符，`description` 最多 16 行，每行不超过 256 个字符。
+
+## 货币与金额
+
+金额建议写成带引号的数字，最多 6 位小数，每项单份金额上限为 10 亿。价格可为 0，作为商品发放的货币数量必须大于 0。PlayerPoints 金额必须为整数，乘以 `max-quantity` 后不能超过 `2147483647`。
+
+使用 Rondo 时，`provider` 填写实际注册的 `currencyId`，如 `gold` 或 `points`。
+
+## 个人限购
+
+| `limit.period` | 用途   | `limit.amount` |
+|----------------|------|----------------|
+| `NONE`         | 不限购  | 省略或写 `0`       |
+| `DAILY`        | 每日限购 | 1 至 10 亿       |
+| `WEEKLY`       | 每周限购 | 1 至 10 亿       |
+| `LIFETIME`     | 累计限购 | 1 至 10 亿       |
+
+额度按玩家、商店、商品与周期分别计算。成功购买计入已购份数，待核对购买暂时占用额度。每日、每周限购在 [配置时区](/docs/agora/5_configuration) 的当地午夜、周一午夜刷新。累计限购不刷新。
+
+调整限购数量不清除已购记录。删除后恢复相同商店 ID、商品 ID 和周期，仍沿用原记录；更换 ID 或周期则使用另一组额度。修改时区也可能改变当前日期或周，调整前请先核对已有购买。
+
+## 展示图标
+
+只有一项物品内容时，可省略 `display`，默认以 `REWARD_ITEM` 显示真实物品。组合商品以及含货币或命令的商品需使用 `ICON`：
+
+```yaml
+display:
+  mode: ICON
+  icon: agora/icons/travel_pack.png
+```
+
+将对应 PNG 放入客户端 `resourcepacks/ArcartX/resource/` 下，再重新加载资源。图标只影响展示，实际发放由 `rewards` 决定。
+
+未知字段或格式错误将阻止加载。停用的商店和商品仍需符合格式。已启用商品因缺少提供者、无法生成物品或金额不符合精度而无法加载时，控制台会记录原因；修复后重载即可重新检查。

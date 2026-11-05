@@ -1,0 +1,47 @@
+---
+title: 配置与数据库
+description: 限购时区、语言、存储方式与多服配置
+---
+
+# 配置与数据库
+
+## 全局设置
+
+`plugins/Agora/config.yml`：
+
+```yaml
+reset-timezone: Asia/Shanghai
+order-retention-days: 90
+```
+
+| 配置项                    | 说明                                |
+|------------------------|-----------------------------------|
+| `reset-timezone`       | 设置时区，日限购在当地午夜刷新，周限购在当地周一午夜刷新      |
+| `order-retention-days` | 已结束购买记录的保存天数，范围 `7..3650`，默认 90 天 |
+
+待核对购买与累计限购记录不会随已结束记录一起清理。
+
+## 单服 SQLite
+
+默认使用 `plugins/Agora/agora.db`。SQLite 只用于单服。
+
+## 多服 MySQL
+
+需要共享个人限购时，各子服连接同一个 MySQL 数据库，并保持整份 `shops/` 和 `reset-timezone` 一致。余额由货币插件管理，各服仍需配置同一套货币提供者。
+
+先创建数据库和账号，再修改 `plugins/Agora/database.yml`：
+
+```yaml
+type: mysql
+worker-threads: 4
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: agora
+  username: agora
+  password: '填写数据库密码'
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
+  pool-size: 6
+```
+
+修改 `database.yml` 中的任意设置后都需要完整重启。切换数据库类型或地址不会自动迁移购买记录。

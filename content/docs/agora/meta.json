@@ -1,0 +1,29 @@
+{
+    "title": "Agora — 市集",
+    "description": "NPC 商店、商品组合与个人限购",
+    "icon": "logo/agora-logo.png",
+    "tags": [
+        { "label": "闭源", "color": "#DC143C" },
+        { "label": "高级会员专属", "color": "#F59E0B" },
+        { "label": "经济", "color": "#EAB308" },
+        { "label": "UI", "color": "#8B5CF6" }
+    ],
+    "root": true,
+    "color": "#D97706",
+    "entry": "agora/1_start",
+    "tagline": "为不同 NPC 配置商店、商品与限购",
+    "order": 25,
+    "defaultOpen": true,
+    "pages": [
+        "---开始使用---",
+        "1_start",
+        "2_player",
+        "3_commands_npc",
+        "---商店与配置---",
+        "4_catalog",
+        "5_configuration",
+        "---界面与维护---",
+        "6_ui_protocol",
+        "7_operations"
+    ]
+}
