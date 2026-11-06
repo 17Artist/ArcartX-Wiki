@@ -1,0 +1,106 @@
+---
+title: 商品配置
+description: 抽取权重、三种商品内容、物品库和多货币
+---
+
+# 商品配置
+
+`products/` 下的 `.yml`、`.yaml` 文件共用一个抽取池，每个文件以 `products:` 开头。已启用商品的 ID 不能重复，`enabled: false` 不参与抽取。
+
+商品 ID 长度为 1 至 64，只能使用字母、数字、点、短横线和下划线，首位须为字母或数字。已启用商品最多 10000 件，数量至少达到 `offers`。
+
+## 物品商品
+
+```yaml
+products:
+  travel_kit:
+    weight: 7
+    daily-limit: 3
+    payment:
+      provider: Vault
+      unit-price: "32"
+    display:
+      name: "远行补给"
+      lore:
+        - "内含 16 个面包"
+    reward:
+      type: item
+      id: BREAD
+      amount: 16
+      display: "面包"
+```
+
+`weight` 为有限正数，值越大抽中机会越高。`daily-limit` 为每位玩家每天可买的份数，范围 `1..10000`。
+
+每件商品只配置一个 `reward` 和一组 `payment`。一次购买发放一份内容。
+
+| `reward.type`   | 内容要求                              | 展示方式                   |
+|-----------------|-----------------------------------|------------------------|
+| `item`          | 必填 `id` 与整数 `amount`，数量 `1..2304` | 真实物品 Slot，保留物品数据与原生提示  |
+| `currency`      | 必填 `provider` 与正数 `amount`        | 默认紫晶硬币，可配置 PNG         |
+| `command-group` | `commands` 内配置 1 至 32 条命令         | 默认紫色符印，可配置 PNG，命令原文不下发 |
+
+超过一组的物品分组发放。
+
+`reward.display` 和物品的 `reward.description` 可补充内容说明，`display.name` 和 `display.lore` 用于商品展示名称与介绍。物品类型商品不能设置 `display.icon`。
+
+## 货币与指令组
+
+支付 100 金币，获得 5 点券：
+
+```yaml
+products:
+  currency_exchange:
+    daily-limit: 1
+    payment:
+      provider: Vault
+      unit-price: "100"
+    display:
+      name: "点券兑换"
+      icon: "tyche/nightmarket/currency.png"
+    reward:
+      type: currency
+      provider: PlayerPoints
+      amount: "5"
+```
+
+指令组按顺序以控制台身份执行，支持 `<player>` 与 `{player}` 替换玩家名：
+
+```yaml
+products:
+  merchant_service:
+    daily-limit: 1
+    payment:
+      provider: Vault
+      unit-price: "10"
+    display:
+      name: "商人的祝福"
+      icon: "tyche/nightmarket/service.png"
+    reward:
+      type: command-group
+      display: "夜视与速度祝福"
+      commands:
+        - "effect give <player> minecraft:night_vision 60 0 true"
+        - "effect give <player> minecraft:speed 60 0 true"
+```
+
+执行途中失败时，已执行命令不会自动撤销，需要管理员核对。
+
+## 外部物品库
+
+原版物品省略 `reward.provider`，`id` 填写 Bukkit 材料名称。外部物品使用 ArcartX 已注册的提供者名称和实际物品 ID，例如：
+
+```yaml
+reward:
+  type: item
+  provider: MythicMobs
+  id: LuckyBlade
+  amount: 1
+```
+
+
+## 展示与格式限制
+
+货币和指令组省略 `display.icon` 时分别使用 `tyche/nightmarket/currency.png` 与 `tyche/nightmarket/service.png`。自定义图标只能使用相对路径，最长 256 个字符，不含 `..`、冒号或开头的斜杠。
+
+商品、`payment` 和 `reward` 中的未知字段、类型不符或缺少必填内容都会导致配置无法加载。重载失败时保留原设置。

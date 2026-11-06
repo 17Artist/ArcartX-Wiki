@@ -1,0 +1,56 @@
+---
+title: 配置与数据库
+description: 每日刷新、手动费用、存储、语言与历史保留
+---
+
+# 配置与数据库
+
+## 商店设置
+
+`plugins/Tyche/config.yml`：
+
+```yaml
+daily:
+  zone: Asia/Shanghai
+  reset-time: "00:00"
+offers: 6
+refresh:
+  provider: Vault
+  costs:
+    - "0"
+    - "10"
+    - "20"
+    - "40"
+    - "80"
+history-retention-days: 60
+```
+
+| 配置项                      | 说明                                  |
+|--------------------------|-------------------------------------|
+| `daily.zone`             | Java 时区名称，默认 `Asia/Shanghai`        |
+| `daily.reset-time`       | 每日换货时间，格式 `HH:mm`                   |
+| `offers`                 | 每次抽取的商品数，整数 `1..12`，每页显示 6 件        |
+| `refresh.provider`       | 刷新所用的 ArcartX 支持的货币接口名称，区分大小写       |
+| `refresh.costs`          | 1 至 100 项费用，不能递减，可以相同；项数决定手动刷新上限    |
+| `history-retention-days` | 已结束订单和历史个人限购的保留天数，整数 `7..365`，默认 60 |
+
+待核对订单始终保留，每位玩家的商店记录持续保留。历史记录按小时分批清理。
+
+## 数据库
+
+单服默认使用 SQLite，数据位于 `plugins/Tyche/tyche.db`。多服共用同一个数据库时，各节点的商品与商店规则须一致。
+
+`database.yml` 的 MySQL 示例：
+
+```yaml
+type: mysql
+worker-threads: 4
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: tyche
+  username: tyche
+  password: '填写数据库密码'
+  parameters: "useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
+  pool-size: 6
+```

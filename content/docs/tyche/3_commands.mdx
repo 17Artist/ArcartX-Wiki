@@ -1,0 +1,25 @@
+---
+title: 命令与权限
+description: 玩家入口、管理员命令
+---
+
+# 命令与权限
+
+主命令为 `/tyche`，别名为 `/luckyshop`。
+
+| 命令                                           | 权限                   | 默认   |
+|----------------------------------------------|----------------------|------|
+| `/tyche open`                                | `tyche.use`          | 所有玩家 |
+| `/tyche show <player>`                       | `tyche.admin.open`   | OP   |
+| `/tyche reload`                              | `tyche.admin.reload` | OP   |
+| `/tyche inspect <player>`                    | `tyche.admin.orders` | OP   |
+| `/tyche resolve <player> <request> complete` | `tyche.admin.orders` | OP   |
+| `/tyche resolve <player> <request> cancel`   | `tyche.admin.orders` | OP   |
+
+`inspect` 和 `resolve` 支持曾进入本服的离线玩家名，交易处理步骤见 [交易核对与维护](/docs/tyche/7_operations)。
+
+## 重载范围
+
+`/tyche reload` 重新读取商店规则、商品、语言与界面。只修改商店配置时，已打开的界面更新快照；修改 `ui/main.yml` 后需关闭并重新打开商店。
+
+授权和数据库设置不通过此命令重载，修改后需要完整重启。

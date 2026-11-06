@@ -1,0 +1,64 @@
+---
+title: 说明与安装
+description: 幸运商店的用途、运行条件、授权与客户端资源
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 说明与安装
+
+Tyche 提供每日幸运商店功能，类似于一些rpg游戏的“黑市”玩法
+
+<Callout type="warn">
+**Tyche 为 ArcartX 高级会员专属插件。** 需要填写有效授权。
+</Callout>
+
+| 能力   | 说明                    |
+|------|-----------------------|
+| 独立商品 | 每位玩家每天抽取自己的商品，同次抽取不重复 |
+| 手动刷新 | 按次数设置刷新费用和每日次数上限      |
+| 多种内容 | 一件商品可发放一种物品、一种货币或一组命令 |
+| 个人限购 | 同一商品可设置每日限购数量         |
+
+## 运行条件
+
+- Java 17；
+- Paper 1.18+；
+- ArcartX；
+- 与服务端配套的 ArcartX 客户端 MOD。
+
+## 安装步骤
+
+<Steps>
+
+<Step>
+
+### 安装与授权
+
+将 `Tyche-1.0.0.jar` 放入 `plugins/`，启动一次生成 `plugins/Tyche/license.yml`。填写自己的 `licenseId` 与 `licenseKey` 后正常重启。
+
+</Step>
+
+<Step>
+
+### 配置存储与货币
+
+单服可使用默认 SQLite，多服共享时连接同一个 MySQL。各服的商品、时区、刷新时间和费用须一致。
+
+刷新默认使用 `Vault`，需要 ArcartX 已注册该货币接口。接口名称区分大小写，其他币种填写实际注册的 ID。
+
+</Step>
+
+
+<Step>
+
+### 打开商店
+
+进入服务器后执行 `/tyche open`，检查商品、价格与购买确认窗。
+
+默认每人每天展示 6 件商品，可以手动刷新 5 次，费用依次为 0、10、20、40、80。每日自动换货不占手动次数。
+
+</Step>
+
+</Steps>
