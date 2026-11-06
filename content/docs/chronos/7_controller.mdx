@@ -479,6 +479,20 @@ combo_chains:
 
 `ACTION` 的冲刺分前后左右四个方向；但在第三人称自由相机非锁定期间，只会触发向前的 `SPRINT`。
 
+### 长按连续普攻（3.1.1 起）
+
+如果整条连招链没有定义某个鼠标键的 `MOUSE_HOLD`，玩家按住该键时，Chronos 会自动连续产生对应的 `MOUSE_CLICK`。左右键分别判断：例如，左键只配置轻击、右键配置蓄力时，按住左键可以连续普攻，按住右键仍然触发蓄力。
+
+```yaml
+combo:
+  轻击1:
+    input: { type: MOUSE_CLICK, value: LEFT }
+    derive:
+      轻击2:
+        input: { type: MOUSE_CLICK, value: LEFT }
+        back: true
+```
+
 ### 组合输入：AND / OR / SEQUENCE
 
 单个 `input` 只能配一种触发。想要「同时按」「多种触发」「搓招」这类，就用 `mode` + `inputs` 列表：
