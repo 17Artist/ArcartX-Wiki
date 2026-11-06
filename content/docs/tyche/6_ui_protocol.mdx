@@ -1,0 +1,73 @@
+---
+title: 界面协议
+description: 幸运商店的快照、订单动作与确认窗状态
+---
+
+# 界面协议
+
+## 打开与关闭
+
+## 通讯总览
+
+| 方向       | 名称         | 参数或字段                            |
+|----------|------------|----------------------------------|
+| UI → 服务端 | `state`    | 无参数，用于跨日、等待超时或手动重试时重新读取状态        |
+| UI → 服务端 | `refresh`  | `revision`、`orderId`             |
+| UI → 服务端 | `buy`      | `revision`、`productId`、`orderId` |
+| 服务端 → UI | `snapshot` | 完整快照                             |
+| 服务端 → UI | `result`   | `ok`、`message`、`orderId`         |
+
+客户端按顺序发送字符串参数。刷新使用快照的 `refreshOrderId`，购买使用商品的 `orderId`，同一次操作重试时复用该 UUID。不要自行生成新的订单编号。
+
+```aria
+Packet.send('state')
+Packet.send('refresh', revision, refreshOrderId)
+Packet.send('buy', revision, productId, orderId)
+```
+
+## `snapshot`
+
+```json
+{
+  "day": "2026-11-05",
+  "revision": "1",
+  "products": [],
+  "refreshUsed": 0,
+  "maxRefresh": 5,
+  "refreshCost": "0",
+  "refreshCurrency": "金币",
+  "refreshOrderId": "00000000-0000-4000-8000-000000000001",
+  "nextReset": 1793894400000,
+  "pending": false
+}
+```
+
+| 字段                         | 类型      | 说明                            |
+|----------------------------|---------|-------------------------------|
+| `day`                      | String  | 按时区与刷新时间计算的日期，格式 `YYYY-MM-DD` |
+| `revision`                 | String  | 商店递增编号，购买与刷新提交相同值             |
+| `products`                 | Array   | 抽取的商品列表                       |
+| `refreshUsed`、`maxRefresh` | Integer | 已完成的手动刷新次数与每日上限               |
+| `refreshCost`              | String  | 下次刷新费用，次数用完时为空                |
+| `refreshCurrency`          | String  | 刷新货币显示名称                      |
+| `refreshOrderId`           | String  | 此快照刷新操作的 UUID                 |
+| `nextReset`                | Long    | 下次每日刷新时间，Unix 毫秒              |
+| `pending`                  | Boolean | 存在待核对交易时为真，不能开始购买或刷新          |
+
+客户端忽略低于当前 `revision` 的旧快照。
+
+### 商品字段
+
+| 字段                       | 类型           | 说明                                   |
+|--------------------------|--------------|--------------------------------------|
+| `id`                     | String       | 稳定商品 ID，购买时作为 `productId`            |
+| `name`、`lore`            | String、Array | 名称与介绍                                |
+| `price`、`currency`       | String       | 每份价格与支付货币的显示名称                       |
+| `remaining`、`dailyLimit` | Integer      | 当天剩余份数与单日上限                          |
+| `content`                | Array        | 一项内容的分行说明，不代表多项奖励                    |
+| `itemAmount`             | Integer      | 每份物品总数量，货币与指令组为 0                    |
+| `icon`                   | String       | PNG 路径，真实物品生成失败时也可作为备用图              |
+| `item`                   | String       | ItemBridge 的真实物品展示数据，使用 PNG 或生成失败时为空 |
+| `orderId`                | String       | 当前快照购买该商品的 UUID                      |
+
+
