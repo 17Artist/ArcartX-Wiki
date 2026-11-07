@@ -34,6 +34,7 @@ Packet.send('buy', revision, productId, orderId)
   "products": [],
   "refreshUsed": 0,
   "maxRefresh": 5,
+  "soldOut": false,
   "refreshCost": "0",
   "refreshCurrency": "金币",
   "refreshOrderId": "00000000-0000-4000-8000-000000000001",
@@ -48,13 +49,14 @@ Packet.send('buy', revision, productId, orderId)
 | `revision`                 | String  | 商店递增编号，购买与刷新提交相同值             |
 | `products`                 | Array   | 抽取的商品列表                       |
 | `refreshUsed`、`maxRefresh` | Integer | 已完成的手动刷新次数与每日上限               |
-| `refreshCost`              | String  | 下次刷新费用，次数用完时为空                |
+| `refreshCost`              | String  | 下次刷新费用，次数用完或商品池售罄时为空          |
+| `soldOut`                  | Boolean | 当前商品池是否均已达到该玩家当日限购上限；为真时禁用刷新  |
 | `refreshCurrency`          | String  | 刷新货币显示名称                      |
 | `refreshOrderId`           | String  | 此快照刷新操作的 UUID                 |
 | `nextReset`                | Long    | 下次每日刷新时间，Unix 毫秒              |
 | `pending`                  | Boolean | 存在待核对交易时为真，不能开始购买或刷新          |
 
-客户端忽略低于当前 `revision` 的旧快照。
+客户端忽略低于当前 `revision` 的旧快照。刷新后的 `products` 可能少于 `offers`，只包含该玩家当天尚未买满的商品。`soldOut` 按整个当前商品池判断；为真时，即使仍有刷新次数也不能刷新，服务端不再扣费或消耗次数，直到下次刷新或跨日换货。
 
 ### 商品字段
 
