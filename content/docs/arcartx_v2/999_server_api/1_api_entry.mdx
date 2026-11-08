@@ -47,6 +47,35 @@ ArcartXKeyBindRegistry registry = ArcartXAPI.getKeyBindRegistry();
 ```
 </Callout>
 
+
+## `getPlayerHostRegistry(){:java}`
+
+获取玩家宿主配置管理器 `PlayerHostProfiles`，类型位于 `priv.seventeen.artist.arcartx.core.playerhost`。配置从 `plugins/ArcartX/player_host/*.yml` 读取，每个文件使用 `root` 配置段。配置 ID 与 `setPlayerHost` 的 profileId 对应，model 必须与宿主模型一致。
+
+<Callout type="info">
+- **参数**：无
+- **返回值**：PlayerHostProfiles
+- **方法**：
+    - `snapshot()` — 返回不可变 `PlayerHostRegistrySnapshot`，可读取 getRevision() / getProfiles()
+    - `profile(id)` — 读取单个配置；不存在时为 null
+    - `register(id, patch)` — 校验后新增或替换配置；非法输入抛出 IllegalArgumentException，原注册表不变
+    - `unregister(id)` — 移除配置
+    - `reload()` — 从文件重载；失败保留原注册表
+    - `syncPlayers()` — 将当前注册表及玩家外观同步到在线客户端
+- **调用示例**
+```java
+PlayerHostProfiles registry = ArcartXAPI.getPlayerHostRegistry();
+java.util.Map<String, Object> patch = new java.util.LinkedHashMap<>();
+patch.put("model", "characters/hero");
+registry.register("hero", patch);
+registry.syncPlayers();
+```
+</Callout>
+
+注册表只在内容改变时增加版本号。register / unregister / reload 不自行广播；多次修改结束后调用一次 syncPlayers。ArcartX 的配置重载流程会安排同步。运行时注册不写回 YAML，后续文件重载会以文件内容替换注册表。移除正在使用的配置不会修改玩家记录；请先为玩家选择其他配置。
+
+配置是模型 axmeta 的稀疏覆盖：缺省字段继承，列表整体替换，映射按键合并，空映射不清空继承项。运行时 register 的 Map 可用 null 删除字段，普通 Bukkit YAML 不能保留此删除标记。profile ID、槽 ID 使用 `[a-z][a-z0-9_.-]{0,63}`，显示名称可使用中文。
+
 ## `getEntityManager(){:java}`
 - 获取实体管理器
 

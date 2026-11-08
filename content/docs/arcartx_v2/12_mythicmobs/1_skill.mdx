@@ -8,7 +8,15 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ## MythicMobs 额外词条
 
-ArcartX 为 MythicMobs 提供了一系列自定义技能词条。以下是所有可用的词条及其参数说明。
+ArcartX 为 MythicMobs 提供自定义技能词条。
+
+<Callout type="info">
+AX 启用 MM 集成时会检查服务器是否安装 Titan。
+安装 Titan 后，`model`、`animation`、`defaultState` 和生物的 `Model` 由 Titan 的注册模式决定。
+显式前缀模式下，请在技能配置中使用 Titan 的名称。更改安装组合或注册模式后，完整重启服务器。
+</Callout>
+
+
 
 每个参数都支持缩写和全名两种写法，例如 `m` 和 `model` 等价。
 
@@ -133,7 +141,7 @@ hammerEffect{r=3; d=0.3; i=10; k=40; o=20; m=0} @self
 # ph(packetHandler): 处理器名称（默认 ""）
 # pack/p: 包内容，字符串（默认 ""）
 uiPacket{u=my_ui; ph=handler_name; pack=data}
-# 注意，这个要选择目标，而不是@self，@self是发给释放者
+# 注意：怪物施法者应选择目标玩家，@self 指向施法者；若施法者是玩家，也可用 @self 发给自己
 ```
 
 ```yaml

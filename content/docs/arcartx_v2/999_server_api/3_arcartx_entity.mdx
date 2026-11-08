@@ -58,13 +58,14 @@ axEntity.setModel("my_model", 1.0);
 </Callout>
 
 ### `setModel(modelID, scale, reset){:java}`
-- 为实体设置模型，可选择是否重置动画状态
+- 为实体设置模型，可选择是否请求重置动画状态
+- `reset=false` 不主动清除已有状态。切换不同自定义骨架时，仍会重新建立模型绑定，不保证跨骨架动作续播。
 
 <Callout type="info">
 - **参数**：
     - `modelID`: String — 模型ID
     - `scale`: double — 模型缩放比例
-    - `reset`: boolean — 是否重置动画状态
+    - `reset`: boolean — 是否请求重置动画状态
 - **返回值**：无
 - **调用示例**
 ```java

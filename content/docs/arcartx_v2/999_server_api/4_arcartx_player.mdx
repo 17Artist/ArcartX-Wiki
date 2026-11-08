@@ -33,7 +33,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 - `area`: Area? — 玩家当前所处的区域，可能为 null
 - `playerModel`: String — 当前玩家模型ID（只读，通过 setModel 更新）
 - `playerModelScale`: double — 当前玩家模型缩放比例（只读）
-- `variant`: PlayerModelVariant — 当前玩家模型变体（只读，DEFAULT_BBMODEL / CUSTOM_BBMODEL）
+- 当前变体通过 `getAppearance().getVariant()` 读取，值为 `DEFAULT_BBMODEL` / `CUSTOM_BBMODEL`；`variant` 本身不是公开属性
 - `animationPackId`: String — 当前玩家动画包ID（只读，空字符串表示无）
 - `sentResource`: boolean — 是否已向该玩家发送资源
 - `jumpTime`: long — 上一次跳跃的时间戳
@@ -44,6 +44,9 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 ### `setModel(modelID, scale){:java}`
 - 设置玩家模型，会触发 `PlayerModelUpdateEvent` 事件，并向所有能看到该玩家的其他玩家广播模型变更
 - 重写自 `ArcartXEntity.setModel`，额外记录 `playerModel` / `playerModelScale` 并派发玩家专属事件
+- 清除已选择的宿主配置 ID，保留模型变体、动态时装槽、旧时装和动画包。切换宿主与配套时装时，请使用下方 `updateAppearance`
+- 恢复旧模型接口的发送方式；未选择新宿主模式的外部 `DEFAULT_BBMODEL` 仍向旧客户端同步原时装和动画包
+- 提交前会触发可取消的 `PlayerAppearanceChangeEvent`；提交成功后才触发 `PlayerModelUpdateEvent`
 
 <Callout type="info">
 - **参数**：
@@ -59,6 +62,7 @@ axPlayer.setModel("knight", 1.0);
 ### `removeModel(){:java}`
 - 移除玩家模型，恢复默认外观，并重置 `playerModel` 与 `playerModelScale`
 - 重写自 `ArcartXEntity.removeModel`
+- 同时清除宿主配置 ID 和动态时装槽；旧时装、动画包和模型变体保留。可通过 `PlayerAppearanceChangeEvent` 取消
 
 <Callout type="info">
 - **参数**：无
@@ -73,6 +77,7 @@ axPlayer.removeModel();
 - 将玩家模型设置为默认玩家模型（`__default_player__`），并将变体切换为 `DEFAULT_BBMODEL`
 - 会触发 `PlayerVariantChangeEvent` 事件（若被取消则不生效），并广播变体变更
 - `DEFAULT_BBMODEL` 变体会叠加原版附属物（盔甲/披风/鞘翅/时装）
+- 清除宿主配置 ID，保留动态时装、旧时装和动画包；旧变体事件通过后，还会触发可取消的 `PlayerAppearanceChangeEvent`
 
 <Callout type="info">
 - **参数**：`scale`: double — 模型缩放比例（默认 1.0）
@@ -98,9 +103,14 @@ axPlayer.setCustomModel("knight", 1.0);
 ```
 </Callout>
 
+`setCustomModel` 使用 `CUSTOM_BBMODEL`，不叠加时装和原版附属物，不是可装备动态时装的宿主模式。
+它清除宿主配置 ID，但保留时装和动画包记录；时装在该模式下不显示，动画包仍按原有规则使用。旧变体事件通过后，还会触发可取消的 `PlayerAppearanceChangeEvent`。
+
 ### `tryModel(modelID, scale, time){:java}`
-- 临时将玩家模型切换为指定模型，持续 `time` 毫秒后自动恢复为原本的 `playerModel`
-- 不会修改 `playerModel` 记录，也不会触发变体/模型事件（仅底层临时切换）
+- 临时只显示指定主体模型，持续 `time` 毫秒后恢复当前保存的完整外观
+- 临时外观使用 `CUSTOM_BBMODEL`，不带宿主配置、时装或动画包，避免把原宿主的附件绑定到另一套骨骼
+- 不修改 `playerModel` 或 `getAppearance()` 保存的记录。开始试穿时触发可取消的 `PlayerAppearanceChangeEvent`，不触发旧变体/模型事件；定时恢复不派发该事件
+- 试穿期间的真实外观提交会结束试穿，且不会被旧计时器覆盖。即使提交的外观与保存记录相同，也会恢复显示保存的外观；此恢复可被变更事件取消
 
 <Callout type="info">
 - **参数**：
@@ -113,6 +123,100 @@ axPlayer.setCustomModel("knight", 1.0);
 axPlayer.tryModel("hurt_pose", 1.0, 1000);
 ```
 </Callout>
+
+## 自定义玩家宿主与完整外观
+
+以下 DTO 位于 `priv.seventeen.artist.arcartx.core.playerhost` 包。外观为运行时内存态，玩家离线后不自动保存。请在服务端玩家逻辑线程调用修改方法，不要在 `PlayerAppearanceChangeEvent` 内再次提交外观。
+
+新客户端一次接收主体、宿主配置、动态槽、动画包和旧时装的完整快照。
+旧客户端不支持自定义宿主绑定，只显示主体模型，不显示该宿主的时装或动画包。
+
+### `setPlayerHost(modelID, profileId, scale){:java}`
+
+设置可装备时装的非内置玩家宿主，变体切换为 `DEFAULT_BBMODEL`。已有动态槽、旧时装和动画包保留。
+
+此方法明确选择新宿主模式，配置 ID 为空时也一样；旧客户端将仅显示主体，不使用该宿主的时装和动画包。
+再次调用旧 setModel、setDefaultModel、setCustomModel 或 removeModel 会退出这个选择。
+
+<Callout type="info">
+- **参数**：
+    - `modelID`: String — 非空宿主模型 ID
+    - `profileId`: String — 已注册的宿主配置 ID，须与模型绑定；空字符串使用模型 axmeta 的 `player_host`
+    - `scale`: double — 大于零且不超过 1024 的缩放
+- **Java 重载**：`setPlayerHost(modelID)`、`setPlayerHost(modelID, profileId)`、`setPlayerHost(modelID, profileId, scale)`；省略配置 ID 时为空，省略缩放时为 1.0
+- **返回值**：boolean — 取消为 false，接受或状态未改变为 true
+- **调用示例**
+```java
+boolean changed = axPlayer.setPlayerHost("characters/hero", "hero", 1.0);
+```
+</Callout>
+
+### `getAppearance(){:java}` / `getAppearanceRevision(){:java}`
+
+读取保存的完整外观和同步版本号。`PlayerAppearance` 及其集合均为只读快照；临时试穿不改变此快照。版本号供观察同步使用，不是身体动画或绑定缓存的重置开关。
+
+```java
+PlayerAppearance appearance = axPlayer.getAppearance();
+String profileId = appearance.getProfileId();
+String variant = appearance.getVariant();
+long revision = axPlayer.getAppearanceRevision();
+```
+
+### `setAppearance(appearance){:java}`
+
+用一个 `PlayerAppearance` 完整替换保存的外观，不与旧值逐字段合并。
+构造参数依次为 `model`、`scale`、`variant`、`profileId`、`packId`、`slots`、`legacyCostume`。其中 `slots` 为动态字符串槽，`legacyCostume` 为原五个枚举槽或套装。
+
+这是明确选择完整外观的新接口：外部 `DEFAULT_BBMODEL` 或非空宿主配置 ID 会选择新宿主模式，并对旧客户端仅显示主体。
+需要保留旧接口行为、只修改服装或动画包时，可使用 updateAppearance 且不设置 model / profileId。
+
+```java
+PlayerAppearance next = new PlayerAppearance(
+    "characters/hero", 1.0, "DEFAULT_BBMODEL", "hero", "hero_actions",
+    java.util.Collections.singletonMap("hair", new PlayerHostCostume("costumes/hair")),
+    axPlayer.getAppearance().getLegacyCostume()
+);
+boolean accepted = axPlayer.setAppearance(next);
+```
+
+### `updateAppearance(update){:java}`
+
+接收 `Consumer<PlayerAppearanceBuilder>`，从当前保存的外观开始修改，回调结束后统一校验和提交。需要同时切换模型、宿主配置、时装和动画包时使用此方法；中途不会广播，也不会产生部分成功的状态。
+
+回调内只修改传入的 builder，不要再次调用同一玩家的外观修改或试穿方法。此类调用会抛出 `IllegalStateException`，且不会派发变更事件；回调抛出异常时，尚未提交的修改全部放弃。
+
+回调仅修改槽位或动画包时，保留当前是否选择新宿主的状态。
+只要调用 builder 的 setModel 或 setProfileId，即使值与原值相同，也会按提交的模型与配置重新选择宿主模式。
+动态槽 equipCostume / removeCostume 重载本身不改变此选择。
+
+```java
+boolean accepted = axPlayer.updateAppearance(update -> {
+    update.setModel("characters/hero");
+    update.setScale(1.0);
+    update.setVariant("DEFAULT_BBMODEL");
+    update.setProfileId("hero");
+    update.setPackId("hero_actions");
+    update.getSlots().clear();
+    update.getSlots().put("hair", new PlayerHostCostume("costumes/hair"));
+});
+```
+
+`setAppearance`、`updateAppearance` 和动态槽修改方法的返回规则同 `setPlayerHost`。
+输入不合法时抛出 `IllegalArgumentException`，不触发变更事件、不修改任何字段；
+校验通过后仅派发一次可取消的 `PlayerAppearanceChangeEvent`。新方法不补发旧枚举时装、变体或动画包事件。
+
+### `supportsCustomPlayerHost(){:java}`
+
+检查该玩家客户端在连接握手中是否上报 `custom_player_host_v1`。
+握手尚未完成、旧客户端或已退出清理的连接返回 false。
+该方法不代表模型资源已经加载成功。
+
+此方法仅检查宿主功能，不代表已支持单文件时装筛选。`renderRoots` 另需 `custom_costume_render_roots_v1`；
+服务端按接收外观的观察者能力自动降级，缺少该能力时暂不显示筛选槽，未筛选槽仍保留。
+
+```java
+boolean supported = axPlayer.supportsCustomPlayerHost();
+```
 
 ### `addExtraModel(locator, modelID){:java}`
 - 为玩家添加额外模型，挂载在指定定位器上
@@ -155,11 +259,12 @@ axPlayer.clearExtraModels();
 ## 时装管理
 
 <Callout type="info">
-时装为运行时内存态（不落库）。`CostumeSlot` 枚举可选值：`HEAD` / `BODY` / `LEGS` / `FEET` / `DECORATION`。装备套装（equipSuit）与装备单件（equipCostume）互斥：装备套装会清空单件槽位，装备单件会清除套装。相关操作会触发 `PlayerCostumeChangeEvent` 事件，若事件被取消则不生效。
+时装为运行时内存态（不落库）。原 `CostumeSlot` 枚举仍为 `HEAD` / `BODY` / `LEGS` / `FEET` / `DECORATION`。
+套装与这五个枚举槽互斥，动态字符串槽独立保存。原方法先触发 `PlayerCostumeChangeEvent`，再触发 `PlayerAppearanceChangeEvent`；任一事件取消都不会提交。
 </Callout>
 
 ### `equipSuit(modelID, hide){:java}`
-- 为玩家装备整套时装，并清空所有单件时装槽位
+- 为玩家装备整套时装，并清空原五个枚举时装槽；不清空动态字符串槽
 
 <Callout type="info">
 - **参数**：
@@ -200,7 +305,7 @@ axPlayer.removeCostume(ArcartXPlayer.CostumeSlot.HEAD);
 </Callout>
 
 ### `clearCostume(){:java}`
-- 清除玩家所有时装（套装与单件槽位）
+- 清除玩家所有时装，包括旧套装、五个枚举槽和动态字符串槽；不清除宿主配置或动画包
 
 <Callout type="info">
 - **参数**：无
@@ -210,6 +315,93 @@ axPlayer.removeCostume(ArcartXPlayer.CostumeSlot.HEAD);
 axPlayer.clearCostume();
 ```
 </Callout>
+
+### `equipCostume(slotId, modelID, binding, hide){:java}`
+
+为动态字符串槽装备时装，须先设置非空宿主模型。槽 ID 使用 `[a-z][a-z0-9_.-]{0,63}`，精确匹配，不自动转小写；中文名称填写在宿主配置的 `label` 中。动态槽最多 64 个，与旧 `CostumeSlot` 重载相互独立。
+
+<Callout type="info">
+- **参数**：
+    - `slotId`: String — 例如 `hair`、`clothes`、`hair.front`
+    - `modelID`: String — 时装模型 ID
+    - `binding`: PlayerHostBinding — 默认 mapped 严格同名绑定；attach 使用源根骨骼与宿主锚点
+    - `hide`: PlayerHostHide? — 为 null 或省略时，先继承该槽的 `default_hide`；槽位也未配置时，mapped 按选中时装几何的绑定自动隐藏覆盖的宿主骨骼。显式空对象表示不隐藏
+- **Java 重载**：前两个参数必填，后两个参数可依次省略
+- **返回值**：boolean
+- **调用示例**
+```java
+// 默认 mapped 绑定，并继承槽位隐藏设置
+axPlayer.equipCostume("clothes", "costumes/coat");
+
+// attach 到 Head 上的 hair_socket 定位器；省略定位器时只跟随骨骼
+PlayerHostBinding binding = new PlayerHostBinding(
+    "attach", "Hair", new PlayerHostAnchor("Head", "hair_socket"),
+    java.util.Collections.emptyMap(), new PlayerHostOffset()
+);
+axPlayer.equipCostume("hair", "costumes/hair", binding);
+
+// 显式不隐藏任何宿主部位或骨骼
+axPlayer.equipCostume("hair", "costumes/hair", binding, new PlayerHostHide());
+```
+</Callout>
+
+`PlayerHostBinding` 构造参数为 `mode`、`sourceRoot`、`anchor`、`boneMap`、`offset`。mode 只能是 `attach` 或 `mapped`；
+mapped 的映射为精确的源骨骼到目标骨骼，空映射使用严格同名匹配。`PlayerHostOffset` 的 position、rotation、scale 均为三个 double；数值必须有限、绝对值不超过 1000000，缩放绝对值至少为 0.000001。
+
+`PlayerHostHide` 的 parts 仅接受 `HEAD` / `BODY` / `LEGS` / `FEET` / `OTHER`，隐藏对应部位的全部几何；
+未单独分类的子骨继承最近的部位声明，单独声明的头部、鞋等不会被父骨所在部位一并隐藏。
+bones 为精确骨骼名称，只隐藏所列骨骼自身的几何。
+显式 `hide` 完全覆盖默认设置；非空或空的 `default_hide` 都按配置执行，不再追加自动范围。
+只有两者都未配置时，才使用 mapped 自动覆盖，attach 不会自动隐藏锚点骨骼。
+
+模型、动画包、骨骼和定位器名称最多 256 位；引用列表和骨骼映射最多 4096 项。
+服务端校验字段格式，模型中骨骼和定位器是否存在由客户端加载后检查。
+
+### `PlayerHostCostume(model, binding, hide, renderRoots){:java}`
+
+用于在完整外观或 `updateAppearance` 中设置一个时装条目。
+`renderRoots` 对应通讯字段 `render_roots`，允许同一个完整时装模型按骨骼范围装备到多个槽位，无需拆分文件。
+
+- `model`: String — 时装模型 ID。
+- `binding`: PlayerHostBinding — 默认 mapped 同名绑定。
+- `hide`: PlayerHostHide? — 默认 null，先继承槽位隐藏设置；槽位也未配置时按上述自动覆盖规则处理。显式空对象不隐藏。
+- `renderRoots`: List&lt;String&gt;? — 源时装骨骼及其后代的并集；默认 null，保持原显示范围。显式列表须非空，最多 4096 项。
+
+```java
+// 示例宿主使用 skull；请替换成你的真实宿主骨骼名。
+PlayerHostBinding binding = new PlayerHostBinding(
+    "mapped", "", null, java.util.Map.of("Hair", "skull", "Head", "skull"),
+    new PlayerHostOffset()
+);
+axPlayer.updateAppearance(update -> {
+    update.getSlots().put("hair", new PlayerHostCostume(
+        "costumes/hero", binding, new PlayerHostHide(),
+        java.util.Arrays.asList("Hair")
+    ));
+    update.getSlots().put("head", new PlayerHostCostume(
+        "costumes/hero", binding, null,
+        java.util.Arrays.asList("Head")
+    ));
+});
+```
+
+骨骼名称必须存在于源时装，且大小写一致。
+mapped 只校验选中几何的绑定；attach 的选择不能超出 `sourceRoot` 子树。
+筛选只影响几何提交，完整骨树和动画仍保留，CPU/GPU 范围相同。错误槽位不会让宿主隐藏。
+
+`renderRoots` 不是 `hide`：前者选择时装自身，后者隐藏宿主。
+自动隐藏只计算选中的可绘几何，不会因为同一文件还包含其它部位就一起隐藏它们。
+多个有效槽位的隐藏范围取并集，卸下后重新计算；隐藏只影响几何，不中断宿主动画或定位器。
+旧的一至三个参数 Java 构造方法继续可用。各槽仍独立推进同一资源的动作，未按资源合并全局声音或命令事件。
+详见[自定义玩家宿主](/docs/arcartx_v2/7_player/5_custom_host)。
+
+### `removeCostume(slotId){:java}`
+
+移除指定动态字符串槽，返回 boolean。不会移除同名含义的旧枚举槽，也不会清除宿主或动画包。
+
+```java
+boolean accepted = axPlayer.removeCostume("hair");
+```
 
 ## 动画控制
 
@@ -687,7 +879,7 @@ axPlayer.clearWayPoint();
 ## 额外槽位管理
 
 ### `setSlotItemStack(slotID, itemStack){:java}`
-- 设置额外槽位的物品，同时更新数据库、客户端显示，并触发 `PlayerExtraSlotUpdateEvent` 事件和更新脚本
+- 设置额外槽位的物品，同时更新数据库和客户端显示，并触发 `PlayerExtraSlotUpdateEvent` 事件、执行槽位配置的更新脚本
 
 <Callout type="info">
 - **参数**：

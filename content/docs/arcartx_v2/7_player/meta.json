@@ -5,6 +5,7 @@
         "1_start",
         "2_armor",
         "3_animation",
-        "4_fashion"
+        "4_fashion",
+        "5_custom_host"
     ]
 }

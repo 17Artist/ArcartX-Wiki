@@ -1,0 +1,248 @@
+---
+title: 自定义玩家宿主
+description: 使用自己的玩家模型，配置时装槽位、手持物品和鞘翅定位器
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 概述
+
+如果你希望使用自己的玩家模型，同时保留时装、手持物品与鞘翅，可以将它设置为自定义玩家宿主。
+
+- 使用 `DEFAULT_BBMODEL` 变体，并为模型提供 `player_host` 配置。
+- 模型骨骼由你指定，不要求使用内置玩家模型的骨骼名称。
+- 时装槽位由你定义，比如 `hair`、`face`、`clothes`、`decoration`，不受旧固定槽位限制。
+- 支持匹配该宿主骨架的 animationpack。
+- 这个模式不渲染原版护甲；内置玩家模型的护甲与旧时装功能不变。
+
+<Callout type="warn">
+模型、时装与动画包仍需放入客户端资源。服务端配置只描述骨骼和穿戴关系，不会代替资源文件。配置存在但无效时，模型本体仍会显示，新的附件和时装不会套用内置玩家骨架兜底。
+</Callout>
+
+## 配置宿主
+
+你可以在模型同级的 `模型名.axmeta.json` 中加入 `player_host`：
+
+```json
+{
+  "player_host": {
+    "schema": 1,
+    "parts": {
+      "HEAD": ["skull", "hair_base"],
+      "BODY": ["torso", "arm_l", "arm_r"],
+      "LEGS": ["leg_l", "leg_r"],
+      "FEET": ["boot_l", "boot_r"]
+    },
+    "semantic_bones": {
+      "head": "skull",
+      "body": "torso",
+      "left_arm": "arm_l",
+      "right_arm": "arm_r",
+      "left_leg": "leg_l",
+      "right_leg": "leg_r"
+    },
+    "locators": {
+      "left_hand": {"bone": "arm_l", "locator": "grip_l"},
+      "right_hand": {"bone": "arm_r", "locator": "grip_r"},
+      "elytra": {"bone": "torso", "locator": "wings"}
+    },
+    "slots": {
+      "hair": {"label": "头发", "order": 10, "default_hide": {"bones": ["hair_base"]}},
+      "face": {"label": "脸", "order": 20, "default_hide": {"parts": [], "bones": []}},
+      "clothes": {"label": "衣服", "order": 30, "default_hide": {"parts": ["BODY"]}},
+      "decoration": {"label": "装饰", "order": 40, "default_hide": {"parts": [], "bones": []}}
+    }
+  }
+}
+```
+
+将示例中的骨骼、定位器名称改成你的模型实际名称。
+
+| 字段               | 说明                                  |
+|------------------|-------------------------------------|
+| `schema`         | 当前填 `1`                             |
+| `parts`          | 头、上半身、下半身、鞋的骨骼归属，用于隐藏宿主几何           |
+| `semantic_bones` | 动画事件的部位名称与实际骨骼对应；不会自动叠加头部朝向         |
+| `locators`       | 手持物品、鞘翅使用的定位器别名                     |
+| `slots`          | 允许穿戴的槽位；`label` 是显示名称，`order` 是渲染顺序 |
+| `default_hide`   | 此槽位穿戴有效时装后，默认隐藏哪些宿主部位或骨骼            |
+
+### 骨骼归属与隐藏
+
+- `HEAD`、`BODY`、`LEGS`、`FEET` 填写精确骨骼名，大小写需一致。
+- 填写一个部位的根骨后，未单独分类的子骨会继承该部位，不需要逐个列出。
+- 同一个骨骼不能在两个部位中重复填写。子骨单独声明了部位时，以离它最近的声明为准。例如头骨位于身体根骨下，但单独归入 `HEAD`，隐藏 `BODY` 不会隐藏头部；腿下单独声明的 `FEET` 也不会被 `LEGS` 一起隐藏。
+- 自身和父链都没有部位声明的骨骼归入 `OTHER`，无需在 `parts` 中填写 `OTHER`。
+- 隐藏只跳过这些骨骼的几何，不会停止其动画、剪掉子骨或丢失定位器。
+- 时装模型或贴图尚未加载、绑定无效时，不会先隐藏宿主，避免身体出现空洞。
+
+### 槽位名称
+
+槽位 ID 使用小写英文字母开头，可包含小写字母、数字、点、下划线和短横线，最多 64 个字符。中文名称写在 `label` 中。每份宿主配置最多 64 个槽位。
+
+槽位按 `order` 从小到大渲染，相同数值再按 ID 排序。同一个时装模型可以装备到两个槽位，两者的动画和脱穿状态相互独立。
+
+### 手持物品与鞘翅
+
+`locators` 必须指向指定骨骼上真实存在的定位器。若模型已使用唯一的 `left_hand`、`right_hand`、`elytra` 等标准定位器名，可以省略对应别名配置。
+
+鞘翅可使用一个 `elytra` 定位器，也可以分别使用 `elytra_left` 与 `elytra_right`，不要混用两种方式。定位器会使用所在骨骼完整的父级变换。
+
+手持物品和鞘翅使用宿主配置指定的锚点；省略别名时使用自动识别的原生标准定位器。动画包中的同名标准定位器不会覆盖它们，也不额外增加一副鞘翅。普通粒子与相机定位器按动画包的合并规则处理。
+
+## 服务端配置
+
+在插件的 `player_host` 文件夹下创建 yml 文件，使用 `root` 注册宿主配置：
+
+```yaml
+root:
+  hero:
+    schema: 1
+    model: player/hero
+    parts:
+      HEAD: [skull, hair_base]
+      BODY: [torso, arm_l, arm_r]
+      LEGS: [leg_l, leg_r]
+      FEET: [boot_l, boot_r]
+    slots:
+      hair:
+        label: 头发
+        order: 10
+        default_hide:
+          bones: [hair_base]
+      clothes:
+        label: 衣服
+        order: 30
+        default_hide:
+          parts: [BODY]
+```
+
+- `hero` 是服务端配置 ID，`model` 必须与玩家使用的模型 ID 完全一致。
+- 服务端配置优先于模型 axmeta。未填写的字段保留模型配置，列表整体替换，映射按键合并；空映射不代表清空。
+- 使用注册 API 传入映射时，可以用 `null` 删除对应字段或键。不要用 Bukkit yml 中的 `null` 作为删除方式，配置加载可能直接省略该键。
+- 配置加载失败会保留上一份设置。使用原有重载命令即可重载；注册 API 批量修改后调用 `syncPlayers()` 同步。
+
+## 设置模型与穿戴
+
+```java
+ArcartXPlayer axPlayer = ArcartXAPI.getEntityManager().getPlayer(player);
+axPlayer.setPlayerHost("player/hero", "hero", 1.0);
+
+// mapped 缺省按同名骨绑定。时装须为这个宿主制作。
+axPlayer.equipCostume("clothes", "costume/hero_coat");
+
+// 一件刚性帽子：把时装的 Hat 骨树挂到宿主头部定位器。
+PlayerHostBinding hatBinding = new PlayerHostBinding(
+    "attach", "Hat", new PlayerHostAnchor("skull", "hat_anchor")
+);
+axPlayer.equipCostume("hair", "costume/hat", hatBinding);
+
+axPlayer.removeCostume("hair");
+```
+
+这里使用 `core.playerhost` 包下的 `PlayerHostBinding`、`PlayerHostAnchor` 等类型。只使用 axmeta 配置时，`setPlayerHost` 的配置 ID 填空字符串。
+
+### 时装绑定方式
+
+| 模式       | 用途         | 设置                                                            |
+|----------|------------|---------------------------------------------------------------|
+| `attach` | 帽子、眼镜等刚性附件 | `source_root` 指定时装骨树，`anchor.bone` 指定宿主骨；可附带 `anchor.locator` |
+| `mapped` | 多关节衣服等     | `bone_map` 是「时装骨名 → 宿主骨名」；不填写映射时按同名骨绑定                        |
+
+`attach` 不填写定位器时，会挂到宿主骨的 pivot。只渲染选定的时装骨树。`mapped` 允许没有几何的辅助 Root，但要显示的几何分支必须能归属到一个绑定骨；不会把未绑定的可见分支偷偷挂到身体根部。
+
+### 一个时装文件用于多个槽位
+
+不需要把头发、头部、衣服、装饰分别导出成四个文件。可以在穿戴条目中设置 `render_roots`，让各槽位引用同一个完整时装，只显示各自的源骨骼子树：
+
+```json
+{
+  "model": "costume/hero",
+  "binding": {"mode": "mapped", "bone_map": {"Hair": "skull"}},
+  "render_roots": ["Hair"]
+}
+```
+
+`render_roots` 使用时装自身的骨骼名，包含所列骨骼及其所有后代。可以填写多个根，比如衣服同时选择 `Body`、`LeftArm`、`RightArm`、`LeftLeg`、`RightLeg`。头部、头发和装饰槽分别选择自己的根即可；它们仍然引用 `costume/hero`，不用改动模型文件。
+
+```java
+PlayerHostBinding hairBinding = new PlayerHostBinding(
+    "mapped", "", null, java.util.Map.of("Hair", "skull"), new PlayerHostOffset()
+);
+PlayerHostBinding clothesBinding = new PlayerHostBinding(
+    "mapped", "", null,
+    java.util.Map.of("Body", "torso", "LeftArm", "arm_l", "RightArm", "arm_r",
+        "LeftLeg", "leg_l", "RightLeg", "leg_r"),
+    new PlayerHostOffset()
+);
+axPlayer.updateAppearance(update -> {
+    update.getSlots().put("hair", new PlayerHostCostume(
+        "costume/hero", hairBinding, null,
+        java.util.Arrays.asList("Hair")
+    ));
+    update.getSlots().put("clothes", new PlayerHostCostume(
+        "costume/hero", clothesBinding, null,
+        java.util.Arrays.asList("Body", "LeftArm", "RightArm", "LeftLeg", "RightLeg")
+    ));
+});
+```
+
+- 不填写或填写 `null` 时，保持原来的显示范围；显式列表不能为空，最多 4096 项。
+- `render_roots` 决定显示哪些**时装骨骼**；`bone_map` 决定它们跟随哪些**宿主骨骼**；`hide` 决定隐藏哪些**宿主几何**，三者用途不同。
+- `mapped` 只要求选中几何具有有效绑定。模型中没有选中的其它部位可以不填写映射。
+- `attach` 的选择必须位于 `source_root` 子树内，不能用它跨到另一个挂载根。
+- 没有对应骨骼、没有选中可绘几何或绑定无效时，该槽位不显示，也不会先隐藏宿主。
+- 只是筛选几何，不删除父骨、其它动画骨或模型动作。CPU 与 GPU 使用相同范围，各槽的穿脱和动画状态仍相互独立。
+- 每个槽仍各自处理动画事件。定位器按选中骨骼收集；没有定位器限定的声音、命令等全局帧不会按资源自动合并。若多个槽引用同一份含全局事件的动作，请避免重复配置这类事件。
+- 筛选需要客户端上报 `custom_costume_render_roots_v1`。对只支持旧宿主功能的观察者，服务端暂不发送这些筛选槽，避免把每槽都画成整套；未设置筛选的槽、主体和动画包仍按原方式同步。此降级不改服务端保存的穿戴记录。
+
+这里沿用上面的宿主骨骼 `skull`、`torso`、`arm_l` 等，时装则使用 `Hair`、`Body` 等名称，所以示例显式设置了映射。两端名称都必须换成你的实际名称；同名时才可以省略 `bone_map`。部位 `OTHER` 是宿主未归类骨骼的集合，不会自动替时装生成装饰筛选；装饰槽也需要填写实际源根骨骼。
+
+绑定可设置 `offset`：
+
+```json
+{
+  "position": [0, 2, 0],
+  "rotation": [0, 90, 0],
+  "scale": [1, 1, 1]
+}
+```
+
+位置单位是模型像素（16 像素为一格），旋转单位是度，按模型渲染坐标轴处理，不额外反转 X。缩放不能为零；支持负值镜像。
+
+### 穿戴时的隐藏设置
+
+穿戴时按以下顺序决定隐藏范围：
+
+1. 条目填写了 `hide`：使用它，不再追加槽位默认设置或自动隐藏。
+2. 条目没有填写 `hide`，槽位配置了 `default_hide`：使用槽位设置。
+3. 两者都没有配置：`mapped` 根据选中时装几何的绑定，隐藏它覆盖的宿主骨骼及同部位子骨。没有选中的时装部分不会贡献隐藏范围；跨到另一个部位或另一个未被选中几何覆盖的映射目标时停止。`attach` 不会因为挂在某个骨骼上就自动隐藏该骨骼。
+
+`hide` 和 `default_hide` 支持：
+
+- `parts`：`HEAD`、`BODY`、`LEGS`、`FEET`、`OTHER`，隐藏该部位的全部宿主几何，包括继承归属的子骨。
+- `bones`：精确的宿主骨骼名称，只隐藏所列骨骼自身的几何，不自动隐藏它的子骨。例如 `bones: [hair_base]` 不会扩大为整个头部。
+
+整套衣服覆盖上身、下身和鞋时，可在衣服槽配置：
+
+```json
+"default_hide": {"parts": ["BODY", "LEGS", "FEET"]}
+```
+
+只替换上衣时填 `BODY` 即可。帽子、脸饰和装饰若不需要隐藏宿主，可填写 `"default_hide": {"parts": [], "bones": []}`，或在 API 中显式传入空的 `PlayerHostHide`。空对象表示不隐藏，与省略配置不同。
+
+多个有效槽位的隐藏范围取并集。卸下时装后重新计算；尚未加载或无效的时装不参与隐藏。CPU 与 GPU 使用相同的隐藏范围，宿主的动画、父级变换和定位器仍照常推进。
+
+旧的 `CostumeSlot` 与套装 API 仍然保留，但不会自动成为这里的动态槽位。
+
+## animationpack 与时装动画
+
+- 动画包沿用 `ArcartX/resource/player_animation/` 目录。例如 `player_animation/hero/walks.bbmodel` 的包 ID 是 `hero/walks`；不要放到 `model/` 下。
+- 动画包必须为当前宿主骨架制作：同名骨的父链、初始 pivot、旋转与缩放需要匹配。不支持把 Steve 动作自动转换给任意骨架。
+- 动画查询优先使用兼容动画包，再使用宿主动作。包不兼容时回到宿主动作，并输出诊断。
+- 动画中残留的已删除骨骼轨道会被跳过，不会使包内其它有效动作失效；不存在的目标不会自动映射成其它骨骼。骨架本身存在重复骨名、同名骨父链或绑定姿态不匹配时，仍视为不兼容。
+- 时装缺少宿主正在播放的动作时，继续播放自身的 `idle`；没有 `idle` 时回到绑定姿态，不会让整件时装因缺少动作而冻结。
+- 需要头部跟随玩家视角时，在模型动作中使用 `ax.head_pitch`、`ax.head_yaw`。`semantic_bones.head` 只标识骨骼，不会再自动旋转一次。
+- 时装定位器按该槽位绑定后的姿态释放特效；没有可用的时装定位器时，可使用宿主定位器或 `entity_position`。两个槽引用同一宿主定位器，拖尾与挥砍仍各自归属自己的动画控制器，卸下一件不会清掉另一件的特效。新宿主中，这类控制器特效在动作停止或卸下时立即清理。
+- 世界、阴影与 UI 预览可以多次读取姿态，但预览和阴影不会重复释放音效、粒子、命令帧或更新世界相机。
+

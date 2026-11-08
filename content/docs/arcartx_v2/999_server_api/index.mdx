@@ -14,13 +14,13 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 ## 环境要求
 
 - Java 17+
-- Kotlin 1.8.22+（如果使用Kotlin开发）
-- 服务端需安装ArcartX插件
+- Kotlin 1.8.22+（如果使用 Kotlin 开发）
+- 服务端需安装 ArcartX 插件
 
 ## 引入依赖
 
 <Callout type="info">
-ArcartX 使用 TabooLib 框架，你的插件不需要依赖 TabooLib，只需要将 ArcartX 作为依赖引入即可。
+使用 AX API 时，引用与服务端配套的 ArcartX 编译依赖即可。附属插件不需要因此使用 AX 的内部框架，也不要将另一份 AX API 打包进自己的成品。
 </Callout>
 
 在你的 `plugin.yml` 中添加依赖声明：
@@ -39,7 +39,7 @@ softdepend: [ArcartX]
 
 ## 获取API入口
 
-- ArcartX的所有API都通过 `ArcartXAPI` 这个入口类获取，它提供了9个静态方法，分别返回各个功能模块的管理器单例。
+- 常用 API 可通过 `ArcartXAPI` 的静态方法取得，各模块的详细合同见对应页面。
 
 ```java
 import priv.seventeen.artist.arcartx.api.ArcartXAPI;
@@ -54,7 +54,9 @@ ArcartXAPI.getNetworkSender();           // 网络发送
 ArcartXAPI.getAreaManager();             // 区域管理
 ArcartXAPI.getEffectManager();           // 特效管理
 ArcartXAPI.getInteractionProxyManager(); // 交互代理（命中盒代理）管理
+ArcartXAPI.getPlayerHostRegistry();      // 玩家宿主配置
 ```
+
 
 ## 注意事项
 

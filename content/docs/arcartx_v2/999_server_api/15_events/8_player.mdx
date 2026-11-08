@@ -11,7 +11,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 - 由服务端玩家状态变化触发的事件，与客户端事件不同，这些事件在服务端逻辑中产生。
 
 ## `PlayerAreaEnterEvent`
-- 玩家进入ArcartX区域时触发
+- 玩家进入 ArcartX 区域时触发
 
 <Callout type="info">
 - **属性**：
@@ -29,13 +29,13 @@ public void onAreaEnter(PlayerAreaEnterEvent event) {
 </Callout>
 
 ## `PlayerAreaLeaveEvent`
-- 玩家离开ArcartX区域时触发
+- 玩家离开 ArcartX 区域时触发
 
 <Callout type="info">
 - **属性**：
     - `player`: Player — 玩家
     - `area`: Area — 离开的区域对象
-    - `newArea`: Area? — 新进入的区域（如果直接从一个区域进入另一个区域），可能为null
+    - `newArea`: Area? — 新进入的区域（如果直接从一个区域进入另一个区域），可能为 null
 - **可取消**：否
 - **调用示例**
 ```java
@@ -57,7 +57,7 @@ public void onAreaLeave(PlayerAreaLeaveEvent event) {
 <Callout type="info">
 - **属性**：
     - `player`: Player — 玩家
-    - `slotID`: String — 槽位ID
+    - `slotID`: String — 槽位 ID
     - `itemStack`: ItemStack — 更新后的物品
 - **可取消**：否
 - **调用示例**
@@ -72,12 +72,13 @@ public void onSlotUpdate(PlayerExtraSlotUpdateEvent event) {
 </Callout>
 
 ## `PlayerModelUpdateEvent`
-- 玩家模型更新时触发（通过 `ArcartXPlayer.setModel` 设置时）
+- `setModel`、`setDefaultModel` 或 `setCustomModel` 成功提交后触发；这是更新通知，不可取消
+- `setPlayerHost`、`setAppearance`、`updateAppearance` 使用下方完整外观事件，不额外派发此通知
 
 <Callout type="info">
 - **属性**：
     - `player`: Player — 玩家
-    - `modelID`: String — 新模型ID
+    - `modelID`: String — 新模型 ID
 - **可取消**：否
 - **调用示例**
 ```java
@@ -95,7 +96,7 @@ public void onModelUpdate(PlayerModelUpdateEvent event) {
 <Callout type="info">
 - **属性**：
     - `player`: Player — 玩家
-    - `packId`: String — 即将设定的动画包ID，空串表示取消动画包
+    - `packId`: String — 即将设定的动画包 ID，空串表示取消动画包
 - **可取消**：是
 - **调用示例**
 ```java
@@ -112,6 +113,7 @@ public void onAnimationPackChange(PlayerAnimationPackChangeEvent event) {
 
 ## `PlayerCostumeChangeEvent`
 - 玩家时装变更**前**触发，可通过取消阻止变更
+- 保留原套装、枚举槽和 clearCostume 方法的事件行为；动态字符串槽重载不派发此事件
 
 <Callout type="info">
 - **属性**：
@@ -154,5 +156,36 @@ public void onVariantChange(PlayerVariantChangeEvent event) {
 </Callout>
 
 <Callout type="warn">
-`PlayerAnimationPackChangeEvent`、`PlayerCostumeChangeEvent`、`PlayerVariantChangeEvent` 均在状态变更**前**触发，且**可取消**；取消后对应变更不会生效。
+`PlayerAnimationPackChangeEvent`、`PlayerCostumeChangeEvent`、`PlayerVariantChangeEvent` 均在状态变更**前**触发，且**可取消**。原方法的这些事件通过后，还会派发 `PlayerAppearanceChangeEvent`；取消任一事件都不会提交外观。
+</Callout>
+
+## `PlayerAppearanceChangeEvent`
+
+完整外观校验通过、实际提交前触发，包名为 `priv.seventeen.artist.arcartx.event.player`。用于统一检查主体模型、宿主配置、动态时装槽、动画包和旧时装。
+
+<Callout type="info">
+- **属性**：
+    - `player`: Player — 玩家
+    - `previous`: PlayerAppearance — 修改前的只读完整外观
+    - `appearance`: PlayerAppearance — 即将提交的只读完整外观
+- **可取消**：是；取消后模型、槽位、宿主配置和动画包均不改变
+- **调用示例**
+```java
+@EventHandler
+public void onAppearanceChange(PlayerAppearanceChangeEvent event) {
+    if (event.getAppearance().getProfileId().equals("restricted")) {
+        event.setCancelled(true);
+    }
+}
+```
+</Callout>
+
+setPlayerHost、setAppearance、updateAppearance 和动态字符串槽修改仅派发此事件。updateAppearance 回调结束后只派发一次，不逐字段触发旧领域事件。输入不合法时先抛出 IllegalArgumentException，不派发事件；完整外观及是否明确选择新宿主均未改变、且没有临时试穿时，新方法直接成功，不派发事件。临时试穿期间提交相同的保存外观仍会派发本事件；接受后结束试穿，取消则继续试穿。
+
+旧时装、变体、动画包方法先派发各自的可取消事件，再派发本事件，最后统一提交。setModel 提交前派发本事件、成功后派发 PlayerModelUpdateEvent；setDefaultModel / setCustomModel 的顺序为旧变体事件、本事件、提交、模型更新通知。
+
+tryModel 开始时会以临时 body-only 外观派发本事件，取消可阻止试穿；其 previous 为当前显示外观，包含尚未结束的试穿。定时恢复保存外观不派发本事件。getAppearance 始终读取保存的外观，不读取试穿投影。
+
+<Callout type="warn">
+事件中的外观及集合不可修改。请取消当前请求或在事件结束后另行安排更新，不要在本事件处理函数中再次提交外观；递归提交会被拒绝。
 </Callout>
