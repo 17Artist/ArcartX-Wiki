@@ -1,0 +1,147 @@
+---
+title: 队伍、HUD 与提示配置
+description: 调整队伍规则、Redis 连接、成员显示和提示文字
+---
+
+配置位于 `plugins/Cohort/`。
+
+| 文件                                         | 用途                                       |
+|--------------------------------------------|------------------------------------------|
+| `license.yml`                              | [许可证](./1_start#填写授权)                    |
+| `config.yml`                               | 队伍规则及 [Chorus 频道](./5_integrations#队伍频道) |
+| `redis.yml`                                | 跨服连接                                     |
+| `hud.yml`                                  | 队友 HUD、成员显示 ID 和同步数值                     |
+| `language.yml`                             | 玩家提示、身份文字和卡片文字                           |
+| `ui/`、`card/`                              | [界面与聊天卡片](./1_start#安装客户端资源并打开界面)        |
+
+## 队伍规则
+
+`config.yml` 的基础配置如下。
+
+```yaml
+server-id: "lobby-1"
+storage-mode: LOCAL
+
+party:
+  maximum-members: 4
+  default-name: "{player}的队伍"
+  default-private: false
+  default-require-approval: false
+  metadata-change-cooldown-seconds: 300
+  moderation-timeout-seconds: 15
+  invitation-expire-seconds: 30
+  join-request-expire-seconds: 30
+  lobby-page-size: 4
+```
+
+`server-id` 是当前子服的名称，跨服各端必须不同，可使用 1 至 48 位字母、数字、点、下划线或短横线。
+
+| `party` 下的配置项                      | 含义                        |
+|------------------------------------|---------------------------|
+| `maximum-members`                  | 队伍人数上限，2 至 64 人，仅服主可设置    |
+| `default-name`                     | 新队伍名称，`{player}` 替换为创建者名字 |
+| `default-private`                  | `true` 时新队伍默认私密，只能通过邀请加入  |
+| `default-require-approval`         | `true` 时公开队伍入队需队长同意       |
+| `metadata-change-cooldown-seconds` | 修改名称或简介后的等待时间，0 至 86400 秒 |
+| `moderation-timeout-seconds`       | 内容审核等待时间，3 至 60 秒         |
+| `invitation-expire-seconds`        | 邀请卡片有效期，5 至 300 秒         |
+| `join-request-expire-seconds`      | 入队申请有效期，5 至 300 秒         |
+| `lobby-page-size`                  | 大厅每页显示的队伍数，1 至 20 个       |
+
+名称和简介共用修改冷却，解散后重建队伍依然需等冷却结束。跨服各端应使用相同的队伍规则。调低人数上限后，已有成员留在队伍中。
+
+## Redis
+
+跨服组队时，将 `config.yml` 的 `storage-mode` 设为 `REDIS`，并在 `redis.yml` 填写连接信息。
+
+```yaml
+enabled: true
+host: "127.0.0.1"
+port: 6379
+username: ""
+password: ""
+database: 0
+ssl: false
+timeout-millis: 2000
+key-prefix: "cohort:"
+```
+
+各端使用同一地址、逻辑数据库和键前缀。`database` 可填 0 至 15，`timeout-millis` 为 250 至 30000 毫秒。需要 TLS 时启用 `ssl`。启动前应确认 Redis 可连接。
+
+Redis 需提供固定主写地址，支持单实例或由外部设施提供此地址的主从部署。
+
+<details>
+<summary>在线检测与工作线程</summary>
+
+以下参数位于同一个 `redis.yml`，一般保留默认值即可。
+
+```yaml
+worker-threads: 4
+heartbeat-seconds: 5
+presence-timeout-seconds: 18
+state-timeout-seconds: 45
+network-quit-grace-seconds: 7
+```
+
+| 配置项 | 含义 |
+|---|---|
+| `worker-threads` | Redis 工作线程数，1 至 16 |
+| `heartbeat-seconds` | 在线状态刷新间隔，1 至 30 秒 |
+| `presence-timeout-seconds` | 在线状态保留时间，至少为刷新间隔的两倍 |
+| `state-timeout-seconds` | 临时队伍数据保留时间，至少为在线状态保留时间的两倍 |
+| `network-quit-grace-seconds` | 换服等待时间，至少 1 秒且小于在线状态保留时间 |
+
+</details>
+
+## HUD 与成员显示
+
+在 `hud.yml` 调整队友 HUD 及成员数值。
+
+```yaml
+enabled: true
+sample-interval-ticks: 10
+
+member-id:
+  enabled: true
+  format: "%player_level%{name}"
+
+values:
+  health: "{cohort_health}"
+  max_health: "{cohort_max_health}"
+  world: "%player_world%"
+  level: "%player_level%"
+```
+
+- `enabled` 控制 HUD 显示。关闭后，队伍页和跨服队友仍可使用成员数据。
+- `sample-interval-ticks` 是数值检查间隔，可填 2 至 200 tick，检测到变化后同步更新。
+- `member-id.enabled` 控制队伍页是否显示成员 ID，`format` 支持 PAPI 和 `{name}`。如果只想显示等级，填 `%player_level%`。HUD 只显示成员名。
+- `values` 配置需要同步的数据，最多 16 项。键可含小写字母、数字和下划线，最长 32 个字符，表达式最长 128 个字符。
+- `{cohort_health}`、`{cohort_max_health}` 是内置生命值。自定义这两项时，结果须为数值。
+
+默认 HUD 显示血量。增加其他数值后，还需在 `ui/party-hud.yml` 配置显示控件。PAPI 在成员所在子服解析，也可在其他菜单中读取跨服队友的数据。[占位符用法](./5_integrations#按位置读取成员数据)
+
+## 提示与卡片文字
+
+`language.yml` 控制玩家提示，`placeholders` 控制队长和队员的身份文字。
+
+邀请与入队申请卡片在 `language.yml` 的 `cards` 下配置。
+
+| 路径                   | 卡片   | 可用变量                         |
+|----------------------|------|------------------------------|
+| `cards.invite`       | 邀请组队 | `{player}` 邀请者，`{party}` 队伍名 |
+| `cards.join-request` | 申请入队 | `{player}` 申请者，`{party}` 队伍名 |
+
+每类卡片都可修改以下六项。
+
+```yaml
+cards:
+  invite:
+    title: "{player} 邀请你加入 {party}"
+    prompt: "请在倒计时结束前选择"
+    handled: "请求已提交"
+    expired: "邀请已失效"
+    accept: "接受"
+    deny: "拒绝"
+```
+
+`title` 为标题，`prompt` 为待处理提示，`handled` 为处理后提示，`expired` 为到期提示，`accept` 和 `deny` 为按钮文字。修改后执行 `/cohort reload`，新发出的卡片会使用新文字。

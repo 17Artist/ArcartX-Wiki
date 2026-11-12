@@ -1,0 +1,119 @@
+---
+title: 开发者 API
+description: 查询队伍身份、成员与队友 UUID
+---
+
+## 依赖与获取服务
+
+Cohort 授权成功后注册服务。调用方启用时服务可能尚未就绪，可通过 Bukkit 服务事件获取和释放引用。
+
+将插件 JAR 放入调用方项目的 `libs/`，用 `compileOnly` 声明依赖。
+
+```kotlin
+dependencies {
+    compileOnly(files("libs/Cohort-1.0.0.jar"))
+}
+```
+
+
+```java
+import org.bukkit.Bukkit;
+import priv.seventeen.artist.arcartx.cohort.api.CohortService;
+
+// 返回 null 表示 Cohort 尚未注册服务或已停用。
+CohortService cohort = Bukkit.getServicesManager().load(CohortService.class);
+if (cohort != null) {
+    // 使用当前服务查询队伍。
+}
+```
+
+也可使用快捷入口。
+
+```java
+import priv.seventeen.artist.arcartx.cohort.api.CohortAPI;
+import priv.seventeen.artist.arcartx.cohort.api.CohortService;
+
+if (CohortAPI.isAvailable()) {
+    CohortService cohort = CohortAPI.get();
+}
+```
+
+`isAvailable()` 表示当前已有服务注册，`get()` 在未注册时抛出 `IllegalStateException`。需要长期保存引用时，使用下面的服务监听方式。
+
+
+## 查询方法
+
+参数均为非空玩家 UUID。以下查询可异步调用，只读本服缓存，支持已同步的跨服队伍。
+
+| 方法                                               | 返回值                                | 无队伍、未缓存或服务不可用时     |
+|--------------------------------------------------|------------------------------------|--------------------|
+| `boolean hasParty(UUID playerId)`                | 是否存在队伍快照                           | `false`            |
+| `PartyRole roleOf(UUID playerId)`                | 队长 `LEADER`、队员 `MEMBER`、无身份 `NONE` | `NONE`             |
+| `Optional<PartyView> partyOf(UUID playerId)`     | 包含队伍及全部成员的快照                       | `Optional.empty()` |
+| `List<PartyMemberView> membersOf(UUID playerId)` | 按加入顺序排列的全部成员，包含本人                  | 空列表                |
+| `Set<UUID> teammateIds(UUID playerId)`           | 同队其他成员的 UUID 集合，包含缓存中的跨服成员         | 空集合                |
+
+`teammateIds` 返回同队其他成员的 UUID，可频繁查询。名单未变时复用同一个只读集合，队伍只剩本人时返回空集合。
+
+返回的记录与集合都是不可修改的快照，获取新状态时重新查询。一次操作需要队伍资料和成员列表时，使用同一个 `PartyView`。跨服同步或连接异常时，缓存可能暂时缺失或滞后。
+
+服务暂不可用时也会返回表中的空值，应将其作为本次查询未取得结果处理。
+
+以下示例查询同队关系和成员列表。
+
+```java
+import java.util.Set;
+import java.util.UUID;
+import priv.seventeen.artist.arcartx.cohort.api.CohortService;
+import priv.seventeen.artist.arcartx.cohort.api.PartyMemberView;
+import priv.seventeen.artist.arcartx.cohort.api.PartyView;
+
+public final class PartyExample {
+    public static boolean sharesParty(CohortService cohort, UUID playerId, UUID otherId) {
+        Set<UUID> teammates = cohort.teammateIds(playerId);
+        return teammates.contains(otherId);
+    }
+
+    public static String describe(CohortService cohort, UUID playerId) {
+        PartyView party = cohort.partyOf(playerId).orElse(null);
+        if (party == null) return "暂无队伍";
+        StringBuilder text = new StringBuilder(party.name());
+        for (PartyMemberView member : party.members()) {
+            text.append(' ').append(member.name()).append('(').append(member.role()).append(')');
+        }
+        return text.toString();
+    }
+}
+```
+
+## PartyView
+
+`PartyView` 是 Java record，包含以下访问器。
+
+| 访问器                      | 类型                      | 含义                      |
+|--------------------------|-------------------------|-------------------------|
+| `id()`                   | `UUID`                  | 队伍标识，重新创建队伍会生成新值        |
+| `name()`                 | `String`                | 队伍名称                    |
+| `description()`          | `String`                | 简介，可以为空                 |
+| `leaderId()`             | `UUID`                  | 当前队长，必定是成员之一            |
+| `members()`              | `List<PartyMemberView>` | 按加入顺序排列的全部成员，包含队长和查询者本人 |
+| `maximumSize()`          | `int`                   | 当前 Bukkit 端配置的人数上限      |
+| `revision()`             | `long`                  | 同一队伍内的状态修订号             |
+| `code()`                 | `String`                | 队伍码，仅公开队伍允许凭码加入         |
+| `privateParty()`         | `boolean`               | 是否为私密队伍                 |
+| `joinApprovalRequired()` | `boolean`               | 入队审核设置，对公开队伍生效          |
+
+## PartyMemberView
+
+`PartyMemberView` 同样是 Java record。
+
+| 访问器          | 类型          | 含义                                   |
+|--------------|-------------|--------------------------------------|
+| `uniqueId()` | `UUID`      | 成员 UUID                              |
+| `name()`     | `String`    | 入队时记录的玩家名                            |
+| `role()`     | `PartyRole` | 该快照中的队长或队员身份                         |
+| `joinedAt()` | `long`      | 加入时间，Unix 毫秒时间戳                      |
+| `online()`   | `boolean`   | 缓存中的在线状态，换服和离线检测期间可能滞后               |
+| `server()`   | `String`    | 成员所在 Bukkit 端的 `server-id`，没有在线状态时为空 |
+
+需要成员血量或等级等数值，可使用 [成员数据占位符](./5_integrations#按位置读取成员数据)。

@@ -1,0 +1,88 @@
+---
+title: 插件联动与客户端资源
+description: 部署客户端资源，设置 Chorus 频道、邀请按钮和占位符
+---
+
+## 队伍频道
+
+Cohort 通过 Chorus 提供队伍频道。频道名称、图标、排序和聊天格式在 `config.yml` 的 `integrations` 下设置。
+
+```yaml
+integrations:
+  placeholder-api: true
+  chorus-invite-action-id: "cohort-invite"
+  chorus-party-channel:
+    id: "cohort-party"
+    display-name: "队伍"
+    priority: 900
+    icon: "cohort/icons/channel-party.png"
+    active-icon: "cohort/icons/channel-party-active.png"
+    prefix: "&8[&b队伍&8] &r"
+    filter-prefix: "[队伍] "
+    send-permission: ""
+    receive-permission: ""
+    message-format: "&b{player}&8: &f{message}"
+```
+
+- `priority` 越大，频道越靠前。图标路径相对于客户端资源目录。
+- `message-format` 必须包含 `{player}` 和 `{message}`，支持PAPI。例如 `"&7[%cohort_role%] &b{player}&8: &f{message}"`。
+- 收发权限留空时，同队成员可正常交流。填写后额外检查对应权限，发送者仍能看到自己的消息。
+- 跨服各端应使用相同的频道 ID 和邀请操作 ID，并安装配套的 Chorus Bukkit 及代理组件。
+
+## 玩家面板邀请按钮
+
+在 Chorus 的 `player-actions.yml` 中添加以下按钮。
+
+```yaml
+buttons:
+  cohort-invite:
+    enabled: true
+    title: "邀请组队"
+    description: "邀请该玩家加入你的队伍"
+    priority: 920
+    permission: "cohort.invite"
+    trigger:
+      type: ACTION
+      value: "cohort-invite"
+```
+
+`trigger.value` 应与 Cohort 的 `chorus-invite-action-id` 相同。修改后在对应 Bukkit 端执行 `/chorus reload`。
+
+## Redact 内容审核
+
+队伍名称和简介由 Redact 审核。云审核按 Redact 自身的配置启用，未配置时使用本地审核。已启用的云审核服务出错时，本次资料修改失败。
+
+## PlaceholderAPI
+
+安装 PlaceholderAPI，并在 Cohort 中开启 `integrations.placeholder-api` 后，可使用以下占位符。
+
+| 占位符                                                 | 返回值                    |
+|-----------------------------------------------------|------------------------|
+| `%cohort_has_party%`                                | 是否有队伍，`true` 或 `false` |
+| `%cohort_role%`                                     | 身份文字，默认「小队队长」或「小队队友」   |
+| `%cohort_leader_role%`                              | 仅队长显示身份文字              |
+| `%cohort_member_role%`                              | 仅普通成员显示身份文字            |
+| `%cohort_name%`、`%cohort_party_name%`               | 队伍名称                   |
+| `%cohort_description%`、`%cohort_party_description%` | 队伍简介                   |
+| `%cohort_size%`                                     | 当前人数                   |
+| `%cohort_max_size%`                                 | 人数上限                   |
+| `%cohort_leader%`                                   | 队长名称                   |
+| `%cohort_code%`、`%cohort_party_code%`               | 队伍码                    |
+| `%cohort_private%`                                  | 是否为私密队伍                |
+| `%cohort_join_approval%`                            | 是否需要审核入队               |
+
+没有队伍或数据尚未加载时，队伍相关的布尔值返回 `false`，人数返回 `0`，文字返回空。
+
+### 按位置读取成员数据
+
+格式为 `%cohort_<位置>_<数据名>%`，数据名对应 `hud.yml` 的 `values`。位置从 1 开始，按加入顺序排列，包含自己。有人离队后，后面的成员依次前移。
+
+| 示例                        | 含义                                       |
+|---------------------------|------------------------------------------|
+| `%cohort_2_health%`       | 2 号位成员的生命值                               |
+| `%cohort_2_level%`        | 2 号位成员的等级                                |
+| `%cohort_2_player_level%` | 配置 `level: "%player_level%"` 时，同样读取该成员等级 |
+
+当配置值是一个完整的 PAPI 占位符时，可以使用其原名称作为后缀。后缀优先匹配 `values` 中的数据名。
+
+跨服时，这些占位符读取队友所在子服同步过来的结果，可用于记分板或其他菜单。各端应使用相同的 `values` 配置。位置不存在、成员离线或数据尚未同步时返回空。
