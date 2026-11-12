@@ -1,0 +1,129 @@
+---
+title: ArcartX UI 协议
+description: 自定义大厅、队伍页、HUD 和聊天卡片时使用的数据包
+---
+
+## 组队大厅
+
+`state` 包包含分页信息和当前页的公开队伍。
+
+```json
+{
+  "page": 1,
+  "pages": 3,
+  "pageSize": 4,
+  "parties": [
+    {
+      "code": "AX7K9Q",
+      "name": "苍蓝远征队",
+      "description": "目标：深渊回廊",
+      "leader": "Aster",
+      "size": 3,
+      "maximum": 4,
+      "joinApprovalRequired": true
+    }
+  ]
+}
+```
+
+空大厅返回 `page: 1`、`pages: 1` 和空的 `parties` 数组。
+
+| 动作       | 按顺序传入的参数                         |
+|----------|----------------------------------|
+| `page`   | 页码，从 1 开始，最多 1000000，由服务端调整到有效页数 |
+| `join`   | 4 至 12 位字母或数字队伍码                 |
+| `create` | 无参数                              |
+
+## 队伍页与 HUD
+
+队伍页的 `state` 和 HUD 的 `members` 共用以下结构。
+
+```json
+{
+  "hasParty": true,
+  "name": "苍蓝远征队",
+  "description": "目标：深渊回廊",
+  "code": "AX7K9Q",
+  "private": false,
+  "joinApprovalRequired": true,
+  "maximum": 4,
+  "viewerRole": "leader",
+  "members": [
+    {
+      "uuid": "00000000-0000-4000-8000-000000000002",
+      "name": "Mori",
+      "displayId": "47",
+      "role": "leader",
+      "online": true,
+      "values": {
+        "health": "13.6",
+        "max_health": "20"
+      },
+      "healthRatio": 0.68
+    }
+  ]
+}
+```
+
+`viewerRole` 取 `leader`、`member` 或 `none`。HUD 包中它为 `none`，成员列表已排除查看者本人。成员均按加入顺序排列。
+
+`values` 来自 `hud.yml`，值均为字符串。`displayId` 使用成员 ID 配置，示例假定格式为 `%player_level%`。`healthRatio` 为 0 至 1 的血量比例。
+
+### 单个成员更新
+
+成员数据变化时，队伍页收到以下 `member` 包，按 UUID 更新对应条目。
+
+```json
+{
+  "uuid": "00000000-0000-4000-8000-000000000002",
+  "displayId": "47",
+  "values": {
+    "health": "18.4",
+    "max_health": "20"
+  },
+  "healthRatio": 0.92,
+  "online": true
+}
+```
+
+HUD 的 `member` 包仅包含 `uuid` 和 `values`，血量比例由客户端计算。打开或重载 HUD、重建成员列表时，也会补发成员数值。
+
+### 队伍操作
+
+| 动作        | 按顺序传入的参数                                              |
+|-----------|-------------------------------------------------------|
+| `invite`  | 3 至 16 位 Minecraft 玩家名                                |
+| `profile` | 名称、简介，实际资料最多 32 / 160 个 Unicode 字符，包字段上限为 64 / 320 字符 |
+| `access`  | 是否私密、是否审核，均填严格布尔值                                     |
+| `kick`    | 目标成员 UUID                                             |
+| `disband` | 无参数                                                   |
+| `leave`   | 无参数                                                   |
+
+例如 `Packet.send('access', 'false', 'true')` 将队伍设为公开且需要审核。服务端会检查操作者身份和权限。
+
+## 聊天卡片
+
+| 卡片   | ID                          | 文件                            |
+|------|-----------------------------|-------------------------------|
+| 邀请组队 | `Cohort:party_invite`       | `card/party_invite.yml`       |
+| 申请入队 | `Cohort:party_join_request` | `card/party_join_request.yml` |
+
+
+| 字段                                       | 含义                     |
+|------------------------------------------|------------------------|
+| `title`                                  | 标题                     |
+| `promptText`、`handledText`、`expiredText` | 待处理、已处理、已到期提示          |
+| `acceptText`、`denyText`                  | 接受和拒绝按钮文字              |
+| `createdAt`、`expiresAt`                  | 创建和到期时间，Unix 毫秒时间戳的字符串 |
+| `request`                                | 本次请求的 UUID 字符串         |
+
+卡片文本在 `language.yml` 的 `cards` 下设置，`prompt`、`handled`、`expired`、`accept`、`deny` 分别对应带 `Text` 后缀的字段。点击时只发送一个请求引用。
+
+```text
+Packet.send('accept', <request>)
+Packet.send('deny', <request>)
+```
+
+发送前将该请求标记为已处理并禁用按钮。默认卡片通过 `global.cohort_card_handled` 保存处理状态，以 `request` 为键，在 `expiresAt` 到期时清理。
+
+接受邀请时会检查目标玩家、有效期和队伍容量。处理入队申请时，还检查当前队长身份和队伍是否公开。

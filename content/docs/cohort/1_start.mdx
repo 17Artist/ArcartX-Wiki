@@ -1,0 +1,65 @@
+---
+title: 说明与安装
+description: 安装 Cohort，完成授权并开启单服或跨服组队
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Cohort 为 ArcartX 提供组队大厅、队伍管理和队友 HUD，支持单服与跨服组队。
+
+<Callout type="warn">
+Cohort 是独立付费插件，需要购买后取得的许可证 ID 和密钥。
+</Callout>
+
+## 运行条件
+
+- Java 17+、Paper 1.18.2+。
+- 必装前置为 ArcartX 2.6.72.10+、Redact 1.0.0+ 和 Chorus 1.0.5+。
+- 可选安装 PlaceholderAPI 2.11.6+。
+
+## 安装步骤
+
+<Steps>
+<Step>
+
+### 安装插件
+
+将 `Cohort.jar` 放入需要组队功能的 Bukkit 端 `plugins/` 目录，安装前置插件后启动服务器。
+
+</Step>
+<Step>
+
+### 填写授权
+
+在首次启动生成的 `plugins/Cohort/license.yml` 中填写购买凭据。
+
+```yaml
+licenseId: 0
+licenseKey: "XXX"
+```
+
+填写后完整重启。授权成功后会生成玩法配置和界面文件。
+
+</Step>
+<Step>
+
+### 选择单服或跨服
+
+单服使用默认的 `storage-mode: LOCAL`。
+
+跨服模式，将各 Bukkit 端 `config.yml` 的 `storage-mode` 改为 `REDIS`，并分别设置不同的 `server-id`。
+
+在 `redis.yml` 开启 `enabled`，填写同一 Redis 的连接信息、逻辑数据库和 `key-prefix`，然后重启各端。[Redis 配置](./4_configuration#redis)
+
+注意，跨服队伍聊天还需安装对应代理端的 Chorus 组件。
+
+</Step>
+<Step>
+
+### 安装客户端资源并打开界面
+
+将附带资源包放入玩家使用的 ArcartX 客户端资源目录。玩家登录后执行 `/cohort open` 即可打开组队界面。
+
+</Step>
+</Steps>

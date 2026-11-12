@@ -1,0 +1,49 @@
+{
+    "title": "Cohort — 小队",
+    "description": "组队、组队大厅与队友 HUD",
+    "icon": "logo/cohort-logo.png",
+    "tags": [
+        {
+            "label": "闭源",
+            "color": "#DC143C"
+        },
+        {
+            "label": "付费",
+            "color": "#FF4500"
+        },
+        {
+            "label": "基础玩法",
+            "color": "#2563EB"
+        },
+        {
+            "label": "社交",
+            "color": "#0EA5E9"
+        },
+        {
+            "label": "UI",
+            "color": "#8B5CF6"
+        },
+        {
+            "label": "API",
+            "color": "#8B5CF6"
+        }
+    ],
+    "root": true,
+    "color": "#38BDF8",
+    "entry": "cohort/1_start",
+    "tagline": "单服与跨服组队",
+    "order": 20.5,
+    "defaultOpen": true,
+    "pages": [
+        "---使用---",
+        "1_start",
+        "2_player",
+        "3_admin",
+        "---服主配置---",
+        "4_configuration",
+        "5_integrations",
+        "---开发者参考---",
+        "6_api",
+        "7_ui_protocol"
+    ]
+}
